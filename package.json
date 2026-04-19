@@ -10,7 +10,7 @@
     "pages:build": "npx @opennextjs/cloudflare build && mv .open-next/worker.js .open-next/_worker.js && cp -r .open-next/assets/* .open-next/"
   },
   "dependencies": {
-    "@opennextjs/cloudflare": "^1.19.1",
+    "@opennextjs/cloudflare": "^1.13.0",
     "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.103.3",
     "clsx": "^2.1.1",
