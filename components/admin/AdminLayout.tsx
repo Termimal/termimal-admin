@@ -1,8 +1,6 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { cn } from '@/lib/utils'
-import ThemeToggle from '@/components/ui/ThemeToggle'
 import { LayoutDashboard, Users, CreditCard, FileText, Languages, Flag, Tag, Shield, BarChart3, Settings, LogOut } from 'lucide-react'
 
 const navItems = [
@@ -29,7 +27,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             const active = pathname === item.href
             return (
               <Link key={item.href} href={item.href}
-                className={cn('flex items-center gap-2 px-2.5 py-1.5 rounded-md text-[0.72rem] font-medium transition-all')}
+                className="flex items-center gap-2 px-2.5 py-1.5 rounded-md text-[0.72rem] font-medium transition-all"
                 style={{ background: active ? 'var(--bh)' : 'transparent', color: active ? 'var(--t1)' : 'var(--t3)' }}>
                 <item.icon size={14} /> {item.label}
               </Link>
@@ -37,7 +35,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           })}
         </nav>
         <div className="flex items-center gap-2 mt-auto pt-3 border-t" style={{ borderColor: 'var(--border)' }}>
-          <ThemeToggle />
           <Link href="/" className="text-[0.65rem] font-medium" style={{ color: 'var(--t4)' }}>← Back to site</Link>
         </div>
       </aside>
