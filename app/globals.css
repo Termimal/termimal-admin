@@ -1,26 +1,93 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+:root,
+[data-theme="dark"] {
+  --bg: #07070e;
+  --bg2: #0c0c16;
+  --bg3: #111119;
+  --surface: rgba(255, 255, 255, 0.05);
+  --border: rgba(255, 255, 255, 0.12);
+  --bh: rgba(255, 255, 255, 0.25);
+  --t1: #f0f0f2;
+  --t2: rgba(255, 255, 255, 0.76);
+  --t3: rgba(255, 255, 255, 0.58);
+  --t4: rgba(255, 255, 255, 0.34);
+  --acc: #34d399;
+  --acc2: #059669;
+  --acc-d: rgba(52, 211, 153, 0.07);
+  --blue: #60a5fa;
+  --red: #f87171;
+  --amber: #fbbf24;
+  --purple: #a78bfa;
+  --green-val: #34d399;
+  --red-val: #f87171;
+  --nav-bg: rgba(7, 7, 14, 0.90);
+  --card: rgba(255, 255, 255, 0.04);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+[data-theme="light"] {
+  --bg: #f5f5f7;
+  --bg2: #ebebef;
+  --bg3: #e0e0e6;
+  --surface: rgba(0, 0, 0, 0.04);
+  --border: rgba(0, 0, 0, 0.15);
+  --bh: rgba(0, 0, 0, 0.25);
+  --t1: #111111;
+  --t2: rgba(0, 0, 0, 0.78);
+  --t3: rgba(0, 0, 0, 0.62);
+  --t4: rgba(0, 0, 0, 0.40);
+  --acc: #059669;
+  --acc2: #047857;
+  --acc-d: rgba(5, 150, 105, 0.07);
+  --blue: #2563eb;
+  --red: #dc2626;
+  --amber: #d97706;
+  --purple: #7c3aed;
+  --green-val: #059669;
+  --red-val: #dc2626;
+  --nav-bg: rgba(245, 245, 247, 0.90);
+  --card: rgba(0, 0, 0, 0.04);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--t1);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+::selection {
+  background: rgba(52, 211, 153, 0.25);
+}
+
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-thumb {
+  background: rgba(128, 128, 128, 0.25);
+  border-radius: 4px;
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-[0.8125rem] font-semibold cursor-pointer transition-all;
+    color: #fff;
+    background: var(--acc2);
+  }
+  .btn-primary:hover { filter: brightness(1.15); }
+  .btn-primary:active { transform: scale(0.97); }
+
+  .btn-secondary {
+    @apply inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-[0.8125rem] font-medium cursor-pointer transition-all;
+    color: var(--t2);
+    border: 1px solid var(--border);
+    background: transparent;
+  }
+  .btn-secondary:hover {
+    border-color: var(--bh);
+    color: var(--t1);
+  }
 }
