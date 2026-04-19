@@ -7,8 +7,7 @@
   "build": "next build",
   "start": "next start",
   "lint": "eslint",
-  "pages:build": "npx @opennextjs/cloudflare build && mv .open-next/worker.js .open-next/_worker.js && cp -r .open-next/assets/_next .open-next/_next"
-},
+  "pages:build": "npx @opennextjs/cloudflare build"
   "dependencies": {
     "@opennextjs/cloudflare": "^1.19.1",
     "@supabase/ssr": "^0.10.2",
