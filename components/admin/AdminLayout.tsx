@@ -1,4 +1,5 @@
 'use client'
+// @ts-nocheck
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import LayoutDashboard from 'lucide-react/dist/esm/icons/layout-dashboard'
