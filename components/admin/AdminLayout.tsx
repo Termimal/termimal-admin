@@ -1,7 +1,17 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Users, CreditCard, FileText, Languages, Flag, Tag, Shield, BarChart3, Settings, LogOut } from 'lucide-react'
+import LayoutDashboard from 'lucide-react/dist/esm/icons/layout-dashboard'
+import Users from 'lucide-react/dist/esm/icons/users'
+import CreditCard from 'lucide-react/dist/esm/icons/credit-card'
+import FileText from 'lucide-react/dist/esm/icons/file-text'
+import Languages from 'lucide-react/dist/esm/icons/languages'
+import Flag from 'lucide-react/dist/esm/icons/flag'
+import Tag from 'lucide-react/dist/esm/icons/tag'
+import Shield from 'lucide-react/dist/esm/icons/shield'
+import BarChart3 from 'lucide-react/dist/esm/icons/bar-chart-3'
+import Settings from 'lucide-react/dist/esm/icons/settings'
+import LogOut from 'lucide-react/dist/esm/icons/log-out'
 
 const navItems = [
   { label: 'Dashboard', href: '/admin', icon: LayoutDashboard },
