@@ -1,11 +1,8 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-  // Force Next.js to minify the server bundle to fit under Cloudflare's 3MB limit
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
   experimental: {
-    serverMinification: true,
+    runtime: "edge",
   },
 };
 
