@@ -1,10 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Required for Cloudflare Pages
-  experimental: {
-    runtime: "edge",
-  },
+  // Add any valid config here, but remove experimental.runtime
 };
 
 export default nextConfig;
