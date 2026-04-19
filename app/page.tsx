@@ -1,3 +1,5 @@
+export const runtime = "edge";
+
 export default function ContentPage() {
   return (
     <div className="flex flex-col gap-6">
@@ -14,5 +16,5 @@ export default function ContentPage() {
         <p className="text-sm">No content entries yet.</p>
       </div>
     </div>
-  )
+  );
 }
