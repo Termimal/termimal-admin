@@ -1,13 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   typescript: {
-    // !! WARN !!
-    // Dangerously allow production builds to successfully complete even if
-    // your project has type errors.
-    // !! WARN !!
     ignoreBuildErrors: true,
   },
-  // ... any other config options you already had here
+  // Force Next.js to minify the server bundle to fit under Cloudflare's 3MB limit
+  experimental: {
+    serverMinification: true,
+  },
 };
 
 export default nextConfig;
