@@ -48,7 +48,7 @@ export default function PaymentsPage() {
               <div 
                 className="w-full rounded-t-sm transition-all duration-500 hover:opacity-80" 
                 style={{ 
-                  height: `${d.rate}%`, 
+                  height: d.rate + "%", 
                   background: d.rate < 97 ? 'var(--amber)' : 'var(--acc)',
                   minHeight: '10%'
                 }} 
