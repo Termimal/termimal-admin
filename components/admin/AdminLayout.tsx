@@ -2,17 +2,19 @@
 // @ts-nocheck
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import LayoutDashboard from 'lucide-react/dist/esm/icons/layout-dashboard'
-import Users from 'lucide-react/dist/esm/icons/users'
-import CreditCard from 'lucide-react/dist/esm/icons/credit-card'
-import FileText from 'lucide-react/dist/esm/icons/file-text'
-import Languages from 'lucide-react/dist/esm/icons/languages'
-import Flag from 'lucide-react/dist/esm/icons/flag'
-import Tag from 'lucide-react/dist/esm/icons/tag'
-import Shield from 'lucide-react/dist/esm/icons/shield'
-import BarChart3 from 'lucide-react/dist/esm/icons/bar-chart-3'
-import Settings from 'lucide-react/dist/esm/icons/settings'
-import LogOut from 'lucide-react/dist/esm/icons/log-out'
+import {
+  LayoutDashboard,
+  Users,
+  CreditCard,
+  FileText,
+  Languages,
+  Flag,
+  Tag,
+  Shield,
+  BarChart3,
+  Settings,
+  LogOut,
+} from 'lucide-react'
 
 const navItems = [
   { label: 'Dashboard', href: '/admin', icon: LayoutDashboard },
@@ -29,7 +31,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <div className="min-h-screen flex" style={{ background: 'var(--bg)' }}>
       <aside className="w-52 shrink-0 p-3 flex flex-col border-r" style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}>
         <div className="flex items-center gap-2 mb-6 px-2 pt-1">
-          <div className="relative w-5 h-5"><div className="absolute inset-0 rounded-[2px] rotate-45 border" style={{ borderColor: 'var(--acc)', opacity: .5 }} /><div className="absolute inset-[2px] rounded-[1px] rotate-45" style={{ background: 'var(--acc)' }} /></div>
+          <div className="relative w-5 h-5">
+            <div className="absolute inset-0 rounded-[2px] rotate-45 border" style={{ borderColor: 'var(--acc)', opacity: .5 }} />
+            <div className="absolute inset-[2px] rounded-[1px] rotate-45" style={{ background: 'var(--acc)' }} />
+          </div>
           <span className="text-[0.78rem] font-semibold">Termimal</span>
           <span className="text-[0.55rem] font-bold px-1.5 py-0.5 rounded ml-auto" style={{ color: 'var(--red-val)', background: 'rgba(248,113,113,.1)' }}>ADMIN</span>
         </div>
