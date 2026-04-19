@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "pages:build": "npx opennextjs-cloudflare build && mv .open-next/worker.js .open-next/_worker.js && cp -a .open-next/assets/. .open-next/ || true && echo '{\"version\": 1, \"include\": [\"/*\"], \"exclude\": [\"/_next/static/*\"]}' > .open-next/_routes.json"
   },
   "dependencies": {
     "@opennextjs/cloudflare": "^1.19.1",
