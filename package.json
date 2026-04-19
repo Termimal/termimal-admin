@@ -2,12 +2,13 @@
   "name": "termimal-admin",
   "version": "0.1.0",
   "private": true,
-  "scripts": {
+"scripts": {
   "dev": "next dev",
   "build": "next build",
   "start": "next start",
   "lint": "eslint",
-"pages:build": "npx @opennextjs/cloudflare build && mv .open-next/worker.js .open-next/_worker.js && cp -r .open-next/assets/_next .open-next/_next && cp -r .open-next/assets/favicon.ico .open-next/ 2>/dev/null || true"
+  "pages:build": "npx @opennextjs/cloudflare build && mv .open-next/worker.js .open-next/_worker.js && cp -r .open-next/assets/_next .open-next/_next"
+},
   "dependencies": {
     "@opennextjs/cloudflare": "^1.19.1",
     "@supabase/ssr": "^0.10.2",
