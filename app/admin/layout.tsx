@@ -1,5 +1,3 @@
-export const dynamic = 'force-dynamic';
-
 import { redirect } from 'next/navigation'
 import { createServerSupabase } from '@/lib/supabase/server'
 // Import the client component that contains your sidebar UI
@@ -24,7 +22,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     redirect('/dashboard')
   }
 
-  // Wrap the children in your nice sidebar UI component
+  // Wrap the admin children in your nice sidebar UI component
   return (
     <AdminSidebarLayout>
       {children}
