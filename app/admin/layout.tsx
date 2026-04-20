@@ -1,28 +1,9 @@
-import { redirect } from 'next/navigation'
-import { createServerSupabase } from '@/lib/supabase/server'
-// Import the client component that contains your sidebar UI
+export const runtime = 'edge'; // Cloudflare requires this
+
 import AdminSidebarLayout from '@/components/admin/AdminLayout'
 
-export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const supabase = createServerSupabase()
-
-  const { data: { user }, error: userError } = await supabase.auth.getUser()
-
-  if (userError || !user) {
-    redirect('/login')
-  }
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single()
-
-  if (profile?.role !== 'admin') {
-    redirect('/dashboard')
-  }
-
-  // Wrap the admin children in your nice sidebar UI component
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  // Let middleware or the page components handle the auth redirect
   return (
     <AdminSidebarLayout>
       {children}

@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import { DM_Sans } from 'next/font/google'
 import './globals.css'
 
-// Force dynamic rendering globally to fix Cloudflare build issues
 export const dynamic = 'force-dynamic';
+export const runtime = 'edge'; // Cloudflare requires this
 
 const dmSans = DM_Sans({
   variable: '--font-dm-sans',
@@ -23,7 +23,6 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${dmSans.variable} h-full antialiased`}>
       <head>
-        {/* Forces Cloudflare to load the favicon statically, fixing the image bug */}
         <link rel="icon" href="/favicon.ico" sizes="any" />
       </head>
       <body className="min-h-full flex flex-col">
