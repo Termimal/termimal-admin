@@ -1,14 +1,8 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { Plus, Search } from 'lucide-react'
-
-const articles = [
-  { title: 'Understanding COT Reports for S&P 500', status: 'Published', cat: 'Education', date: 'Mar 28, 2026', author: 'Editorial' },
-  { title: 'Weekly Macro Brief: Fed Holds, VIX Spikes', status: 'Published', cat: 'Analysis', date: 'Mar 25, 2026', author: 'Research' },
-  { title: 'v2.4.1 Release Notes', status: 'Published', cat: 'Product', date: 'Mar 28, 2026', author: 'Engineering' },
-  { title: 'On-Chain Valuation Guide: MVRV Explained', status: 'Draft', cat: 'Education', date: 'Mar 30, 2026', author: 'Editorial' },
-  { title: 'Crypto Market Sentiment Dashboard', status: 'Scheduled', cat: 'Product', date: 'Apr 1, 2026', author: 'Product' },
-]
+import { createClient } from '@/lib/supabase/client'
 
 const statusStyle: Record<string, { color: string; bg: string }> = {
   Published: { color: 'var(--green-val)', bg: 'rgba(52,211,153,.1)' },
@@ -16,7 +10,35 @@ const statusStyle: Record<string, { color: string; bg: string }> = {
   Scheduled: { color: 'var(--blue)', bg: 'rgba(96,165,250,.1)' },
 }
 
+// Define the type for our database row
+type Article = {
+  id: string
+  title: string
+  status: string
+  category: string
+  author: string
+  published_date: string
+}
+
 export default function ContentPage() {
+  const supabase = createClient()
+  const [articles, setArticles] = useState<Article[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function fetchArticles() {
+      const { data } = await supabase
+        .from('articles')
+        .select('*')
+        .order('created_at', { ascending: false })
+      
+      if (data) setArticles(data)
+      setLoading(false)
+    }
+    
+    fetchArticles()
+  }, [supabase])
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center gap-3 mb-4">
@@ -25,10 +47,13 @@ export default function ContentPage() {
           <input placeholder="Search articles..." className="bg-transparent outline-none text-[0.78rem] w-full" style={{ color: 'var(--t1)' }} />
         </div>
         <select className="px-3 py-2 rounded-lg text-[0.72rem]" style={{ border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--t2)' }}>
-          <option>All statuses</option><option>Published</option><option>Draft</option><option>Scheduled</option>
+          <option>All statuses</option>
+          <option>Published</option>
+          <option>Draft</option>
+          <option>Scheduled</option>
         </select>
         <button 
-          className="text-[0.72rem] py-2 px-4 flex items-center justify-center gap-1.5 rounded-lg font-semibold"
+          className="text-[0.72rem] py-2 px-4 flex items-center justify-center gap-1.5 rounded-lg font-semibold hover:opacity-90 transition-opacity"
           style={{ background: 'var(--acc)', color: 'white' }}
         >
           <Plus size={14} /> New article
@@ -44,23 +69,42 @@ export default function ContentPage() {
               ))}
             </tr>
           </thead>
-          <tbody>
-            {articles.map(a => (
-              <tr key={a.title} className="transition-colors hover:opacity-80" style={{ borderBottom: '1px solid var(--border)' }}>
-                <td className="px-4 py-2.5 font-semibold">{a.title}</td>
-                <td className="px-4 py-2.5" style={{ color: 'var(--t3)' }}>{a.cat}</td>
-                <td className="px-4 py-2.5" style={{ color: 'var(--t3)' }}>{a.author}</td>
-                <td className="px-4 py-2.5">
-                  <span className="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded" style={{ color: statusStyle[a.status].color, background: statusStyle[a.status].bg }}>
-                    {a.status}
-                  </span>
-                </td>
-                <td className="px-4 py-2.5 font-mono" style={{ color: 'var(--t4)' }}>{a.date}</td>
-                <td className="px-4 py-2.5 text-right">
-                  <button className="text-[0.68rem] font-medium hover:underline" style={{ color: 'var(--acc)' }}>Edit</button>
+          <tbody className="divide-y" style={{ borderColor: 'var(--border)' }}>
+            {loading ? (
+              <tr>
+                <td colSpan={6} className="px-4 py-8 text-center" style={{ color: 'var(--t3)' }}>
+                  Loading articles...
                 </td>
               </tr>
-            ))}
+            ) : articles.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="px-4 py-8 text-center" style={{ color: 'var(--t3)' }}>
+                  No articles found.
+                </td>
+              </tr>
+            ) : (
+              articles.map(a => (
+                <tr key={a.id} className="transition-colors hover:opacity-80" style={{ background: 'var(--bg)' }}>
+                  <td className="px-4 py-2.5 font-semibold">{a.title}</td>
+                  <td className="px-4 py-2.5" style={{ color: 'var(--t3)' }}>{a.category}</td>
+                  <td className="px-4 py-2.5" style={{ color: 'var(--t3)' }}>{a.author}</td>
+                  <td className="px-4 py-2.5">
+                    <span className="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded" style={{ 
+                      color: statusStyle[a.status]?.color || 'var(--t2)', 
+                      background: statusStyle[a.status]?.bg || 'var(--border)' 
+                    }}>
+                      {a.status}
+                    </span>
+                  </td>
+                  <td className="px-4 py-2.5 font-mono" style={{ color: 'var(--t4)' }}>
+                    {new Date(a.published_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </td>
+                  <td className="px-4 py-2.5 text-right">
+                    <button className="text-[0.68rem] font-medium hover:underline" style={{ color: 'var(--acc)' }}>Edit</button>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
