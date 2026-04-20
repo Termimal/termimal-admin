@@ -1,5 +1,4 @@
 'use client'
-import AdminLayout from '@/components/admin/AdminLayout'
 import { Search } from 'lucide-react'
 
 const users = [
@@ -16,7 +15,7 @@ const statusColor: Record<string, string> = { Active: 'var(--green-val)', Trial:
 
 export default function UsersPage() {
   return (
-    <AdminLayout>
+    <div className="flex flex-col gap-4">
       <div className="flex items-center gap-3 mb-4">
         <div className="flex items-center gap-2 flex-1 px-3 py-2 rounded-lg" style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}>
           <Search size={14} style={{ color: 'var(--t4)' }} />
@@ -33,29 +32,41 @@ export default function UsersPage() {
 
       <div className="rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
         <table className="w-full text-[0.75rem]">
-          <thead><tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}>
-            {['Name','Email','Plan','Status','Country','Joined',''].map(h => <th key={h} className="text-left px-4 py-2.5 text-[0.6rem] font-bold uppercase tracking-wider" style={{ color: 'var(--t4)' }}>{h}</th>)}
-          </tr></thead>
-          <tbody>{users.map(u => (
-            <tr key={u.id} className="transition-colors" style={{ borderBottom: '1px solid var(--border)' }}>
-              <td className="px-4 py-2.5 font-semibold">{u.name}</td>
-              <td className="px-4 py-2.5 font-mono" style={{ color: 'var(--t3)' }}>{u.email}</td>
-              <td className="px-4 py-2.5"><span className="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded" style={{ background: 'var(--acc-d)', color: 'var(--acc)' }}>{u.plan}</span></td>
-              <td className="px-4 py-2.5"><span className="text-[0.6rem] font-semibold" style={{ color: statusColor[u.status] }}>{u.status}</span></td>
-              <td className="px-4 py-2.5" style={{ color: 'var(--t3)' }}>{u.country}</td>
-              <td className="px-4 py-2.5 font-mono" style={{ color: 'var(--t4)' }}>{u.joined}</td>
-              <td className="px-4 py-2.5 text-right"><button className="text-[0.68rem] font-medium" style={{ color: 'var(--acc)' }}>View</button></td>
+          <thead>
+            <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}>
+              {['Name','Email','Plan','Status','Country','Joined',''].map(h => (
+                <th key={h} className="text-left px-4 py-2.5 text-[0.6rem] font-bold uppercase tracking-wider" style={{ color: 'var(--t4)' }}>{h}</th>
+              ))}
             </tr>
-          ))}</tbody>
+          </thead>
+          <tbody>
+            {users.map(u => (
+              <tr key={u.id} className="transition-colors" style={{ borderBottom: '1px solid var(--border)' }}>
+                <td className="px-4 py-2.5 font-semibold">{u.name}</td>
+                <td className="px-4 py-2.5 font-mono" style={{ color: 'var(--t3)' }}>{u.email}</td>
+                <td className="px-4 py-2.5">
+                  <span className="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded" style={{ background: 'var(--acc-d)', color: 'var(--acc)' }}>{u.plan}</span>
+                </td>
+                <td className="px-4 py-2.5">
+                  <span className="text-[0.6rem] font-semibold" style={{ color: statusColor[u.status] }}>{u.status}</span>
+                </td>
+                <td className="px-4 py-2.5" style={{ color: 'var(--t3)' }}>{u.country}</td>
+                <td className="px-4 py-2.5 font-mono" style={{ color: 'var(--t4)' }}>{u.joined}</td>
+                <td className="px-4 py-2.5 text-right">
+                  <button className="text-[0.68rem] font-medium" style={{ color: 'var(--acc)' }}>View</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
         </table>
       </div>
       <div className="flex items-center justify-between mt-3 text-[0.7rem]" style={{ color: 'var(--t4)' }}>
         <span>Showing 7 of 8,234 users</span>
         <div className="flex gap-1">
-          <button className="px-3 py-1 rounded" style={{ border: '1px solid var(--border)' }}>← Prev</button>
-          <button className="px-3 py-1 rounded" style={{ border: '1px solid var(--border)' }}>Next →</button>
+          <button className="px-3 py-1 rounded" style={{ border: '1px solid var(--border)' }}>&larr; Prev</button>
+          <button className="px-3 py-1 rounded" style={{ border: '1px solid var(--border)' }}>Next &rarr;</button>
         </div>
       </div>
-    </AdminLayout>
+    </div>
   )
 }

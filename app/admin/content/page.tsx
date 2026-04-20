@@ -1,5 +1,5 @@
 'use client'
-import AdminLayout from '@/components/admin/AdminLayout'
+
 import { Plus, Search } from 'lucide-react'
 
 const articles = [
@@ -18,7 +18,7 @@ const statusStyle: Record<string, { color: string; bg: string }> = {
 
 export default function ContentPage() {
   return (
-    <AdminLayout>
+    <div className="flex flex-col gap-4">
       <div className="flex items-center gap-3 mb-4">
         <div className="flex items-center gap-2 flex-1 px-3 py-2 rounded-lg" style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}>
           <Search size={14} style={{ color: 'var(--t4)' }} />
@@ -27,26 +27,43 @@ export default function ContentPage() {
         <select className="px-3 py-2 rounded-lg text-[0.72rem]" style={{ border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--t2)' }}>
           <option>All statuses</option><option>Published</option><option>Draft</option><option>Scheduled</option>
         </select>
-        <button className="btn-primary text-[0.72rem] py-2 px-4 gap-1"><Plus size={14} /> New article</button>
+        <button 
+          className="text-[0.72rem] py-2 px-4 flex items-center justify-center gap-1.5 rounded-lg font-semibold"
+          style={{ background: 'var(--acc)', color: 'white' }}
+        >
+          <Plus size={14} /> New article
+        </button>
       </div>
 
       <div className="rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
         <table className="w-full text-[0.75rem]">
-          <thead><tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}>
-            {['Title','Category','Author','Status','Date',''].map(h => <th key={h} className="text-left px-4 py-2.5 text-[0.6rem] font-bold uppercase tracking-wider" style={{ color: 'var(--t4)' }}>{h}</th>)}
-          </tr></thead>
-          <tbody>{articles.map(a => (
-            <tr key={a.title} style={{ borderBottom: '1px solid var(--border)' }}>
-              <td className="px-4 py-2.5 font-semibold">{a.title}</td>
-              <td className="px-4 py-2.5" style={{ color: 'var(--t3)' }}>{a.cat}</td>
-              <td className="px-4 py-2.5" style={{ color: 'var(--t3)' }}>{a.author}</td>
-              <td className="px-4 py-2.5"><span className="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded" style={{ color: statusStyle[a.status].color, background: statusStyle[a.status].bg }}>{a.status}</span></td>
-              <td className="px-4 py-2.5 font-mono" style={{ color: 'var(--t4)' }}>{a.date}</td>
-              <td className="px-4 py-2.5 text-right"><button className="text-[0.68rem] font-medium" style={{ color: 'var(--acc)' }}>Edit</button></td>
+          <thead>
+            <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}>
+              {['Title','Category','Author','Status','Date',''].map(h => (
+                <th key={h} className="text-left px-4 py-2.5 text-[0.6rem] font-bold uppercase tracking-wider" style={{ color: 'var(--t4)' }}>{h}</th>
+              ))}
             </tr>
-          ))}</tbody>
+          </thead>
+          <tbody>
+            {articles.map(a => (
+              <tr key={a.title} className="transition-colors hover:opacity-80" style={{ borderBottom: '1px solid var(--border)' }}>
+                <td className="px-4 py-2.5 font-semibold">{a.title}</td>
+                <td className="px-4 py-2.5" style={{ color: 'var(--t3)' }}>{a.cat}</td>
+                <td className="px-4 py-2.5" style={{ color: 'var(--t3)' }}>{a.author}</td>
+                <td className="px-4 py-2.5">
+                  <span className="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded" style={{ color: statusStyle[a.status].color, background: statusStyle[a.status].bg }}>
+                    {a.status}
+                  </span>
+                </td>
+                <td className="px-4 py-2.5 font-mono" style={{ color: 'var(--t4)' }}>{a.date}</td>
+                <td className="px-4 py-2.5 text-right">
+                  <button className="text-[0.68rem] font-medium hover:underline" style={{ color: 'var(--acc)' }}>Edit</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
         </table>
       </div>
-    </AdminLayout>
+    </div>
   )
 }

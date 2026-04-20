@@ -29,7 +29,7 @@ export default function AdminSEO() {
       setLoading(false)
     }
     loadSettings()
-  }, [])
+  }, [supabase])
 
   // Save the updated settings back to Supabase
   const handleSave = async (e: React.FormEvent) => {
@@ -60,13 +60,13 @@ export default function AdminSEO() {
     setTimeout(() => setMessage({ text: '', type: '' }), 3000)
   }
 
-  if (loading) return <div className="animate-pulse">Loading settings...</div>
+  if (loading) return <div className="animate-pulse text-sm" style={{ color: 'var(--t3)' }}>Loading settings...</div>
 
   return (
     <div className="max-w-2xl">
       <div className="mb-8">
-        <h1 className="section-title">SEO Settings</h1>
-        <p className="section-desc">Manage how your site appears on Google and social media.</p>
+        <h1 className="text-2xl font-bold tracking-tight mb-2">SEO Settings</h1>
+        <p className="text-sm" style={{ color: 'var(--t3)' }}>Manage how your site appears on Google and social media.</p>
       </div>
 
       <form onSubmit={handleSave} className="space-y-6 p-6 rounded-xl border" style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}>
@@ -136,7 +136,8 @@ export default function AdminSEO() {
           <button 
             type="submit" 
             disabled={saving}
-            className="btn-primary px-6 py-2.5 disabled:opacity-50"
+            className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-opacity disabled:opacity-50"
+            style={{ background: 'var(--acc)', color: 'white' }}
           >
             {saving ? 'Saving...' : 'Save Settings'}
           </button>
