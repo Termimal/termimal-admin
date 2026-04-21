@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Plus, Search } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import Link from 'next/link'
 
 const statusStyle: Record<string, { color: string; bg: string }> = {
   Published: { color: 'var(--green-val)', bg: 'rgba(52,211,153,.1)' },
@@ -52,12 +53,15 @@ export default function ContentPage() {
           <option>Draft</option>
           <option>Scheduled</option>
         </select>
-        <button 
+        
+        {/* Changed from <button> to <Link> */}
+        <Link 
+          href="/admin/content/new"
           className="text-[0.72rem] py-2 px-4 flex items-center justify-center gap-1.5 rounded-lg font-semibold hover:opacity-90 transition-opacity"
           style={{ background: 'var(--acc)', color: 'white' }}
         >
           <Plus size={14} /> New article
-        </button>
+        </Link>
       </div>
 
       <div className="rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
