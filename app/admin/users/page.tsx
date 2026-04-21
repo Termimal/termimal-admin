@@ -1,71 +1,160 @@
-'use client'
-import { Search } from 'lucide-react'
+﻿'use client'
 
-const users = [
-  { id: 1, email: 'john@example.com', name: 'John Smith', plan: 'Pro', status: 'Active', country: 'US', joined: 'Jan 12, 2026' },
-  { id: 2, email: 'anna@trader.de', name: 'Anna Weber', plan: 'Free', status: 'Active', country: 'DE', joined: 'Feb 5, 2026' },
-  { id: 3, email: 'yuki@invest.jp', name: 'Yuki Tanaka', plan: 'Premium', status: 'Active', country: 'JP', joined: 'Dec 20, 2025' },
-  { id: 4, email: 'carlos@fx.es', name: 'Carlos Ruiz', plan: 'Pro', status: 'Trial', country: 'ES', joined: 'Mar 18, 2026' },
-  { id: 5, email: 'sarah@crypto.io', name: 'Sarah Chen', plan: 'Free', status: 'Active', country: 'UK', joined: 'Mar 25, 2026' },
-  { id: 6, email: 'mike@trade.com', name: 'Mike Johnson', plan: 'Pro', status: 'Suspended', country: 'US', joined: 'Nov 3, 2025' },
-  { id: 7, email: 'lena@market.se', name: 'Lena Eriksson', plan: 'Premium', status: 'Active', country: 'SE', joined: 'Feb 14, 2026' },
-]
+import { useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
 
-const statusColor: Record<string, string> = { Active: 'var(--green-val)', Trial: 'var(--amber)', Suspended: 'var(--red-val)' }
+type UserRow = {
+  id: string
+  email: string | null
+  created_at: string | null
+  last_sign_in_at: string | null
+  fullname: string
+  plan: string
+  subscription_status: string
+  account_status: string
+  credits: number
+  subscription_bonus_months: number
+  notes: string
+}
 
-export default function UsersPage() {
+export default function AdminUsersPage() {
+  const [users, setUsers] = useState<UserRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
+  const [total, setTotal] = useState(0)
+  const perPage = 20
+
+  const load = async (pageOverride?: number, searchOverride?: string) => {
+    setLoading(true)
+    const currentPage = pageOverride ?? page
+    const currentSearch = searchOverride ?? search
+
+    const res = await fetch(
+      `/api/admin/users?page=${currentPage}&perPage=${perPage}&search=${encodeURIComponent(currentSearch)}`
+    )
+    const json = await res.json()
+    setUsers(json.users || [])
+    setTotal(json.total || 0)
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    load()
+  }, [page])
+
+  const filteredCount = useMemo(() => users.length, [users])
+
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="flex items-center gap-2 flex-1 px-3 py-2 rounded-lg" style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}>
-          <Search size={14} style={{ color: 'var(--t4)' }} />
-          <input placeholder="Search users by email or name..." className="bg-transparent outline-none text-[0.78rem] w-full" style={{ color: 'var(--t1)' }} />
+    <div className="max-w-7xl">
+      <div className="mb-8 flex items-end justify-between gap-4">
+        <div>
+          <h1 className="mb-2 text-2xl font-bold tracking-tight" style={{ color: 'var(--t1)' }}>
+            User Management
+          </h1>
+          <p className="text-sm" style={{ color: 'var(--t3)' }}>
+            Real Supabase users, subscription controls, bonuses, and account actions.
+          </p>
         </div>
-        <select className="px-3 py-2 rounded-lg text-[0.72rem]" style={{ border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--t2)' }}>
-          <option>All plans</option><option>Free</option><option>Pro</option><option>Premium</option>
-        </select>
-        <select className="px-3 py-2 rounded-lg text-[0.72rem]" style={{ border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--t2)' }}>
-          <option>All statuses</option><option>Active</option><option>Trial</option><option>Suspended</option>
-        </select>
-        <button className="btn-secondary text-[0.72rem] py-2 px-3">Export CSV</button>
+        <div className="text-sm" style={{ color: 'var(--t3)' }}>
+          Showing {filteredCount} of {total.toLocaleString()} users
+        </div>
       </div>
 
-      <div className="rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
-        <table className="w-full text-[0.75rem]">
-          <thead>
-            <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}>
-              {['Name','Email','Plan','Status','Country','Joined',''].map(h => (
-                <th key={h} className="text-left px-4 py-2.5 text-[0.6rem] font-bold uppercase tracking-wider" style={{ color: 'var(--t4)' }}>{h}</th>
-              ))}
+      <div className="mb-4 flex gap-3">
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search email, name, plan, status..."
+          className="w-full rounded-lg px-3 py-2.5 text-sm outline-none"
+          style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--t1)' }}
+        />
+        <button
+          onClick={() => {
+            setPage(1)
+            load(1, search)
+          }}
+          className="btn-primary px-4 py-2 text-sm"
+        >
+          Search
+        </button>
+      </div>
+
+      <div className="overflow-hidden rounded-xl" style={{ border: '1px solid var(--border)' }}>
+        <table className="w-full text-sm">
+          <thead style={{ background: 'var(--surface)' }}>
+            <tr>
+              <th className="p-4 text-left">User</th>
+              <th className="p-4 text-left">Plan</th>
+              <th className="p-4 text-left">Status</th>
+              <th className="p-4 text-left">Credits</th>
+              <th className="p-4 text-left">Last sign in</th>
+              <th className="p-4 text-right">Action</th>
             </tr>
           </thead>
           <tbody>
-            {users.map(u => (
-              <tr key={u.id} className="transition-colors" style={{ borderBottom: '1px solid var(--border)' }}>
-                <td className="px-4 py-2.5 font-semibold">{u.name}</td>
-                <td className="px-4 py-2.5 font-mono" style={{ color: 'var(--t3)' }}>{u.email}</td>
-                <td className="px-4 py-2.5">
-                  <span className="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded" style={{ background: 'var(--acc-d)', color: 'var(--acc)' }}>{u.plan}</span>
-                </td>
-                <td className="px-4 py-2.5">
-                  <span className="text-[0.6rem] font-semibold" style={{ color: statusColor[u.status] }}>{u.status}</span>
-                </td>
-                <td className="px-4 py-2.5" style={{ color: 'var(--t3)' }}>{u.country}</td>
-                <td className="px-4 py-2.5 font-mono" style={{ color: 'var(--t4)' }}>{u.joined}</td>
-                <td className="px-4 py-2.5 text-right">
-                  <button className="text-[0.68rem] font-medium" style={{ color: 'var(--acc)' }}>View</button>
+            {loading ? (
+              <tr>
+                <td className="p-6" colSpan={6} style={{ color: 'var(--t3)' }}>
+                  Loading users...
                 </td>
               </tr>
-            ))}
+            ) : users.length ? (
+              users.map((u) => (
+                <tr key={u.id} style={{ borderTop: '1px solid var(--border)' }}>
+                  <td className="p-4">
+                    <div className="font-medium" style={{ color: 'var(--t1)' }}>
+                      {u.fullname || u.email}
+                    </div>
+                    <div className="text-xs" style={{ color: 'var(--t4)' }}>
+                      {u.email}
+                    </div>
+                  </td>
+                  <td className="p-4" style={{ color: 'var(--t2)' }}>
+                    {u.plan}
+                  </td>
+                  <td className="p-4" style={{ color: 'var(--t2)' }}>
+                    {u.account_status}
+                  </td>
+                  <td className="p-4" style={{ color: 'var(--t2)' }}>
+                    {u.credits}
+                  </td>
+                  <td className="p-4" style={{ color: 'var(--t2)' }}>
+                    {u.last_sign_in_at ? new Date(u.last_sign_in_at).toLocaleString() : 'Never'}
+                  </td>
+                  <td className="p-4 text-right">
+                    <Link href={`/admin/users/${u.id}`} className="btn-secondary px-3 py-2 text-xs">
+                      View
+                    </Link>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td className="p-6" colSpan={6} style={{ color: 'var(--t3)' }}>
+                  No users found.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
-      <div className="flex items-center justify-between mt-3 text-[0.7rem]" style={{ color: 'var(--t4)' }}>
-        <span>Showing 7 of 8,234 users</span>
-        <div className="flex gap-1">
-          <button className="px-3 py-1 rounded" style={{ border: '1px solid var(--border)' }}>&larr; Prev</button>
-          <button className="px-3 py-1 rounded" style={{ border: '1px solid var(--border)' }}>Next &rarr;</button>
-        </div>
+
+      <div className="mt-4 flex gap-2">
+        <button
+          disabled={page <= 1}
+          onClick={() => setPage((p) => Math.max(1, p - 1))}
+          className="btn-secondary px-3 py-2 text-sm"
+        >
+          Prev
+        </button>
+        <button
+          disabled={users.length < perPage}
+          onClick={() => setPage((p) => p + 1)}
+          className="btn-secondary px-3 py-2 text-sm"
+        >
+          Next
+        </button>
       </div>
     </div>
   )
