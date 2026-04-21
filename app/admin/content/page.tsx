@@ -54,7 +54,7 @@ export default function ContentPage() {
           <option>Scheduled</option>
         </select>
         
-        {/* Changed from <button> to <Link> */}
+        {/* NEW ARTICLE BUTTON */}
         <Link 
           href="/admin/content/new"
           className="text-[0.72rem] py-2 px-4 flex items-center justify-center gap-1.5 rounded-lg font-semibold hover:opacity-90 transition-opacity"
@@ -103,9 +103,18 @@ export default function ContentPage() {
                   <td className="px-4 py-2.5 font-mono" style={{ color: 'var(--t4)' }}>
                     {new Date(a.published_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                   </td>
+                  
+                  {/* EDIT ARTICLE BUTTON */}
                   <td className="px-4 py-2.5 text-right">
-                    <button className="text-[0.68rem] font-medium hover:underline" style={{ color: 'var(--acc)' }}>Edit</button>
+                    <Link 
+                      href={`/admin/content/edit/${a.id}`} 
+                      className="text-[0.68rem] font-medium hover:underline" 
+                      style={{ color: 'var(--acc)' }}
+                    >
+                      Edit
+                    </Link>
                   </td>
+                  
                 </tr>
               ))
             )}
