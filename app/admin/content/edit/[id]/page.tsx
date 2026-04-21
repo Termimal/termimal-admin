@@ -1,6 +1,4 @@
-﻿export const runtime = 'edge'
-
-'use client'
+﻿'use client'
 
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
@@ -214,4 +212,5 @@ export default function EditArticlePage() {
     </div>
   )
 }
+
 

@@ -1,4 +1,6 @@
-﻿import { NextResponse } from 'next/server'
+﻿export const runtime = 'edge'
+
+import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
 export const runtime = 'edge'
@@ -87,3 +89,4 @@ export async function POST(
     return NextResponse.json({ error: e.message || 'Failed to update user' }, { status: 500 })
   }
 }
+
