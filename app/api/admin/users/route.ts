@@ -60,7 +60,6 @@ export async function GET(request: Request) {
     let merged = users.map((u) => {
       const p: any = profileMap.get(u.id) || {}
       const a: any = adminMap.get(u.id) || {}
-
       return {
         id: u.id,
         email: u.email,
@@ -87,15 +86,7 @@ export async function GET(request: Request) {
     if (search) {
       const q = search.toLowerCase()
       merged = merged.filter((u) =>
-        [
-          u.email,
-          u.fullname,
-          u.id,
-          u.referralcode,
-          u.plan,
-          u.subscription_status,
-          u.account_status,
-        ]
+        [u.email, u.fullname, u.id, u.referralcode, u.plan, u.subscription_status, u.account_status]
           .filter(Boolean)
           .some((v) => String(v).toLowerCase().includes(q))
       )

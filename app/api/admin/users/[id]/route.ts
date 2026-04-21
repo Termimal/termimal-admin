@@ -17,16 +17,20 @@ function adminClient() {
   )
 }
 
-export async function GET(_request: Request, { params }: { params: { id: string } }) {
+export async function GET(
+  _request: Request,
+  context: { params: Promise<{ id: string }> }
+) {
   try {
     const supabase = adminClient()
-    const userId = params.id
+    const { id: userId } = await context.params
 
-    const [{ data: userRes, error: userErr }, { data: profileRes, error: profileErr }, { data: adminRes, error: adminErr }] = await Promise.all([
-      supabase.auth.admin.getUserById(userId),
-      supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
-      supabase.from('admin_user_profiles').select('*').eq('user_id', userId).maybeSingle(),
-    ])
+    const [{ data: userRes, error: userErr }, { data: profileRes, error: profileErr }, { data: adminRes, error: adminErr }] =
+      await Promise.all([
+        supabase.auth.admin.getUserById(userId),
+        supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
+        supabase.from('admin_user_profiles').select('*').eq('user_id', userId).maybeSingle(),
+      ])
 
     if (userErr) return NextResponse.json({ error: userErr.message }, { status: 500 })
     if (profileErr) return NextResponse.json({ error: profileErr.message }, { status: 500 })
@@ -42,11 +46,14 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   }
 }
 
-export async function POST(request: Request, { params }: { params: { id: string } }) {
+export async function POST(
+  request: Request,
+  context: { params: Promise<{ id: string }> }
+) {
   try {
     const body = await request.json()
     const supabase = adminClient()
-    const userId = params.id
+    const { id: userId } = await context.params
 
     const now = new Date().toISOString()
 
