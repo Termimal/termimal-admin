@@ -1,4 +1,6 @@
-﻿'use client'
+﻿export const runtime = 'edge'
+
+'use client'
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
@@ -241,3 +243,4 @@ function Row({ label, value }: { label: string; value: any }) {
     </div>
   )
 }
+

@@ -1,3 +1,5 @@
+﻿export const runtime = 'edge'
+
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -212,3 +214,4 @@ export default function EditArticlePage() {
     </div>
   )
 }
+
