@@ -17,7 +17,8 @@ export default function NewArticlePage() {
     category: 'Education',
     author: 'Editorial',
     status: 'Draft',
-    published_date: new Date().toISOString().split('T')[0] // Sets today's date formatted as YYYY-MM-DD
+    content: '', // <-- Added content field here
+    published_date: new Date().toISOString().split('T')[0]
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -33,14 +34,13 @@ export default function NewArticlePage() {
       setError(supabaseError.message)
       setSaving(false)
     } else {
-      // Success! Send the user back to the content list
       router.push('/admin/content')
-      router.refresh() // Refreshes the layout to show the new article instantly
+      router.refresh()
     }
   }
 
   return (
-    <div className="max-w-3xl">
+    <div className="max-w-4xl mx-auto pb-24">
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
           <Link href="/admin/content" className="p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
@@ -76,7 +76,6 @@ export default function NewArticlePage() {
 
         {/* Metadata Grid */}
         <div className="grid md:grid-cols-2 gap-6 p-6 rounded-xl border" style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}>
-          
           <div>
             <label className="block text-sm font-medium mb-2" style={{ color: 'var(--t2)' }}>Category</label>
             <select 
@@ -131,16 +130,36 @@ export default function NewArticlePage() {
           </div>
         </div>
 
-        <div className="flex justify-end pt-4">
-          <button 
-            type="submit" 
-            disabled={saving}
-            className="px-6 py-3 rounded-lg text-sm font-semibold transition-opacity disabled:opacity-50 flex items-center gap-2"
-            style={{ background: 'var(--acc)', color: 'white' }}
-          >
-            <Save size={16} />
-            {saving ? 'Saving...' : 'Save Article'}
-          </button>
+        {/* Content Writer (NEW) */}
+        <div className="p-6 rounded-xl border flex flex-col" style={{ borderColor: 'var(--border)', background: 'var(--surface)', minHeight: '500px' }}>
+          <div className="flex items-center justify-between mb-4">
+            <label className="block text-sm font-medium" style={{ color: 'var(--t2)' }}>Article Content</label>
+            <span className="text-xs font-mono" style={{ color: 'var(--t4)' }}>Markdown supported</span>
+          </div>
+          
+          <textarea 
+            required
+            value={formData.content}
+            onChange={(e) => setFormData({...formData, content: e.target.value})}
+            placeholder="Write your article here... You can use standard Markdown formatting."
+            className="w-full flex-1 p-4 rounded-lg text-sm outline-none resize-none transition-colors"
+            style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--t1)', lineHeight: '1.6' }}
+          />
+        </div>
+
+        {/* Fixed Save Bar at the bottom of the screen */}
+        <div className="fixed bottom-0 left-0 right-0 p-4 border-t flex justify-end z-10 lg:pl-64" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
+          <div className="max-w-4xl w-full mx-auto flex justify-end">
+            <button 
+              type="submit" 
+              disabled={saving}
+              className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-opacity disabled:opacity-50 flex items-center gap-2"
+              style={{ background: 'var(--acc)', color: 'white' }}
+            >
+              <Save size={16} />
+              {saving ? 'Publishing...' : 'Save & Publish'}
+            </button>
+          </div>
         </div>
       </form>
     </div>
