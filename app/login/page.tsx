@@ -1,6 +1,4 @@
-"use client";
-export const runtime = 'edge';
-
+﻿"use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
