@@ -1,8 +1,6 @@
-﻿{
-    "name":  "termimal-admin",
-    "compatibility_date":  "2024-09-23",
-    "compatibility_flags":  [
-                                "nodejs_compat_v2"
-                            ],
-    "pages_build_output_dir":  ".vercel/output/static"
+{
+  "name": "termimal-admin",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-04-22",
+  "compatibility_flags": ["nodejs_compat"]
 }

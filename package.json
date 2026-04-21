@@ -1,40 +1,43 @@
 {
-  "name": "termimal-admin",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint",
-    "pages:build": "npx @cloudflare/next-on-pages"
-  },
-  "dependencies": {
-    "@supabase/ssr": "^0.10.2",
-    "@supabase/supabase-js": "^2.103.3",
-    "clsx": "^2.1.1",
-    "lucide-react": "^1.8.0",
-    "next": "15.5.2",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "stripe": "^17.0.0",
-    "tailwind-merge": "^3.5.0"
-  },
-  "devDependencies": {
-    "@cloudflare/next-on-pages": "^1.13.7",
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "15.5.2",
-    "tailwindcss": "^4",
-    "typescript": "^5"
-  },
-  "optionalDependencies": {
-    "lightningcss-linux-x64-gnu": "*",
-    "lightningcss-linux-x64-musl": "*",
-    "@tailwindcss/oxide-linux-x64-gnu": "*",
-    "@tailwindcss/oxide-linux-x64-musl": "*"
-  }
+    "name":  "termimal-admin",
+    "version":  "0.1.0",
+    "private":  true,
+    "scripts":  {
+                    "preview":  "opennextjs-cloudflare build \u0026\u0026 opennextjs-cloudflare preview",
+                    "build":  "next build",
+                    "start":  "next start",
+                    "lint":  "eslint",
+                    "pages:build":  "opennextjs-cloudflare build",
+                    "deploy":  "opennextjs-cloudflare build \u0026\u0026 opennextjs-cloudflare deploy",
+                    "dev":  "next dev"
+                },
+    "dependencies":  {
+                         "@supabase/ssr":  "^0.10.2",
+                         "@supabase/supabase-js":  "^2.103.3",
+                         "clsx":  "^2.1.1",
+                         "lucide-react":  "^1.8.0",
+                         "next":  "^15.5.15",
+                         "react":  "^19.0.0",
+                         "react-dom":  "^19.0.0",
+                         "stripe":  "^17.0.0",
+                         "tailwind-merge":  "^3.5.0"
+                     },
+    "devDependencies":  {
+                            "@opennextjs/cloudflare":  "^1.19.3",
+                            "@tailwindcss/postcss":  "^4",
+                            "@types/node":  "^20",
+                            "@types/react":  "^19",
+                            "@types/react-dom":  "^19",
+                            "eslint":  "^9",
+                            "eslint-config-next":  "15.5.2",
+                            "tailwindcss":  "^4",
+                            "typescript":  "^5",
+                            "wrangler":  "^4.84.1"
+                        },
+    "optionalDependencies":  {
+                                 "@tailwindcss/oxide-linux-x64-gnu":  "*",
+                                 "@tailwindcss/oxide-linux-x64-musl":  "*",
+                                 "lightningcss-linux-x64-gnu":  "*",
+                                 "lightningcss-linux-x64-musl":  "*"
+                             }
 }
