@@ -1,0 +1,7 @@
+{
+  "//": "OpenNext Cloudflare config - see https://opennext.js.org/cloudflare/get-started",
+  "name": "termimal-admin",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-04-22",
+  "compatibility_flags": ["nodejs_compat"]
+}
