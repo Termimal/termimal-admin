@@ -8,7 +8,7 @@ export default function AdminDashboard() {
         Manage your platform settings, users, and SEO.
       </p>
 
-      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
         {/* SEO Settings */}
         <Link 
           href="/admin/seo" 
@@ -19,7 +19,7 @@ export default function AdminDashboard() {
           <p className="text-sm" style={{ color: 'var(--t3)' }}>Update Meta titles, descriptions, and OpenGraph images.</p>
         </Link>
         
-        {/* Promo Banner (NEW) */}
+        {/* Promo Banner */}
         <Link 
           href="/admin/promo" 
           className="p-6 rounded-xl border transition-all hover:-translate-y-1 block relative overflow-hidden" 
@@ -37,7 +37,7 @@ export default function AdminDashboard() {
           style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}
         >
           <h2 className="font-bold mb-2 text-lg">User Directory &rarr;</h2>
-          <p className="text-sm" style={{ color: 'var(--t3)' }}>View signed-up users, roles, and manage accounts.</p>
+          <p className="text-sm" style={{ color: 'var(--t3)' }}>Manage customers, billing, and support.</p>
         </Link>
 
         {/* Content Management */}
@@ -48,6 +48,16 @@ export default function AdminDashboard() {
         >
           <h2 className="font-bold mb-2 text-lg">Platform Content &rarr;</h2>
           <p className="text-sm" style={{ color: 'var(--t3)' }}>Manage articles, reports, and homepage text.</p>
+        </Link>
+
+        {/* FAQ Management */}
+        <Link 
+          href="/admin/faqs" 
+          className="p-6 rounded-xl border transition-all hover:-translate-y-1 block" 
+          style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}
+        >
+          <h2 className="font-bold mb-2 text-lg">FAQ Manager &rarr;</h2>
+          <p className="text-sm" style={{ color: 'var(--t3)' }}>Add or update frequently asked questions.</p>
         </Link>
       </div>
     </div>
