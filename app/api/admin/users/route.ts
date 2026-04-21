@@ -1,9 +1,9 @@
-﻿export const runtime = 'edge'
+﻿export const runtime = 'edge';
+
 
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-export const runtime = 'edge'
 
 function adminClient() {
   return createClient(
@@ -105,4 +105,5 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: e.message || 'Failed to load users' }, { status: 500 })
   }
 }
+
 
