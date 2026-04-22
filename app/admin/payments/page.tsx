@@ -10,7 +10,7 @@ type InvoiceRow = {
   amount: number
   status: string
   currency: string
-  created_at?: string
+  created_at?: string | null
 }
 
 type ProfileRow = {
@@ -103,19 +103,13 @@ export default function PaymentsPage() {
             </tr>
           </thead>
           <tbody>
-            {loading ? (
-              <tr><td className="px-4 py-6" colSpan={4}>Loading payments...</td></tr>
-            ) : filtered.length === 0 ? (
-              <tr><td className="px-4 py-6" colSpan={4}>No transactions found.</td></tr>
-            ) : filtered.map((t) => (
+            {loading ? <tr><td className="px-4 py-6" colSpan={4}>Loading payments...</td></tr> : null}
+            {!loading && filtered.length === 0 ? <tr><td className="px-4 py-6" colSpan={4}>No transactions found.</td></tr> : null}
+            {filtered.map((t) => (
               <tr key={t.id} className="border-b last:border-0" style={{ borderColor: 'var(--border)' }}>
                 <td className="px-4 py-3 font-mono">{profileMap.get(t.user_id) || t.user_id}</td>
                 <td className="px-4 py-3 font-bold">${Number(t.amount || 0).toLocaleString()}</td>
-                <td className="px-4 py-3">
-                  <span className="px-2 py-0.5 rounded text-[0.6rem] font-bold" style={{ background: t.status === 'paid' ? 'rgba(52,211,153,0.1)' : 'rgba(248,113,113,0.1)', color: t.status === 'paid' ? 'var(--green-val)' : 'var(--red-val)' }}>
-                    {t.status}
-                  </span>
-                </td>
+                <td className="px-4 py-3"><span className="px-2 py-0.5 rounded text-[0.6rem] font-bold" style={{ background: t.status === 'paid' ? 'rgba(52,211,153,0.1)' : 'rgba(248,113,113,0.1)', color: t.status === 'paid' ? 'var(--green-val)' : 'var(--red-val)' }}>{t.status}</span></td>
                 <td className="px-4 py-3" style={{ color: 'var(--t4)' }}>{t.created_at ? new Date(t.created_at).toLocaleString() : '—'}</td>
               </tr>
             ))}

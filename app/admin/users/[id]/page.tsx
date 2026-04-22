@@ -1,245 +1,319 @@
-﻿'use client'
+'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
 
-export default function AdminUserDetailPage() {
-  const params = useParams<{ id: string }>()
-  const [data, setData] = useState<any>(null)
+type ProfileRow = {
+  id: string
+  email: string | null
+  fullname?: string | null
+  full_name?: string | null
+  plan?: string | null
+  subscriptionstatus?: string | null
+  referralcode?: string | null
+  createdat?: string | null
+  created_at?: string | null
+  billinginterval?: string | null
+}
+
+type AdminProfileRow = {
+  user_id: string
+  first_name: string | null
+  last_name: string | null
+  date_of_birth: string | null
+  phone: string | null
+  account_status: string
+  credits: number
+  notes: string | null
+  linked_accounts: string[] | null
+  last_admin_action: string | null
+  last_admin_action_at: string | null
+}
+
+type AuthMetaRow = {
+  id: string
+  email?: string | null
+  last_sign_in_at?: string | null
+  phone?: string | null
+  app_metadata?: {
+    provider?: string
+    providers?: string[]
+  } | null
+}
+
+type CreditAdjustment = {
+  id: string
+  amount: number
+  reason: string | null
+  created_at: string
+}
+
+export default function UserDetailPage() {
+  const { id } = useParams<{ id: string }>()
+  const supabase = createClient()
+  const [profile, setProfile] = useState<ProfileRow | null>(null)
+  const [adminProfile, setAdminProfile] = useState<AdminProfileRow | null>(null)
+  const [authMeta, setAuthMeta] = useState<AuthMetaRow | null>(null)
+  const [adjustments, setAdjustments] = useState<CreditAdjustment[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [message, setMessage] = useState('')
-
+  const [error, setError] = useState('')
   const [form, setForm] = useState({
+    first_name: '',
+    last_name: '',
+    date_of_birth: '',
+    phone: '',
     account_status: 'active',
-    subscription_bonus_months: 0,
-    credits: 0,
     notes: '',
-    last_admin_action: '',
+    linked_accounts: '',
   })
+  const [creditForm, setCreditForm] = useState({ amount: '', reason: '' })
 
   const load = async () => {
+    if (!id) return
     setLoading(true)
-    const res = await fetch(`/api/admin/users/${params.id}`)
-    const json = await res.json()
-    setData(json)
+    setError('')
+
+    const [{ data: p, error: pErr }, { data: a, error: aErr }, { data: u, error: uErr }, { data: c, error: cErr }] = await Promise.all([
+      supabase.from('profiles').select('id, email, fullname, full_name, plan, subscriptionstatus, referralcode, createdat, created_at, billinginterval').eq('id', id).maybeSingle(),
+      supabase.from('admin_user_profiles').select('user_id, first_name, last_name, date_of_birth, phone, account_status, credits, notes, linked_accounts, last_admin_action, last_admin_action_at').eq('user_id', id).maybeSingle(),
+      supabase.from('admin_auth_users').select('id, email, last_sign_in_at, phone, app_metadata').eq('id', id).maybeSingle(),
+      supabase.from('credit_adjustments').select('id, amount, reason, created_at').eq('user_id', id).order('created_at', { ascending: false }).limit(20)
+    ])
+
+    if (pErr || aErr || uErr || cErr) {
+      setError(pErr?.message || aErr?.message || uErr?.message || cErr?.message || 'Failed to load user')
+    }
+
+    setProfile(p || null)
+    setAdminProfile(a || null)
+    setAuthMeta(u || null)
+    setAdjustments(c || [])
+
     setForm({
-      account_status: json.admin?.account_status || 'active',
-      subscription_bonus_months: json.admin?.subscription_bonus_months || 0,
-      credits: json.admin?.credits || 0,
-      notes: json.admin?.notes || '',
-      last_admin_action: json.admin?.last_admin_action || '',
+      first_name: a?.first_name || '',
+      last_name: a?.last_name || '',
+      date_of_birth: a?.date_of_birth || '',
+      phone: a?.phone || u?.phone || '',
+      account_status: a?.account_status || 'active',
+      notes: a?.notes || '',
+      linked_accounts: Array.isArray(a?.linked_accounts) ? a!.linked_accounts.join(', ') : '',
     })
+
     setLoading(false)
   }
 
   useEffect(() => {
-    if (params.id) load()
-  }, [params.id])
+    load()
+  }, [id])
 
-  const save = async (payload: any) => {
+  const displayName = useMemo(() => {
+    return [form.first_name, form.last_name].filter(Boolean).join(' ').trim() || profile?.fullname || profile?.full_name || 'Unnamed user'
+  }, [form.first_name, form.last_name, profile])
+
+  const providerList = useMemo(() => {
+    const providers = authMeta?.app_metadata?.providers || (authMeta?.app_metadata?.provider ? [authMeta.app_metadata.provider] : [])
+    return providers.length ? providers : ['email']
+  }, [authMeta])
+
+  const saveProfile = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!id) return
     setSaving(true)
-    setMessage('')
+    setError('')
 
-    const res = await fetch(`/api/admin/users/${params.id}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    })
+    const payload = {
+      user_id: id,
+      first_name: form.first_name || null,
+      last_name: form.last_name || null,
+      date_of_birth: form.date_of_birth || null,
+      phone: form.phone || null,
+      account_status: form.account_status,
+      notes: form.notes || null,
+      linked_accounts: form.linked_accounts
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean),
+      last_admin_action: 'profile_update',
+      last_admin_action_at: new Date().toISOString(),
+      credits: adminProfile?.credits ?? 0,
+    }
 
-    const json = await res.json()
-    setMessage(json.ok ? 'Saved.' : json.error || 'Failed.')
+    const { error } = await supabase.from('admin_user_profiles').upsert(payload)
+    if (error) {
+      setError(error.message)
+    } else {
+      await load()
+    }
+
     setSaving(false)
-
-    if (json.ok) load()
   }
 
-  if (loading) return <div style={{ color: 'var(--t3)' }}>Loading user...</div>
+  const addCredits = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!id) return
+    const amount = Number(creditForm.amount)
+    if (!Number.isFinite(amount) || amount === 0) return
 
-  const user = data?.user
-  const profile = data?.profile
-  const admin = data?.admin
+    setSaving(true)
+    setError('')
+
+    const nextCredits = (adminProfile?.credits ?? 0) + amount
+
+    const { error: adjustmentError } = await supabase.from('credit_adjustments').insert({
+      user_id: id,
+      amount,
+      reason: creditForm.reason || null,
+    })
+
+    if (adjustmentError) {
+      setError(adjustmentError.message)
+      setSaving(false)
+      return
+    }
+
+    const { error: profileError } = await supabase.from('admin_user_profiles').upsert({
+      user_id: id,
+      first_name: form.first_name || null,
+      last_name: form.last_name || null,
+      date_of_birth: form.date_of_birth || null,
+      phone: form.phone || null,
+      account_status: form.account_status,
+      notes: form.notes || null,
+      linked_accounts: form.linked_accounts.split(',').map((item) => item.trim()).filter(Boolean),
+      credits: nextCredits,
+      last_admin_action: amount > 0 ? 'credit_added' : 'credit_removed',
+      last_admin_action_at: new Date().toISOString(),
+    })
+
+    if (profileError) {
+      setError(profileError.message)
+    } else {
+      setCreditForm({ amount: '', reason: '' })
+      await load()
+    }
+
+    setSaving(false)
+  }
+
+  if (loading) {
+    return <div style={{ color: 'var(--t3)' }}>Loading user details...</div>
+  }
+
+  if (!profile) {
+    return <div style={{ color: 'var(--red-val)' }}>User not found.</div>
+  }
 
   return (
-    <div className="max-w-5xl">
-      <div className="mb-6">
-        <h1 className="mb-2 text-2xl font-bold" style={{ color: 'var(--t1)' }}>
-          {profile?.fullname || user?.email || 'User detail'}
-        </h1>
-        <p className="text-sm" style={{ color: 'var(--t3)' }}>
-          {user?.email}
-        </p>
-      </div>
+    <div className="max-w-7xl mx-auto space-y-6">
+      {error ? <div className="rounded-lg px-4 py-3 text-sm" style={{ background: 'rgba(248,113,113,.1)', color: 'var(--red-val)' }}>{error}</div> : null}
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <section
-          className="rounded-xl p-6"
-          style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}
-        >
-          <h2 className="mb-4 text-sm font-bold" style={{ color: 'var(--t1)' }}>
-            Account
-          </h2>
-          <div className="space-y-3 text-sm">
-            <Row label="User ID" value={user?.id} />
-            <Row label="Plan" value={profile?.plan || 'free'} />
-            <Row label="Subscription" value={profile?.subscriptionstatus || 'inactive'} />
-            <Row label="Created" value={user?.created_at ? new Date(user.created_at).toLocaleString() : '—'} />
-            <Row label="Last sign in" value={user?.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleString() : 'Never'} />
-          </div>
-        </section>
-
-        <section
-          className="rounded-xl p-6"
-          style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}
-        >
-          <h2 className="mb-4 text-sm font-bold" style={{ color: 'var(--t1)' }}>
-            Controls
-          </h2>
-
-          <div className="space-y-3">
-            <label className="block">
-              <div className="mb-2 text-xs font-semibold uppercase" style={{ color: 'var(--t4)' }}>
-                Account status
+      <div className="grid xl:grid-cols-3 gap-6">
+        <div className="xl:col-span-2 space-y-6">
+          <div className="p-6 rounded-xl border" style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}>
+            <div className="flex items-start justify-between gap-4 mb-6">
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight mb-1" style={{ color: 'var(--t1)' }}>{displayName}</h1>
+                <div className="text-sm font-mono" style={{ color: 'var(--t3)' }}>{profile.id}</div>
               </div>
-              <select
-                value={form.account_status}
-                onChange={(e) => setForm((p) => ({ ...p, account_status: e.target.value }))}
-                className="w-full rounded-lg px-3 py-2.5 text-sm"
-                style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--t1)' }}
-              >
-                <option value="active">active</option>
-                <option value="closed">closed</option>
-                <option value="suspended">suspended</option>
-              </select>
-            </label>
-
-            <label className="block">
-              <div className="mb-2 text-xs font-semibold uppercase" style={{ color: 'var(--t4)' }}>
-                Subscription bonus months
+              <div className="text-right">
+                <div className="text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--t4)' }}>Credits</div>
+                <div className="text-2xl font-bold">{adminProfile?.credits ?? 0}</div>
               </div>
-              <input
-                type="number"
-                value={form.subscription_bonus_months}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, subscription_bonus_months: Number(e.target.value) }))
-                }
-                className="w-full rounded-lg px-3 py-2.5 text-sm"
-                style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--t1)' }}
-              />
-            </label>
-
-            <label className="block">
-              <div className="mb-2 text-xs font-semibold uppercase" style={{ color: 'var(--t4)' }}>
-                Credits
-              </div>
-              <input
-                type="number"
-                value={form.credits}
-                onChange={(e) => setForm((p) => ({ ...p, credits: Number(e.target.value) }))}
-                className="w-full rounded-lg px-3 py-2.5 text-sm"
-                style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--t1)' }}
-              />
-            </label>
-
-            <label className="block">
-              <div className="mb-2 text-xs font-semibold uppercase" style={{ color: 'var(--t4)' }}>
-                Notes
-              </div>
-              <textarea
-                rows={5}
-                value={form.notes}
-                onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))}
-                className="w-full rounded-lg px-3 py-2.5 text-sm"
-                style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--t1)' }}
-              />
-            </label>
-
-            <label className="block">
-              <div className="mb-2 text-xs font-semibold uppercase" style={{ color: 'var(--t4)' }}>
-                Last admin action
-              </div>
-              <input
-                value={form.last_admin_action}
-                onChange={(e) => setForm((p) => ({ ...p, last_admin_action: e.target.value }))}
-                className="w-full rounded-lg px-3 py-2.5 text-sm"
-                style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--t1)' }}
-              />
-            </label>
-
-            <div className="flex flex-wrap gap-2 pt-2">
-              <button
-                disabled={saving}
-                onClick={() => save(form)}
-                className="btn-primary px-4 py-2 text-sm"
-              >
-                Save changes
-              </button>
-
-              <button
-                disabled={saving}
-                onClick={() =>
-                  save({
-                    ...form,
-                    close_account: true,
-                    last_admin_action: 'closed account',
-                  })
-                }
-                className="btn-secondary px-4 py-2 text-sm"
-              >
-                Close account
-              </button>
-
-              <button
-                disabled={saving}
-                onClick={() =>
-                  save({
-                    ...form,
-                    open_account: true,
-                    last_admin_action: 'opened account',
-                  })
-                }
-                className="btn-secondary px-4 py-2 text-sm"
-              >
-                Open account
-              </button>
             </div>
 
-            {message ? (
-              <div className="pt-1 text-sm" style={{ color: 'var(--t3)' }}>
-                {message}
-              </div>
-            ) : null}
+            <div className="grid md:grid-cols-2 gap-4 text-sm">
+              <div><span style={{ color: 'var(--t4)' }}>Email</span><div>{profile.email || authMeta?.email || '—'}</div></div>
+              <div><span style={{ color: 'var(--t4)' }}>Phone</span><div>{form.phone || '—'}</div></div>
+              <div><span style={{ color: 'var(--t4)' }}>Date of birth</span><div>{form.date_of_birth || '—'}</div></div>
+              <div><span style={{ color: 'var(--t4)' }}>Plan</span><div>{profile.plan || 'free'}</div></div>
+              <div><span style={{ color: 'var(--t4)' }}>Subscription status</span><div>{profile.subscriptionstatus || form.account_status}</div></div>
+              <div><span style={{ color: 'var(--t4)' }}>Billing interval</span><div>{profile.billinginterval || '—'}</div></div>
+              <div><span style={{ color: 'var(--t4)' }}>Joined</span><div>{profile.createdat || profile.created_at ? new Date(profile.createdat || profile.created_at || '').toLocaleString() : '—'}</div></div>
+              <div><span style={{ color: 'var(--t4)' }}>Last login</span><div>{authMeta?.last_sign_in_at ? new Date(authMeta.last_sign_in_at).toLocaleString() : 'Never'}</div></div>
+              <div><span style={{ color: 'var(--t4)' }}>Referral code</span><div>{profile.referralcode || '—'}</div></div>
+              <div><span style={{ color: 'var(--t4)' }}>Linked accounts</span><div>{providerList.join(', ')}</div></div>
+            </div>
           </div>
-        </section>
 
-        <section
-          className="rounded-xl p-6 md:col-span-2"
-          style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}
-        >
-          <h2 className="mb-4 text-sm font-bold" style={{ color: 'var(--t1)' }}>
-            Raw profile data
-          </h2>
-          <pre className="overflow-auto text-xs" style={{ color: 'var(--t2)' }}>
-            {JSON.stringify({ user, profile, admin }, null, 2)}
-          </pre>
-        </section>
+          <form onSubmit={saveProfile} className="p-6 rounded-xl border" style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}>
+            <h2 className="text-lg font-bold mb-4">Admin managed account details</h2>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--t2)' }}>First name</label>
+                <input value={form.first_name} onChange={(e) => setForm({ ...form, first_name: e.target.value })} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--t1)' }} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--t2)' }}>Last name</label>
+                <input value={form.last_name} onChange={(e) => setForm({ ...form, last_name: e.target.value })} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--t1)' }} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--t2)' }}>Date of birth</label>
+                <input type="date" value={form.date_of_birth} onChange={(e) => setForm({ ...form, date_of_birth: e.target.value })} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--t1)' }} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--t2)' }}>Phone</label>
+                <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--t1)' }} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--t2)' }}>Account status</label>
+                <select value={form.account_status} onChange={(e) => setForm({ ...form, account_status: e.target.value })} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--t1)' }}>
+                  <option value="active">Active</option>
+                  <option value="suspended">Suspended</option>
+                  <option value="closed">Closed</option>
+                  <option value="review">Review</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--t2)' }}>Linked accounts</label>
+                <input value={form.linked_accounts} onChange={(e) => setForm({ ...form, linked_accounts: e.target.value })} placeholder="google, apple, email" className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--t1)' }} />
+              </div>
+            </div>
+            <div className="mt-4">
+              <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--t2)' }}>Internal notes</label>
+              <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={5} className="w-full px-3 py-2 rounded-lg text-sm outline-none resize-y" style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--t1)' }} />
+            </div>
+            <div className="mt-4 flex justify-end">
+              <button type="submit" disabled={saving} className="btn-primary px-4 py-2 text-sm disabled:opacity-60">Save account details</button>
+            </div>
+          </form>
+        </div>
+
+        <div className="space-y-6">
+          <form onSubmit={addCredits} className="p-6 rounded-xl border" style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}>
+            <h2 className="text-lg font-bold mb-4">Manual crediting</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--t2)' }}>Amount</label>
+                <input type="number" value={creditForm.amount} onChange={(e) => setCreditForm({ ...creditForm, amount: e.target.value })} placeholder="100 or -50" className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--t1)' }} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--t2)' }}>Reason</label>
+                <textarea value={creditForm.reason} onChange={(e) => setCreditForm({ ...creditForm, reason: e.target.value })} rows={4} className="w-full px-3 py-2 rounded-lg text-sm outline-none resize-y" style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--t1)' }} />
+              </div>
+              <button type="submit" disabled={saving} className="btn-primary w-full px-4 py-2 text-sm disabled:opacity-60">Apply credit adjustment</button>
+            </div>
+          </form>
+
+          <div className="p-6 rounded-xl border" style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}>
+            <h2 className="text-lg font-bold mb-4">Recent credit history</h2>
+            <div className="space-y-3">
+              {adjustments.length === 0 ? (
+                <div className="text-sm" style={{ color: 'var(--t3)' }}>No credit adjustments yet.</div>
+              ) : adjustments.map((item) => (
+                <div key={item.id} className="p-3 rounded-lg" style={{ background: 'var(--bg)', border: '1px solid var(--border)' }}>
+                  <div className="flex items-center justify-between gap-3 mb-1">
+                    <span className="font-semibold">{item.amount > 0 ? `+${item.amount}` : item.amount}</span>
+                    <span className="text-xs" style={{ color: 'var(--t4)' }}>{new Date(item.created_at).toLocaleString()}</span>
+                  </div>
+                  <div className="text-sm" style={{ color: 'var(--t3)' }}>{item.reason || 'No reason provided'}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )
 }
-
-function Row({ label, value }: { label: string; value: any }) {
-  return (
-    <div
-      className="flex items-start justify-between gap-4 border-b pb-2"
-      style={{ borderColor: 'var(--border)' }}
-    >
-      <span style={{ color: 'var(--t4)' }}>{label}</span>
-      <span className="text-right" style={{ color: 'var(--t2)' }}>
-        {String(value ?? '—')}
-      </span>
-    </div>
-  )
-}
-
-

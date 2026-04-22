@@ -24,11 +24,7 @@ export default function TranslationsPage() {
     async function load() {
       setLoading(true)
       setError('')
-      const { data, error } = await supabase
-        .from('translations')
-        .select('id, key, namespace, locale, value')
-        .order('key', { ascending: true })
-
+      const { data, error } = await supabase.from('translations').select('id, key, namespace, locale, value').order('key', { ascending: true })
       if (error) {
         setError(error.message)
         setRows([])
@@ -37,7 +33,6 @@ export default function TranslationsPage() {
       }
       setLoading(false)
     }
-
     load()
   }, [])
 
@@ -68,7 +63,7 @@ export default function TranslationsPage() {
     <div className="max-w-6xl">
       <div className="mb-8">
         <h1 className="text-2xl font-bold tracking-tight mb-1" style={{ color: 'var(--t1)' }}>Translations</h1>
-        <p className="text-sm" style={{ color: 'var(--t3)' }}>Browse and review translation keys from Supabase.</p>
+        <p className="text-sm" style={{ color: 'var(--t3)' }}>Real translation rows only.</p>
       </div>
 
       <div className="flex items-center gap-3 mb-4">
@@ -85,15 +80,11 @@ export default function TranslationsPage() {
 
       <div className="rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
         <table className="w-full text-[0.75rem]">
-          <thead><tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}>
-            {['Key','Namespace','English','Turkish'].map(h => <th key={h} className="text-left px-4 py-2.5 text-[0.6rem] font-bold uppercase tracking-wider" style={{ color: 'var(--t4)' }}>{h}</th>)}
-          </tr></thead>
+          <thead><tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}>{['Key','Namespace','English','Turkish'].map(h => <th key={h} className="text-left px-4 py-2.5 text-[0.6rem] font-bold uppercase tracking-wider" style={{ color: 'var(--t4)' }}>{h}</th>)}</tr></thead>
           <tbody>
-            {loading ? (
-              <tr><td colSpan={4} className="px-4 py-8 text-center" style={{ color: 'var(--t3)' }}>Loading translations...</td></tr>
-            ) : grouped.length === 0 ? (
-              <tr><td colSpan={4} className="px-4 py-8 text-center" style={{ color: 'var(--t3)' }}>No translations found.</td></tr>
-            ) : grouped.map(k => (
+            {loading ? <tr><td colSpan={4} className="px-4 py-8 text-center" style={{ color: 'var(--t3)' }}>Loading translations...</td></tr> : null}
+            {!loading && grouped.length === 0 ? <tr><td colSpan={4} className="px-4 py-8 text-center" style={{ color: 'var(--t3)' }}>No translations found.</td></tr> : null}
+            {grouped.map(k => (
               <tr key={k.key} style={{ borderBottom: '1px solid var(--border)' }}>
                 <td className="px-4 py-2.5 font-mono font-medium text-[0.68rem]">{k.key}</td>
                 <td className="px-4 py-2.5"><span className="text-[0.58rem] font-semibold px-1.5 py-0.5 rounded" style={{ background: 'var(--surface)', color: 'var(--t3)' }}>{k.namespace || 'default'}</span></td>
