@@ -1,0 +1,1263 @@
+
+
+==================================================
+FILE: .\app\admin\page.tsx
+==================================================
+
+import Link from 'next/link'
+
+export default function AdminDashboard() {
+  return (
+    <div>
+      <h1 className="text-3xl font-bold mb-8" style={{ color: 'var(--t1)' }}>
+        Admin Dashboard
+      </h1>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <Link href="/admin/users" className="group block p-8 rounded-xl border border-dashed hover:border-primary transition-all">
+          <div className="text-4xl mb-4 opacity-75 group-hover:opacity-100">??</div>
+          <h2 className="text-2xl font-bold mb-2" style={{ color: 'var(--t1)' }}>User Management</h2>
+          <p className="text-muted-foreground">Manage accounts, credits, subscriptions</p>
+        </Link>
+      </div>
+    </div>
+  )
+}
+
+
+
+==================================================
+FILE: .\app\admin\layout.tsx
+==================================================
+
+'use client'
+
+import Link from 'next/link'
+import { Users, Home } from 'lucide-react'
+
+export default function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Admin Header */}
+      <header className="border-b bg-surface p-6">
+        <nav className="flex items-center gap-4">
+          <Link href="/admin" className="flex items-center gap-2 px-4 py-2 rounded-lg btn-secondary">
+            <Home className="h-4 w-4" />
+            Dashboard
+          </Link>
+          <Link href="/admin/users" className="flex items-center gap-2 px-4 py-2 rounded-lg btn-primary">
+            <Users className="h-4 w-4" />
+            Users
+          </Link>
+        </nav>
+      </header>
+
+      {/* Admin Content */}
+      <main className="p-8">{children}</main>
+    </div>
+  )
+}
+
+
+
+==================================================
+FILE: .\app\admin\users\page.tsx
+==================================================
+
+'use client'
+
+import { useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
+
+type UserRow = {
+  id: string
+  email: string | null
+  created_at: string | null
+  last_sign_in_at: string | null
+  fullname: string
+  plan: string
+  subscription_status: string
+  account_status: string
+  credits: number
+  subscription_bonus_months: number
+  notes: string
+}
+
+export default function AdminUsersPage() {
+  const [users, setUsers] = useState<UserRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
+  const [total, setTotal] = useState(0)
+  const perPage = 20
+
+  const load = async (pageOverride?: number, searchOverride?: string) => {
+    setLoading(true)
+    const currentPage = pageOverride ?? page
+    const currentSearch = searchOverride ?? search
+
+    const res = await fetch(
+      `/api/admin/users?page=${currentPage}&perPage=${perPage}&search=${encodeURIComponent(currentSearch)}`
+    )
+    const json = await res.json()
+    setUsers(json.users || [])
+    setTotal(json.total || 0)
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    load()
+  }, [page])
+
+  const filteredCount = useMemo(() => users.length, [users])
+
+  return (
+    <div className="max-w-7xl">
+      <div className="mb-8 flex items-end justify-between gap-4">
+        <div>
+          <h1 className="mb-2 text-2xl font-bold tracking-tight" style={{ color: 'var(--t1)' }}>
+            User Management
+          </h1>
+          <p className="text-sm" style={{ color: 'var(--t3)' }}>
+            Real Supabase users, subscription controls, bonuses, and account actions.
+          </p>
+        </div>
+        <div className="text-sm" style={{ color: 'var(--t3)' }}>
+          Showing {filteredCount} of {total.toLocaleString()} users
+        </div>
+      </div>
+
+      <div className="mb-4 flex gap-3">
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search email, name, plan, status..."
+          className="w-full rounded-lg px-3 py-2.5 text-sm outline-none"
+          style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--t1)' }}
+        />
+        <button
+          onClick={() => {
+            setPage(1)
+            load(1, search)
+          }}
+          className="btn-primary px-4 py-2 text-sm"
+        >
+          Search
+        </button>
+      </div>
+
+      <div className="overflow-hidden rounded-xl" style={{ border: '1px solid var(--border)' }}>
+        <table className="w-full text-sm">
+          <thead style={{ background: 'var(--surface)' }}>
+            <tr>
+              <th className="p-4 text-left">User</th>
+              <th className="p-4 text-left">Plan</th>
+              <th className="p-4 text-left">Status</th>
+              <th className="p-4 text-left">Credits</th>
+              <th className="p-4 text-left">Last sign in</th>
+              <th className="p-4 text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr>
+                <td className="p-6" colSpan={6} style={{ color: 'var(--t3)' }}>
+                  Loading users...
+                </td>
+              </tr>
+            ) : users.length ? (
+              users.map((u) => (
+                <tr key={u.id} style={{ borderTop: '1px solid var(--border)' }}>
+                  <td className="p-4">
+                    <div className="font-medium" style={{ color: 'var(--t1)' }}>
+                      {u.fullname || u.email}
+                    </div>
+                    <div className="text-xs" style={{ color: 'var(--t4)' }}>
+                      {u.email}
+                    </div>
+                  </td>
+                  <td className="p-4" style={{ color: 'var(--t2)' }}>
+                    {u.plan}
+                  </td>
+                  <td className="p-4" style={{ color: 'var(--t2)' }}>
+                    {u.account_status}
+                  </td>
+                  <td className="p-4" style={{ color: 'var(--t2)' }}>
+                    {u.credits}
+                  </td>
+                  <td className="p-4" style={{ color: 'var(--t2)' }}>
+                    {u.last_sign_in_at ? new Date(u.last_sign_in_at).toLocaleString() : 'Never'}
+                  </td>
+                  <td className="p-4 text-right">
+                    <Link href={`/admin/users/${u.id}`} className="btn-secondary px-3 py-2 text-xs">
+                      View
+                    </Link>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td className="p-6" colSpan={6} style={{ color: 'var(--t3)' }}>
+                  No users found.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="mt-4 flex gap-2">
+        <button
+          disabled={page <= 1}
+          onClick={() => setPage((p) => Math.max(1, p - 1))}
+          className="btn-secondary px-3 py-2 text-sm"
+        >
+          Prev
+        </button>
+        <button
+          disabled={users.length < perPage}
+          onClick={() => setPage((p) => p + 1)}
+          className="btn-secondary px-3 py-2 text-sm"
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  )
+}
+
+
+
+==================================================
+FILE: .\app\api\admin\users\route.ts
+==================================================
+
+
+import { NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
+
+
+function adminClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+      },
+    }
+  )
+}
+
+export async function GET(request: Request) {
+  try {
+    const url = new URL(request.url)
+    const page = Number(url.searchParams.get('page') || '1')
+    const perPage = Math.min(Number(url.searchParams.get('perPage') || '20'), 100)
+    const search = (url.searchParams.get('search') || '').trim()
+
+    const supabase = adminClient()
+
+    const { data, error } = await supabase.auth.admin.listUsers({ page, perPage })
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    const users = data.users || []
+    const ids = users.map((u) => u.id)
+
+    const { data: profiles, error: profilesError } = ids.length
+      ? await supabase
+          .from('profiles')
+          .select('id, plan, subscriptionstatus, fullname, referralcode, createdat, billinginterval')
+          .in('id', ids)
+      : { data: [], error: null }
+
+    if (profilesError) {
+      return NextResponse.json({ error: profilesError.message }, { status: 500 })
+    }
+
+    const { data: adminProfiles, error: adminProfilesError } = ids.length
+      ? await supabase
+          .from('admin_user_profiles')
+          .select('user_id, account_status, subscription_bonus_months, credits, notes, last_admin_action, last_admin_action_at, closed_at')
+          .in('user_id', ids)
+      : { data: [], error: null }
+
+    if (adminProfilesError) {
+      return NextResponse.json({ error: adminProfilesError.message }, { status: 500 })
+    }
+
+    const profileMap = new Map((profiles || []).map((p) => [p.id, p]))
+    const adminMap = new Map((adminProfiles || []).map((p) => [p.user_id, p]))
+
+    let merged = users.map((u) => {
+      const p: any = profileMap.get(u.id) || {}
+      const a: any = adminMap.get(u.id) || {}
+      return {
+        id: u.id,
+        email: u.email,
+        created_at: u.created_at,
+        last_sign_in_at: u.last_sign_in_at,
+        email_confirmed_at: u.email_confirmed_at,
+        user_metadata: u.user_metadata,
+        plan: p.plan || 'free',
+        subscription_status: p.subscriptionstatus || 'inactive',
+        fullname: p.fullname || u.user_metadata?.fullname || '',
+        referralcode: p.referralcode || '',
+        createdat: p.createdat || u.created_at,
+        billinginterval: p.billinginterval || 'month',
+        account_status: a.account_status || 'active',
+        subscription_bonus_months: a.subscription_bonus_months || 0,
+        credits: a.credits || 0,
+        notes: a.notes || '',
+        last_admin_action: a.last_admin_action || '',
+        last_admin_action_at: a.last_admin_action_at || null,
+        closed_at: a.closed_at || null,
+      }
+    })
+
+    if (search) {
+      const q = search.toLowerCase()
+      merged = merged.filter((u) =>
+        [u.email, u.fullname, u.id, u.referralcode, u.plan, u.subscription_status, u.account_status]
+          .filter(Boolean)
+          .some((v) => String(v).toLowerCase().includes(q))
+      )
+    }
+
+    return NextResponse.json({
+      users: merged,
+      page,
+      perPage,
+      total: data.total || merged.length,
+      totalPages: data.total ? Math.ceil(data.total / perPage) : 1,
+    })
+  } catch (e: any) {
+    return NextResponse.json({ error: e.message || 'Failed to load users' }, { status: 500 })
+  }
+}
+
+
+
+
+
+
+
+==================================================
+FILE: .\app\api\admin\users\[id]\route.ts
+==================================================
+
+
+import { NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
+
+
+function adminClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+      },
+    }
+  )
+}
+
+export async function GET(
+  _request: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const supabase = adminClient()
+    const { id: userId } = await context.params
+
+    const [{ data: userRes, error: userErr }, { data: profileRes, error: profileErr }, { data: adminRes, error: adminErr }] =
+      await Promise.all([
+        supabase.auth.admin.getUserById(userId),
+        supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
+        supabase.from('admin_user_profiles').select('*').eq('user_id', userId).maybeSingle(),
+      ])
+
+    if (userErr) return NextResponse.json({ error: userErr.message }, { status: 500 })
+    if (profileErr) return NextResponse.json({ error: profileErr.message }, { status: 500 })
+    if (adminErr) return NextResponse.json({ error: adminErr.message }, { status: 500 })
+
+    return NextResponse.json({
+      user: userRes.user,
+      profile: profileRes || null,
+      admin: adminRes || null,
+    })
+  } catch (e: any) {
+    return NextResponse.json({ error: e.message || 'Failed to load user' }, { status: 500 })
+  }
+}
+
+export async function POST(
+  request: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const body = await request.json()
+    const supabase = adminClient()
+    const { id: userId } = await context.params
+
+    const now = new Date().toISOString()
+
+    const updates: any = {
+      user_id: userId,
+      updated_at: now,
+      last_admin_action_at: now,
+    }
+
+    if (typeof body.account_status === 'string') updates.account_status = body.account_status
+    if (typeof body.subscription_bonus_months === 'number') updates.subscription_bonus_months = body.subscription_bonus_months
+    if (typeof body.credits === 'number') updates.credits = body.credits
+    if (typeof body.notes === 'string') updates.notes = body.notes
+    if (typeof body.last_admin_action === 'string') updates.last_admin_action = body.last_admin_action
+
+    if (body.close_account === true) {
+      updates.account_status = 'closed'
+      updates.closed_at = now
+    }
+
+    if (body.open_account === true) {
+      updates.account_status = 'active'
+      updates.closed_at = null
+    }
+
+    const { error } = await supabase.from('admin_user_profiles').upsert(updates)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    return NextResponse.json({ ok: true })
+  } catch (e: any) {
+    return NextResponse.json({ error: e.message || 'Failed to update user' }, { status: 500 })
+  }
+}
+
+
+
+
+
+
+
+==================================================
+FILE: .\app\admin\banners\page.tsx
+==================================================
+
+"use client";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+
+type LoginView = "standard" | "sso";
+
+export default function LoginPage() {
+  const router = useRouter();
+  const supabase = createClient();
+  
+  // Form states
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [domain, setDomain] = useState("");
+  
+  // UI states
+  const [view, setView] = useState<LoginView>("standard");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+
+  const handleEmailLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    setMessage("");
+
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (signInError) {
+      setError(signInError.message);
+      setLoading(false);
+    } else {
+      router.push("/admin");
+      router.refresh();
+    }
+  };
+
+  const handleMagicLink = async () => {
+    if (!email) {
+      setError("Please enter your email first.");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    setMessage("");
+
+    const { error: otpError } = await supabase.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: window.location.origin + "/admin" }
+    });
+
+    if (otpError) setError(otpError.message);
+    else setMessage("Check your email for the magic link!");
+    setLoading(false);
+  };
+
+  const handleResetPassword = async () => {
+    if (!email) {
+      setError("Please enter your email to reset password.");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + "/admin/settings",
+    });
+
+    if (resetError) setError(resetError.message);
+    else setMessage("Password reset instructions sent to your email.");
+    setLoading(false);
+  };
+
+  const handleGoogleLogin = async () => {
+    setError("");
+    const { error: signInError } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin + "/admin" }
+    });
+    if (signInError) setError(signInError.message);
+  };
+
+  const handleSSOLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+
+    const { data, error: ssoError } = await supabase.auth.signInWithSSO({
+      domain,
+      options: { redirectTo: window.location.origin + "/admin" }
+    });
+
+    if (data?.url) {
+      window.location.href = data.url;
+    } else if (ssoError) {
+      setError(ssoError.message);
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 sm:p-8" style={{ background: 'var(--bg)', color: 'var(--t1)' }}>
+      
+      <div className="w-full max-w-[400px] p-6 sm:p-8 rounded-2xl shadow-sm" style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}>
+        
+        {/* Logo Header */}
+        <div className="flex items-center gap-2 mb-8 justify-center">
+          <div className="relative w-6 h-6">
+            <div className="absolute inset-0 rounded-[3px] rotate-45 border-2" style={{ borderColor: 'var(--acc)', opacity: 0.5 }} />
+            <div className="absolute inset-[3px] rounded-[2px] rotate-45" style={{ background: 'var(--acc)' }} />
+          </div>
+          <span className="text-xl font-bold tracking-tight">Termimal Admin</span>
+        </div>
+
+        {/* Alerts */}
+        {error && (
+          <div className="p-3 mb-4 text-xs rounded-lg font-medium text-center" style={{ background: 'rgba(248,113,113,0.1)', color: 'var(--red-val)' }}>
+            {error}
+          </div>
+        )}
+        {message && (
+          <div className="p-3 mb-4 text-xs rounded-lg font-medium text-center" style={{ background: 'rgba(52,211,153,0.1)', color: 'var(--green-val)' }}>
+            {message}
+          </div>
+        )}
+
+        {view === "standard" ? (
+          <>
+            {/* Standard Email Form */}
+            <form onSubmit={handleEmailLogin} className="space-y-4 mb-4">
+              <div>
+                <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--t3)' }}>Email Address</label>
+                <input 
+                  type="email" 
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="w-full px-3 py-2.5 rounded-lg text-sm outline-none transition-all focus:ring-2"
+                  style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--t1)', '--tw-ring-color': 'var(--acc)' } as any}
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-medium" style={{ color: 'var(--t3)' }}>Password</label>
+                  <button type="button" onClick={handleResetPassword} className="text-[0.65rem] font-medium hover:underline" style={{ color: 'var(--acc)' }}>
+                    Forgot?
+                  </button>
+                </div>
+                <input 
+                  type="password" 
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="w-full px-3 py-2.5 rounded-lg text-sm outline-none transition-all focus:ring-2"
+                  style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--t1)', '--tw-ring-color': 'var(--acc)' } as any}
+                />
+              </div>
+
+              <button 
+                type="submit" 
+                disabled={loading}
+                className="w-full py-2.5 rounded-lg text-sm font-semibold transition-opacity disabled:opacity-50 mt-2"
+                style={{ background: 'var(--acc)', color: 'white' }}
+              >
+                {loading ? "Processing..." : "Sign in"}
+              </button>
+            </form>
+
+            <button 
+              type="button" 
+              onClick={handleMagicLink}
+              disabled={loading}
+              className="w-full text-xs font-medium py-2 mb-6 hover:underline"
+              style={{ color: 'var(--t3)' }}
+            >
+              Send me a magic link instead
+            </button>
+
+            {/* Divider */}
+            <div className="relative flex items-center py-2 mb-6">
+              <div className="flex-grow border-t" style={{ borderColor: 'var(--border)' }}></div>
+              <span className="flex-shrink-0 mx-4 text-xs font-medium" style={{ color: 'var(--t4)' }}>
+                OR CONTINUE WITH
+              </span>
+              <div className="flex-grow border-t" style={{ borderColor: 'var(--border)' }}></div>
+            </div>
+
+            <div className="space-y-3">
+              {/* Google Button */}
+              <button 
+                onClick={handleGoogleLogin}
+                type="button"
+                className="w-full flex items-center justify-center gap-3 py-2.5 rounded-lg text-sm font-semibold transition-all hover:opacity-80"
+                style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--t1)' }}
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                </svg>
+                Google
+              </button>
+
+              {/* SSO Switch Button */}
+              <button 
+                onClick={() => setView("sso")}
+                type="button"
+                className="w-full flex items-center justify-center gap-3 py-2.5 rounded-lg text-sm font-semibold transition-all hover:opacity-80"
+                style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--t1)' }}
+              >
+                <svg className="w-4 h-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+                Single Sign-On (SAML)
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* SSO Form */}
+            <form onSubmit={handleSSOLogin} className="space-y-4 mb-6">
+              <p className="text-xs mb-4 text-center" style={{ color: 'var(--t3)' }}>
+                Enter your company domain to be redirected to your identity provider.
+              </p>
+              <div>
+                <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--t3)' }}>Company Domain</label>
+                <input 
+                  type="text" 
+                  placeholder="e.g. acme.com"
+                  value={domain}
+                  onChange={(e) => setDomain(e.target.value)}
+                  required
+                  className="w-full px-3 py-2.5 rounded-lg text-sm outline-none transition-all focus:ring-2"
+                  style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--t1)', '--tw-ring-color': 'var(--acc)' } as any}
+                />
+              </div>
+
+              <button 
+                type="submit" 
+                disabled={loading}
+                className="w-full py-2.5 rounded-lg text-sm font-semibold transition-opacity disabled:opacity-50 mt-2"
+                style={{ background: 'var(--acc)', color: 'white' }}
+              >
+                {loading ? "Redirecting..." : "Continue with SSO"}
+              </button>
+            </form>
+
+            <button 
+              onClick={() => setView("standard")}
+              type="button"
+              className="w-full text-xs font-medium py-2 flex items-center justify-center gap-1 hover:underline"
+              style={{ color: 'var(--t3)' }}
+            >
+              &larr; Back to standard login
+            </button>
+          </>
+        )}
+
+      </div>
+    </div>
+  );
+}
+
+
+
+==================================================
+FILE: .\app\admin\seo\page.tsx
+==================================================
+
+'use client'
+
+import { useEffect, useState } from 'react'
+import { createClient } from '@/lib/supabase/client'
+
+type SeoSettings = {
+  id: string
+  site_title: string
+  site_description: string
+  site_keywords: string
+  canonical_url: string
+  og_image: string
+  twitter_handle: string
+  robots: string
+}
+
+export default function AdminSeoPage() {
+  const supabase = createClient()
+
+  const [form, setForm] = useState<SeoSettings>({
+    id: 'global',
+    site_title: '',
+    site_description: '',
+    site_keywords: '',
+    canonical_url: '',
+    og_image: '',
+    twitter_handle: '',
+    robots: 'index,follow',
+  })
+
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+
+  useEffect(() => {
+    const load = async () => {
+      const { data, error } = await supabase
+        .from('site_settings')
+        .select('*')
+        .eq('id', 'global')
+        .single()
+
+      if (!error && data) {
+        setForm({
+          id: data.id ?? 'global',
+          site_title: data.site_title ?? '',
+          site_description: data.site_description ?? '',
+          site_keywords: data.site_keywords ?? '',
+          canonical_url: data.canonical_url ?? '',
+          og_image: data.og_image ?? '',
+          twitter_handle: data.twitter_handle ?? '',
+          robots: data.robots ?? 'index,follow',
+        })
+      }
+
+      setLoading(false)
+    }
+
+    load()
+  }, [supabase])
+
+  const updateField = (key: keyof SeoSettings, value: string) => {
+    setForm((prev) => ({ ...prev, [key]: value }))
+  }
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSaving(true)
+    setMessage(null)
+
+    const { error } = await supabase.from('site_settings').upsert({
+      ...form,
+      id: 'global',
+      updated_at: new Date().toISOString(),
+    })
+
+    if (error) {
+      setMessage({ type: 'error', text: error.message })
+    } else {
+      setMessage({ type: 'success', text: 'SEO settings saved successfully.' })
+    }
+
+    setSaving(false)
+  }
+
+  if (loading) {
+    return (
+      <div className="text-sm" style={{ color: 'var(--t3)' }}>
+        Loading SEO settings...
+      </div>
+    )
+  }
+
+  return (
+    <div className="max-w-3xl">
+      <div className="mb-8">
+        <h1
+          className="text-2xl font-bold tracking-tight mb-2"
+          style={{ color: 'var(--t1)', letterSpacing: '-0.02em' }}
+        >
+          SEO Settings
+        </h1>
+        <p className="text-sm" style={{ color: 'var(--t3)' }}>
+          Manage the global metadata used across the main Termimal site.
+        </p>
+      </div>
+
+      <form
+        onSubmit={handleSave}
+        className="rounded-xl p-6 space-y-5"
+        style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
+      >
+        <Field
+          label="Site title"
+          value={form.site_title}
+          onChange={(v) => updateField('site_title', v)}
+        />
+
+        <TextAreaField
+          label="Site description"
+          value={form.site_description}
+          onChange={(v) => updateField('site_description', v)}
+          rows={4}
+        />
+
+        <TextAreaField
+          label="Keywords"
+          value={form.site_keywords}
+          onChange={(v) => updateField('site_keywords', v)}
+          rows={3}
+        />
+
+        <Field
+          label="Canonical URL"
+          value={form.canonical_url}
+          onChange={(v) => updateField('canonical_url', v)}
+        />
+
+        <Field
+          label="Open Graph image URL"
+          value={form.og_image}
+          onChange={(v) => updateField('og_image', v)}
+        />
+
+        <Field
+          label="Twitter handle"
+          value={form.twitter_handle}
+          onChange={(v) => updateField('twitter_handle', v)}
+        />
+
+        <Field
+          label="Robots"
+          value={form.robots}
+          onChange={(v) => updateField('robots', v)}
+        />
+
+        <div
+          className="rounded-lg p-4"
+          style={{ background: 'var(--bg)', border: '1px solid var(--border)' }}
+        >
+          <div className="text-xs font-semibold uppercase mb-2" style={{ color: 'var(--t4)' }}>
+            Preview
+          </div>
+          <div className="text-lg font-bold mb-1" style={{ color: 'var(--blue)' }}>
+            {form.site_title || 'Termimal'}
+          </div>
+          <div className="text-sm mb-1" style={{ color: 'var(--acc)' }}>
+            {form.canonical_url || 'https://termimal.com'}
+          </div>
+          <div className="text-sm" style={{ color: 'var(--t3)' }}>
+            {form.site_description || 'No description set.'}
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between pt-2">
+          {message ? (
+            <span
+              className="text-sm font-medium"
+              style={{ color: message.type === 'error' ? 'var(--red-val)' : 'var(--green-val)' }}
+            >
+              {message.text}
+            </span>
+          ) : (
+            <span className="text-sm" style={{ color: 'var(--t4)' }}>
+              Changes save to Supabase immediately.
+            </span>
+          )}
+
+          <button type="submit" disabled={saving} className="btn-primary px-4 py-2 text-sm">
+            {saving ? 'Saving...' : 'Save SEO Settings'}
+          </button>
+        </div>
+      </form>
+    </div>
+  )
+}
+
+function Field({
+  label,
+  value,
+  onChange,
+}: {
+  label: string
+  value: string
+  onChange: (value: string) => void
+}) {
+  return (
+    <label className="block">
+      <div className="text-sm font-medium mb-2" style={{ color: 'var(--t2)' }}>
+        {label}
+      </div>
+      <input
+        value={value || ''}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full rounded-lg px-3 py-2.5 text-sm outline-none"
+        style={{
+          background: 'var(--bg)',
+          border: '1px solid var(--border)',
+          color: 'var(--t1)',
+        }}
+      />
+    </label>
+  )
+}
+
+function TextAreaField({
+  label,
+  value,
+  onChange,
+  rows = 4,
+}: {
+  label: string
+  value: string
+  onChange: (value: string) => void
+  rows?: number
+}) {
+  return (
+    <label className="block">
+      <div className="text-sm font-medium mb-2" style={{ color: 'var(--t2)' }}>
+        {label}
+      </div>
+      <textarea
+        rows={rows}
+        value={value || ''}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full rounded-lg px-3 py-2.5 text-sm outline-none resize-y"
+        style={{
+          background: 'var(--bg)',
+          border: '1px solid var(--border)',
+          color: 'var(--t1)',
+        }}
+      />
+    </label>
+  )
+}
+
+
+
+==================================================
+FILE: .\app\admin\faqs\page.tsx
+==================================================
+
+'use client'
+
+import { useEffect, useState } from 'react'
+import { createClient } from '@/lib/supabase/client'
+import { Plus, Trash2, Edit2, X, Save } from 'lucide-react'
+
+type FAQ = {
+  id: string
+  question: string
+  answer: string
+  is_active: boolean
+}
+
+export default function FAQEditor() {
+  const supabase = createClient()
+  const [faqs, setFaqs] = useState<FAQ[]>([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [formData, setFormData] = useState({ question: '', answer: '', is_active: true })
+
+  useEffect(() => {
+    fetchFaqs()
+  }, [supabase])
+
+  async function fetchFaqs() {
+    const { data } = await supabase.from('faqs').select('*').order('created_at', { ascending: true })
+    if (data) setFaqs(data)
+    setLoading(false)
+  }
+
+  const handleSubmit = async (e: any) => {
+    e.preventDefault()
+    setSaving(true)
+    setError('')
+
+    if (editingId) {
+      const { error: err } = await supabase.from('faqs').update(formData).eq('id', editingId)
+      if (err) setError(err.message)
+    } else {
+      const { error: err } = await supabase.from('faqs').insert([formData])
+      if (err) setError(err.message)
+    }
+
+    setSaving(false)
+    if (!error) {
+      resetForm()
+      fetchFaqs()
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this FAQ?')) return
+    await supabase.from('faqs').delete().eq('id', id)
+    fetchFaqs()
+  }
+
+  const startEditing = (faq: FAQ) => {
+    setEditingId(faq.id)
+    setFormData({ question: faq.question, answer: faq.answer, is_active: faq.is_active })
+  }
+
+  const resetForm = () => {
+    setEditingId(null)
+    setFormData({ question: '', answer: '', is_active: true })
+    setError('')
+  }
+
+  if (loading) return <div className="p-8 text-sm animate-pulse" style={{ color: 'var(--t3)' }}>Loading FAQs...</div>
+
+  return (
+    <div className="max-w-6xl">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold tracking-tight mb-1">FAQ Management</h1>
+        <p className="text-sm" style={{ color: 'var(--t3)' }}>Add, update, or remove Frequently Asked Questions from your site.</p>
+      </div>
+
+      <div className="grid lg:grid-cols-3 gap-8">
+        
+        {/* LEFT COLUMN: The Form */}
+        <div className="lg:col-span-1">
+          <form onSubmit={handleSubmit} className="p-6 rounded-xl border sticky top-6" style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}>
+            <h2 className="font-bold text-lg mb-4 flex items-center justify-between">
+              {editingId ? 'Edit FAQ' : 'Add New FAQ'}
+              {editingId && (
+                <button type="button" onClick={resetForm} className="text-xs font-normal flex items-center gap-1 hover:underline" style={{ color: 'var(--t3)' }}>
+                  <X size={12} /> Cancel Edit
+                </button>
+              )}
+            </h2>
+
+            {error && <div className="mb-4 p-3 rounded text-xs text-red-500 bg-red-500/10">{error}</div>}
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--t2)' }}>Question</label>
+                <input 
+                  type="text" required
+                  value={formData.question}
+                  onChange={(e: any) => setFormData({...formData, question: e.target.value})}
+                  className="w-full px-3 py-2 rounded-lg text-sm outline-none"
+                  style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--t1)' }}
+                  placeholder="e.g. How much does it cost?"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--t2)' }}>Answer</label>
+                <textarea 
+                  required rows={4}
+                  value={formData.answer}
+                  onChange={(e: any) => setFormData({...formData, answer: e.target.value})}
+                  className="w-full px-3 py-2 rounded-lg text-sm outline-none resize-none"
+                  style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--t1)' }}
+                  placeholder="Write the answer here..."
+                />
+              </div>
+
+              <label className="flex items-center gap-2 text-sm cursor-pointer" style={{ color: 'var(--t2)' }}>
+                <input 
+                  type="checkbox"
+                  checked={formData.is_active}
+                  onChange={(e: any) => setFormData({...formData, is_active: e.target.checked})}
+                  className="rounded border-gray-300"
+                />
+                Visible on public site
+              </label>
+
+               <button 
+                type="submit" disabled={saving}
+                className="w-full py-2.5 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-opacity disabled:opacity-50 mt-2"
+                style={{ background: 'var(--acc)', color: 'white' }}
+              >
+                {editingId ? <Save size={16} /> : <Plus size={16} />}
+                {saving ? 'Saving...' : editingId ? 'Update FAQ' : 'Create FAQ'}
+              </button>
+            </div>
+          </form>
+        </div>
+
+        {/* RIGHT COLUMN: The List */}
+        <div className="lg:col-span-2 space-y-4">
+          {faqs.length === 0 ? (
+            <div className="p-8 text-center rounded-xl border border-dashed" style={{ borderColor: 'var(--border)', color: 'var(--t3)' }}>
+              No FAQs created yet. Use the form to add your first one!
+            </div>
+          ) : (
+            faqs.map((faq) => (
+              <div key={faq.id} className="p-5 rounded-xl border group transition-all" style={{ 
+                borderColor: editingId === faq.id ? 'var(--acc)' : 'var(--border)', 
+                background: 'var(--surface)',
+                opacity: faq.is_active ? 1 : 0.6
+              }}>
+                <div className="flex justify-between items-start gap-4">
+                  <div>
+                    <h3 className="font-bold text-base mb-1" style={{ color: 'var(--t1)' }}>{faq.question}</h3>
+                    <p className="text-sm whitespace-pre-wrap" style={{ color: 'var(--t3)' }}>{faq.answer}</p>
+                    
+                    {!faq.is_active && (
+                      <span className="inline-block mt-3 text-[0.65rem] font-bold px-2 py-0.5 rounded bg-gray-500/10 text-gray-500">HIDDEN</span>
+                    )}
+                  </div>
+                  
+                  <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button type="button" onClick={() => startEditing(faq)} className="p-1.5 rounded hover:bg-black/5 dark:hover:bg-white/5" style={{ color: 'var(--t2)' }}>
+                      <Edit2 size={16} />
+                    </button>
+                    <button type="button" onClick={() => handleDelete(faq.id)} className="p-1.5 rounded hover:bg-red-500/10 text-red-500">
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+
+
+==================================================
+FILE: .\middleware.ts
+==================================================
+
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { NextResponse, type NextRequest } from 'next/server'
+
+export async function middleware(request: NextRequest) {
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  })
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return request.cookies.get(name)?.value
+        },
+        set(name: string, value: string, options: CookieOptions) {
+          request.cookies.set({ name, value, ...options })
+          response = NextResponse.next({
+            request: { headers: request.headers },
+          })
+          response.cookies.set({ name, value, ...options })
+        },
+        remove(name: string, options: CookieOptions) {
+          request.cookies.set({ name, value: '', ...options })
+          response = NextResponse.next({
+            request: { headers: request.headers },
+          })
+          response.cookies.set({ name, value: '', ...options })
+        },
+      },
+    }
+  )
+
+  // Get current user session
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const isLoginPage = request.nextUrl.pathname.startsWith('/login')
+  const isUnauthorizedPage = request.nextUrl.pathname.startsWith('/unauthorized')
+
+  // 1. If no user, redirect to login (unless already there)
+  if (!user && !isLoginPage && !isUnauthorizedPage) {
+    return NextResponse.redirect(new URL('/login', request.url))
+  }
+
+  // 2. If user exists, check their role
+  if (user) {
+    const { data: roleData } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    const isAdmin = roleData?.role === 'admin'
+
+    // If they are not an admin and trying to access anything other than /unauthorized
+    if (!isAdmin && !isUnauthorizedPage) {
+      // Sign them out of the admin panel so their session doesn't linger
+      await supabase.auth.signOut()
+      return NextResponse.redirect(new URL('/unauthorized', request.url))
+    }
+
+    // If they ARE an admin and try to hit /login, push them to the dashboard
+    if (isAdmin && isLoginPage) {
+        return NextResponse.redirect(new URL('/', request.url))
+    }
+  }
+
+  return response
+}
+
+export const config = {
+  matcher: [
+    /*
+     * Protect all routes except for static assets, images, and auth callbacks
+     */
+    '/((?!_next/static|_next/image|favicon.ico|auth/callback|api).*)',
+  ],
+}
+
+

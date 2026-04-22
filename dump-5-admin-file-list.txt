@@ -1,0 +1,127 @@
+
+
+==================================================
+FILE: .\app\admin\settings\page.tsx
+==================================================
+
+export default function AdminSettingsPage() {
+  return (
+    <div>
+      <h1 className="text-2xl font-bold tracking-tight mb-1" style={{ letterSpacing: '-0.02em' }}>System Settings</h1>
+      <p className="text-sm mb-8" style={{ color: 'var(--t3)' }}>Global configuration, feature flags, and system controls.</p>
+
+      <div className="p-6 rounded-xl mb-6" style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}>
+        <h3 className="text-sm font-bold mb-4">Feature Flags</h3>
+        {[
+          { flag: 'on_chain_analytics', label: 'On-chain analytics module', enabled: true },
+          { flag: 'macro_intelligence', label: 'Macro intelligence module', enabled: true },
+          { flag: 'ai_insights', label: 'AI-powered insights (beta)', enabled: false },
+          { flag: 'backtesting', label: 'Backtesting engine', enabled: false },
+          { flag: 'social_trading', label: 'Social/community features', enabled: false },
+        ].map(f => (
+          <div key={f.flag} className="flex items-center justify-between py-3 border-b last:border-0" style={{ borderColor: 'var(--border)' }}>
+            <div>
+              <div className="text-xs font-semibold">{f.label}</div>
+              <div className="text-[0.6rem] font-mono" style={{ color: 'var(--t4)' }}>{f.flag}</div>
+            </div>
+            <div className={`w-9 h-5 rounded-full cursor-pointer transition-colors flex items-center ${f.enabled ? 'justify-end' : 'justify-start'}`}
+              style={{ background: f.enabled ? 'var(--acc2)' : 'var(--border)', padding: '2px' }}>
+              <div className="w-4 h-4 rounded-full bg-white" />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="p-6 rounded-xl mb-6" style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}>
+        <h3 className="text-sm font-bold mb-4">App Version Management</h3>
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { platform: 'macOS', version: 'v1.4.2', status: 'Latest' },
+            { platform: 'Windows', version: 'v1.4.2', status: 'Latest' },
+            { platform: 'Web', version: 'v2.1.0', status: 'Latest' },
+          ].map(v => (
+            <div key={v.platform} className="p-3 rounded-lg" style={{ background: 'var(--bg)', border: '1px solid var(--border)' }}>
+              <div className="text-xs font-semibold mb-1">{v.platform}</div>
+              <div className="text-sm font-bold font-mono">{v.version}</div>
+              <div className="text-[0.55rem] mt-1" style={{ color: 'var(--green-val)' }}>{v.status}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="p-6 rounded-xl" style={{ border: '1px solid rgba(220,38,38,.2)', background: 'rgba(220,38,38,.02)' }}>
+        <h3 className="text-sm font-bold mb-2" style={{ color: 'var(--red-val)' }}>Maintenance Mode</h3>
+        <p className="text-xs mb-3" style={{ color: 'var(--t3)' }}>Enable to show maintenance page to all users. Admin access remains available.</p>
+        <button className="text-xs font-semibold px-4 py-2 rounded-lg" style={{ color: 'var(--red-val)', border: '1px solid rgba(220,38,38,.3)' }}>Enable maintenance mode</button>
+      </div>
+    </div>
+  )
+}
+
+
+
+==================================================
+FILE: .\app\admin\subscriptions\page.tsx
+==================================================
+
+export default function AdminSubscriptionsPage() {
+  return (
+    <div>
+      <h1 className="text-2xl font-bold tracking-tight mb-1" style={{ letterSpacing: '-0.02em' }}>Subscriptions & Plans</h1>
+      <p className="text-sm mb-8" style={{ color: 'var(--t3)' }}>Manage plans, pricing, and subscription lifecycle.</p>
+
+      <div className="grid grid-cols-3 gap-3 mb-8">
+        {[
+          { name: 'Free', users: 8420, mrr: '$0' },
+          { name: 'Pro', users: 3200, mrr: '$21,280' },
+          { name: 'Premium', users: 1280, mrr: '$7,170' },
+        ].map(p => (
+          <div key={p.name} className="p-5 rounded-xl" style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-base font-bold">{p.name}</h3>
+              <button className="text-[0.62rem] font-medium" style={{ color: 'var(--acc)' }}>Edit plan</button>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <div className="text-[0.55rem] uppercase tracking-widest" style={{ color: 'var(--t4)' }}>Users</div>
+                <div className="text-lg font-bold">{p.users.toLocaleString()}</div>
+              </div>
+              <div>
+                <div className="text-[0.55rem] uppercase tracking-widest" style={{ color: 'var(--t4)' }}>MRR</div>
+                <div className="text-lg font-bold">{p.mrr}</div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="p-5 rounded-xl mb-6" style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-bold">Active coupons</h3>
+          <button className="btn-primary text-xs py-1.5 px-3">+ Create coupon</button>
+        </div>
+        {[
+          { code: 'LAUNCH2026', discount: '30% off', uses: '142 / 500', expires: 'Apr 30, 2026' },
+          { code: 'WELCOME20', discount: '20% off first year', uses: '89 / unlimited', expires: 'Never' },
+        ].map(c => (
+          <div key={c.code} className="flex items-center justify-between py-3 text-xs border-b last:border-0" style={{ borderColor: 'var(--border)' }}>
+            <span className="font-mono font-bold">{c.code}</span>
+            <span style={{ color: 'var(--t3)' }}>{c.discount}</span>
+            <span style={{ color: 'var(--t4)' }}>{c.uses} uses</span>
+            <span className="font-mono" style={{ color: 'var(--t4)' }}>{c.expires}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+
+
+==================================================
+FILE: .\app\admin\credits\page.tsx
+==================================================
+
+[FILE NOT FOUND]
+
+

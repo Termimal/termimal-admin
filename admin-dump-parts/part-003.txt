@@ -1,7 +1,11 @@
+PART 3
+
+FILE: .\app\admin\banners\page.tsx
+==================================================
+
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { useMemo, useState } from 'react'
 
 type BannerRow = {
   id: string
@@ -12,9 +16,27 @@ type BannerRow = {
   cta_href: string
 }
 
+const initialBanners: BannerRow[] = [
+  {
+    id: 'hero-main',
+    title: 'Main hero campaign',
+    placement: 'homepage_hero',
+    status: 'active',
+    cta_label: 'Start free trial',
+    cta_href: '/pricing',
+  },
+  {
+    id: 'macro-launch',
+    title: 'Macro intelligence launch',
+    placement: 'homepage_secondary',
+    status: 'draft',
+    cta_label: 'Explore feature',
+    cta_href: '/features/macro',
+  },
+]
+
 export default function AdminBannersPage() {
-  const supabase = createClient()
-  const [banners, setBanners] = useState<BannerRow[]>([])
+  const [banners, setBanners] = useState<BannerRow[]>(initialBanners)
   const [form, setForm] = useState<BannerRow>({
     id: '',
     title: '',
@@ -24,33 +46,8 @@ export default function AdminBannersPage() {
     cta_href: '',
   })
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
 
   const sorted = useMemo(() => [...banners].sort((a, b) => a.title.localeCompare(b.title)), [banners])
-
-  const load = async () => {
-    setLoading(true)
-    setError('')
-    const { data, error } = await supabase
-      .from('banners')
-      .select('id, title, placement, status, cta_label, cta_href')
-      .order('title', { ascending: true })
-
-    if (error) {
-      setError(error.message)
-      setBanners([])
-    } else {
-      setBanners((data || []) as BannerRow[])
-    }
-
-    setLoading(false)
-  }
-
-  useEffect(() => {
-    load()
-  }, [])
 
   const resetForm = () => {
     setEditingId(null)
@@ -64,31 +61,23 @@ export default function AdminBannersPage() {
     })
   }
 
-  const submit = async (e: React.FormEvent) => {
+  const submit = (e: React.FormEvent) => {
     e.preventDefault()
-    setSaving(true)
-    setError('')
 
     const payload: BannerRow = {
       ...form,
       id: form.id || form.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
     }
 
-    if (!payload.title || !payload.placement) {
-      setSaving(false)
-      return
-    }
+    if (!payload.title || !payload.placement) return
 
-    const { error } = await supabase.from('banners').upsert(payload)
-
-    if (error) {
-      setError(error.message)
+    if (editingId) {
+      setBanners((prev) => prev.map((b) => (b.id === editingId ? payload : b)))
     } else {
-      await load()
-      resetForm()
+      setBanners((prev) => [payload, ...prev])
     }
 
-    setSaving(false)
+    resetForm()
   }
 
   const edit = (banner: BannerRow) => {
@@ -96,14 +85,9 @@ export default function AdminBannersPage() {
     setForm(banner)
   }
 
-  const remove = async (id: string) => {
+  const remove = (id: string) => {
     if (!window.confirm('Delete this banner?')) return
-    const { error } = await supabase.from('banners').delete().eq('id', id)
-    if (error) {
-      setError(error.message)
-      return
-    }
-    await load()
+    setBanners((prev) => prev.filter((b) => b.id !== id))
     if (editingId === id) resetForm()
   }
 
@@ -114,15 +98,9 @@ export default function AdminBannersPage() {
           Banner Management
         </h1>
         <p className="text-sm" style={{ color: 'var(--t3)' }}>
-          Create, edit, and delete banners with Supabase persistence.
+          Starter banner manager restored so the admin panel is usable again. Persist to Supabase can be added next.
         </p>
       </div>
-
-      {error ? (
-        <div className="mb-4 rounded-lg px-4 py-3 text-sm" style={{ background: 'rgba(248,113,113,.1)', color: 'var(--red-val)' }}>
-          {error}
-        </div>
-      ) : null}
 
       <div className="grid lg:grid-cols-3 gap-8">
         <div className="lg:col-span-1">
@@ -193,7 +171,7 @@ export default function AdminBannersPage() {
               </div>
 
               <div className="flex gap-2 pt-2">
-                <button type="submit" disabled={saving} className="btn-primary px-4 py-2 text-sm disabled:opacity-60">
+                <button type="submit" className="btn-primary px-4 py-2 text-sm">
                   {editingId ? 'Update banner' : 'Create banner'}
                 </button>
                 <button type="button" onClick={resetForm} className="btn-secondary px-4 py-2 text-sm">
@@ -205,8 +183,6 @@ export default function AdminBannersPage() {
         </div>
 
         <div className="lg:col-span-2 space-y-4">
-          {loading ? <div style={{ color: 'var(--t3)' }}>Loading banners...</div> : null}
-
           {sorted.map((banner) => (
             <div
               key={banner.id}
@@ -248,7 +224,7 @@ export default function AdminBannersPage() {
             </div>
           ))}
 
-          {!loading && !sorted.length ? (
+          {!sorted.length ? (
             <div className="p-8 text-center rounded-xl border border-dashed" style={{ borderColor: 'var(--border)', color: 'var(--t3)' }}>
               No banners yet. Create your first banner from the form.
             </div>
@@ -258,3 +234,55 @@ export default function AdminBannersPage() {
     </div>
   )
 }
+
+
+==================================================
+FILE: .\app\admin\credits\page.tsx
+==================================================
+
+export default function AdminCreditsPage() {
+  const creditPackages = [
+    { label: 'Starter bonus', amount: 25, note: 'For onboarding or support recovery' },
+    { label: 'Pro allocation', amount: 100, note: 'Monthly promotional credit top-up' },
+    { label: 'Premium allocation', amount: 250, note: 'High-tier support adjustment' },
+  ]
+
+  return (
+    <div>
+      <h1 className="text-2xl font-bold tracking-tight mb-1" style={{ letterSpacing: '-0.02em' }}>
+        Credits Management
+      </h1>
+      <p className="text-sm mb-8" style={{ color: 'var(--t3)' }}>
+        Manage credit packages, internal credit policies, and manual support adjustments.
+      </p>
+
+      <div className="grid md:grid-cols-3 gap-4 mb-8">
+        {creditPackages.map((item) => (
+          <div
+            key={item.label}
+            className="p-5 rounded-xl"
+            style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}
+          >
+            <div className="text-sm font-semibold mb-1">{item.label}</div>
+            <div className="text-2xl font-bold mb-2">{item.amount}</div>
+            <div className="text-xs" style={{ color: 'var(--t3)' }}>{item.note}</div>
+          </div>
+        ))}
+      </div>
+
+      <div
+        className="p-6 rounded-xl"
+        style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}
+      >
+        <h2 className="text-sm font-bold mb-4">Manual adjustment workflow</h2>
+        <ol className="space-y-3 text-sm" style={{ color: 'var(--t3)' }}>
+          <li>1. Open the target user in User Management.</li>
+          <li>2. Adjust the credits field in the admin profile panel.</li>
+          <li>3. Save the change and leave an internal note for auditability.</li>
+        </ol>
+      </div>
+    </div>
+  )
+}
+
+

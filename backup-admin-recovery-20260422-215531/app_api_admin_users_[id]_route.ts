@@ -1,6 +1,7 @@
+﻿
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { createServerSupabase } from '@/lib/supabase/server'
+
 
 function adminClient() {
   return createClient(
@@ -16,38 +17,11 @@ function adminClient() {
   )
 }
 
-async function requireAdmin() {
-  const supabase = createServerSupabase()
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser()
-
-  if (userError || !user) {
-    return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) }
-  }
-
-  const { data: roleData, error: roleError } = await supabase
-    .from('user_roles')
-    .select('role')
-    .eq('id', user.id)
-    .single()
-
-  if (roleError || roleData?.role !== 'admin') {
-    return { error: NextResponse.json({ error: 'Forbidden' }, { status: 403 }) }
-  }
-
-  return { user }
-}
-
 export async function GET(
   _request: Request,
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const auth = await requireAdmin()
-    if ('error' in auth) return auth.error
-
     const supabase = adminClient()
     const { id: userId } = await context.params
 
@@ -77,9 +51,6 @@ export async function POST(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const auth = await requireAdmin()
-    if ('error' in auth) return auth.error
-
     const body = await request.json()
     const supabase = adminClient()
     const { id: userId } = await context.params
@@ -116,3 +87,7 @@ export async function POST(
     return NextResponse.json({ error: e.message || 'Failed to update user' }, { status: 500 })
   }
 }
+
+
+
+

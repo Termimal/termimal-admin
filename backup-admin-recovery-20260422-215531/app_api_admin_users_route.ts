@@ -1,6 +1,7 @@
+﻿
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { createServerSupabase } from '@/lib/supabase/server'
+
 
 function adminClient() {
   return createClient(
@@ -16,35 +17,8 @@ function adminClient() {
   )
 }
 
-async function requireAdmin() {
-  const supabase = createServerSupabase()
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser()
-
-  if (userError || !user) {
-    return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) }
-  }
-
-  const { data: roleData, error: roleError } = await supabase
-    .from('user_roles')
-    .select('role')
-    .eq('id', user.id)
-    .single()
-
-  if (roleError || roleData?.role !== 'admin') {
-    return { error: NextResponse.json({ error: 'Forbidden' }, { status: 403 }) }
-  }
-
-  return { user }
-}
-
 export async function GET(request: Request) {
   try {
-    const auth = await requireAdmin()
-    if ('error' in auth) return auth.error
-
     const url = new URL(request.url)
     const page = Number(url.searchParams.get('page') || '1')
     const perPage = Math.min(Number(url.searchParams.get('perPage') || '20'), 100)
@@ -129,3 +103,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: e.message || 'Failed to load users' }, { status: 500 })
   }
 }
+
+
+
+

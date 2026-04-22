@@ -1,0 +1,633 @@
+PART 2
+
+FILE: .\app\admin\content\new\page.tsx
+==================================================
+
+'use client'
+
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { ArrowLeft, Save } from 'lucide-react'
+import Link from 'next/link'
+import { createClient } from '@/lib/supabase/client'
+
+export default function NewArticlePage() {
+  const router = useRouter()
+  const supabase = createClient()
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  const [formData, setFormData] = useState({
+    title: '',
+    category: 'Education',
+    author: 'Editorial',
+    status: 'Draft',
+    content: '', // <-- Added content field here
+    published_date: new Date().toISOString().split('T')[0]
+  })
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSaving(true)
+    setError('')
+
+    const { error: supabaseError } = await supabase
+      .from('articles')
+      .insert([formData])
+
+    if (supabaseError) {
+      setError(supabaseError.message)
+      setSaving(false)
+    } else {
+      router.push('/admin/content')
+      router.refresh()
+    }
+  }
+
+  return (
+    <div className="max-w-4xl mx-auto pb-24">
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center gap-4">
+          <Link href="/admin/content" className="p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+            <ArrowLeft size={18} style={{ color: 'var(--t2)' }} />
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight mb-1">Create Article</h1>
+            <p className="text-sm" style={{ color: 'var(--t3)' }}>Draft a new report or market analysis.</p>
+          </div>
+        </div>
+      </div>
+
+      {error && (
+        <div className="mb-6 p-4 rounded-lg text-sm" style={{ background: 'rgba(248,113,113,.1)', color: 'var(--red-val)' }}>
+          {error}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Title Input */}
+        <div className="p-6 rounded-xl border" style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}>
+          <label className="block text-sm font-medium mb-2" style={{ color: 'var(--t2)' }}>Article Title</label>
+          <input 
+            type="text" 
+            required
+            value={formData.title}
+            onChange={(e) => setFormData({...formData, title: e.target.value})}
+            placeholder="e.g. Weekly Macro Brief: Fed Holds, VIX Spikes"
+            className="w-full px-4 py-3 rounded-lg text-lg font-medium outline-none transition-colors"
+            style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--t1)' }}
+          />
+        </div>
+
+        {/* Metadata Grid */}
+        <div className="grid md:grid-cols-2 gap-6 p-6 rounded-xl border" style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}>
+          <div>
+            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--t2)' }}>Category</label>
+            <select 
+              value={formData.category}
+              onChange={(e) => setFormData({...formData, category: e.target.value})}
+              className="w-full px-4 py-2.5 rounded-lg text-sm outline-none"
+              style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--t1)' }}
+            >
+              <option>Education</option>
+              <option>Analysis</option>
+              <option>Product</option>
+              <option>News</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--t2)' }}>Status</label>
+            <select 
+              value={formData.status}
+              onChange={(e) => setFormData({...formData, status: e.target.value})}
+              className="w-full px-4 py-2.5 rounded-lg text-sm outline-none"
+              style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--t1)' }}
+            >
+              <option>Draft</option>
+              <option>Published</option>
+              <option>Scheduled</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--t2)' }}>Author</label>
+            <input 
+              type="text" 
+              required
+              value={formData.author}
+              onChange={(e) => setFormData({...formData, author: e.target.value})}
+              className="w-full px-4 py-2.5 rounded-lg text-sm outline-none"
+              style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--t1)' }}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--t2)' }}>Publish Date</label>
+            <input 
+              type="date" 
+              required
+              value={formData.published_date}
+              onChange={(e) => setFormData({...formData, published_date: e.target.value})}
+              className="w-full px-4 py-2.5 rounded-lg text-sm outline-none"
+              style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--t1)' }}
+            />
+          </div>
+        </div>
+
+        {/* Content Writer (NEW) */}
+        <div className="p-6 rounded-xl border flex flex-col" style={{ borderColor: 'var(--border)', background: 'var(--surface)', minHeight: '500px' }}>
+          <div className="flex items-center justify-between mb-4">
+            <label className="block text-sm font-medium" style={{ color: 'var(--t2)' }}>Article Content</label>
+            <span className="text-xs font-mono" style={{ color: 'var(--t4)' }}>Markdown supported</span>
+          </div>
+          
+          <textarea 
+            required
+            value={formData.content}
+            onChange={(e) => setFormData({...formData, content: e.target.value})}
+            placeholder="Write your article here... You can use standard Markdown formatting."
+            className="w-full flex-1 p-4 rounded-lg text-sm outline-none resize-none transition-colors"
+            style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--t1)', lineHeight: '1.6' }}
+          />
+        </div>
+
+        {/* Fixed Save Bar at the bottom of the screen */}
+        <div className="fixed bottom-0 left-0 right-0 p-4 border-t flex justify-end z-10 lg:pl-64" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
+          <div className="max-w-4xl w-full mx-auto flex justify-end">
+            <button 
+              type="submit" 
+              disabled={saving}
+              className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-opacity disabled:opacity-50 flex items-center gap-2"
+              style={{ background: 'var(--acc)', color: 'white' }}
+            >
+              <Save size={16} />
+              {saving ? 'Publishing...' : 'Save & Publish'}
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  )
+}
+
+
+==================================================
+FILE: .\app\admin\content\edit\[id]\page.tsx
+==================================================
+
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useRouter, useParams } from 'next/navigation'
+import { ArrowLeft, Save, Trash2 } from 'lucide-react'
+import Link from 'next/link'
+import { createClient } from '@/lib/supabase/client'
+
+export default function EditArticlePage() {
+  const router = useRouter()
+  const params = useParams()
+  const articleId = params.id as string
+  
+  const supabase = createClient()
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  const [formData, setFormData] = useState({
+    title: '',
+    category: 'Education',
+    author: 'Editorial',
+    status: 'Draft',
+    content: '',
+    published_date: ''
+  })
+
+  useEffect(() => {
+    async function fetchArticle() {
+      const { data, error } = await supabase
+        .from('articles')
+        .select('*')
+        .eq('id', articleId)
+        .single()
+
+      if (error) {
+        setError('Could not load article: ' + error.message)
+      } else if (data) {
+        setFormData({
+          title: data.title || '',
+          category: data.category || 'Education',
+          author: data.author || 'Editorial',
+          status: data.status || 'Draft',
+          content: data.content || '',
+          published_date: data.published_date ? new Date(data.published_date).toISOString().split('T')[0] : ''
+        })
+      }
+      setLoading(false)
+    }
+    
+    if (articleId) fetchArticle()
+  }, [articleId, supabase])
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSaving(true)
+    setError('')
+
+    const { error: supabaseError } = await supabase
+      .from('articles')
+      .update(formData)
+      .eq('id', articleId)
+
+    if (supabaseError) {
+      setError(supabaseError.message)
+      setSaving(false)
+    } else {
+      router.push('/admin/content')
+      router.refresh()
+    }
+  }
+
+  const handleDelete = async () => {
+    const confirmed = window.confirm("Are you sure you want to delete this article? This cannot be undone.")
+    if (!confirmed) return
+    
+    setSaving(true)
+    await supabase.from('articles').delete().eq('id', articleId)
+    router.push('/admin/content')
+    router.refresh()
+  }
+
+  if (loading) {
+    return <div className="animate-pulse text-sm p-8" style={{ color: 'var(--t3)' }}>Loading article data...</div>
+  }
+
+  return (
+    <div className="max-w-4xl mx-auto pb-24">
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center gap-4">
+          <Link href="/admin/content" className="p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+            <ArrowLeft size={18} style={{ color: 'var(--t2)' }} />
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight mb-1">Edit Article</h1>
+            <p className="text-sm" style={{ color: 'var(--t3)' }}>Update content or change publication status.</p>
+          </div>
+        </div>
+      </div>
+
+      {error && (
+        <div className="mb-6 p-4 rounded-lg text-sm" style={{ background: 'rgba(248,113,113,.1)', color: 'var(--red-val)' }}>
+          {error}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="p-6 rounded-xl border" style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}>
+          <label className="block text-sm font-medium mb-2" style={{ color: 'var(--t2)' }}>Article Title</label>
+          <input 
+            type="text" 
+            required
+            value={formData.title}
+            onChange={(e: any) => setFormData({...formData, title: e.target.value})}
+            className="w-full px-4 py-3 rounded-lg text-lg font-medium outline-none transition-colors"
+            style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--t1)' }}
+          />
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-6 p-6 rounded-xl border" style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}>
+          <div>
+            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--t2)' }}>Category</label>
+            <select 
+              value={formData.category}
+              onChange={(e: any) => setFormData({...formData, category: e.target.value})}
+              className="w-full px-4 py-2.5 rounded-lg text-sm outline-none"
+              style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--t1)' }}
+            >
+              <option>Education</option>
+              <option>Analysis</option>
+              <option>Product</option>
+              <option>News</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--t2)' }}>Status</label>
+            <select 
+              value={formData.status}
+              onChange={(e: any) => setFormData({...formData, status: e.target.value})}
+              className="w-full px-4 py-2.5 rounded-lg text-sm outline-none"
+              style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--t1)' }}
+            >
+              <option>Draft</option>
+              <option>Published</option>
+              <option>Scheduled</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--t2)' }}>Author</label>
+            <input 
+              type="text" 
+              required
+              value={formData.author}
+              onChange={(e: any) => setFormData({...formData, author: e.target.value})}
+              className="w-full px-4 py-2.5 rounded-lg text-sm outline-none"
+              style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--t1)' }}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--t2)' }}>Publish Date</label>
+            <input 
+              type="date" 
+              required
+              value={formData.published_date}
+              onChange={(e: any) => setFormData({...formData, published_date: e.target.value})}
+              className="w-full px-4 py-2.5 rounded-lg text-sm outline-none"
+              style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--t1)' }}
+            />
+          </div>
+        </div>
+
+        <div className="p-6 rounded-xl border flex flex-col" style={{ borderColor: 'var(--border)', background: 'var(--surface)', minHeight: '500px' }}>
+          <div className="flex items-center justify-between mb-4">
+            <label className="block text-sm font-medium" style={{ color: 'var(--t2)' }}>Article Content</label>
+            <span className="text-xs font-mono" style={{ color: 'var(--t4)' }}>Markdown supported</span>
+          </div>
+          <textarea 
+            required
+            value={formData.content}
+            onChange={(e: any) => setFormData({...formData, content: e.target.value})}
+            className="w-full flex-1 p-4 rounded-lg text-sm outline-none resize-none transition-colors"
+            style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--t1)', lineHeight: '1.6' }}
+          />
+        </div>
+
+        <div className="fixed bottom-0 left-0 right-0 p-4 border-t flex justify-end z-10 lg:pl-64" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
+          <div className="max-w-4xl w-full mx-auto flex justify-between items-center">
+            <button 
+              type="button"
+              onClick={handleDelete}
+              disabled={saving}
+              className="px-4 py-2.5 rounded-lg text-sm font-semibold transition-opacity disabled:opacity-50 flex items-center gap-2 hover:bg-red-500/10 text-red-500"
+            >
+              <Trash2 size={16} />
+              Delete Article
+            </button>
+            <button 
+              type="submit" 
+              disabled={saving}
+              className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-opacity disabled:opacity-50 flex items-center gap-2"
+              style={{ background: 'var(--acc)', color: 'white' }}
+            >
+              <Save size={16} />
+              {saving ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  )
+}
+
+
+
+
+==================================================
+FILE: .\app\admin\flags\page.tsx
+==================================================
+
+'use client'
+import AdminLayout from '@/components/admin/AdminLayout'
+
+const flags = [
+  { name: 'macro_intelligence', desc: 'Polymarket event risk integration', env: 'production', enabled: true, plan: 'Premium' },
+  { name: 'onchain_analytics', desc: 'MVRV, Z-Score, realized cap overlays', env: 'production', enabled: true, plan: 'Premium' },
+  { name: 'cot_reports', desc: 'CFTC COT positioning data', env: 'production', enabled: true, plan: 'Pro' },
+  { name: 'advanced_screener', desc: 'Multi-filter market screener', env: 'production', enabled: true, plan: 'Pro' },
+  { name: 'api_access', desc: 'REST API for data export', env: 'beta', enabled: false, plan: 'Premium' },
+  { name: 'ai_insights', desc: 'AI-generated market summaries', env: 'staging', enabled: false, plan: 'Premium' },
+  { name: 'social_sentiment', desc: 'Social media sentiment feed', env: 'development', enabled: false, plan: 'Pro' },
+  { name: 'backtesting', desc: 'Strategy backtesting engine', env: 'development', enabled: false, plan: 'Premium' },
+]
+
+const envColor: Record<string, { color: string; bg: string }> = {
+  production: { color: 'var(--green-val)', bg: 'rgba(52,211,153,.1)' },
+  beta: { color: 'var(--amber)', bg: 'rgba(251,191,36,.1)' },
+  staging: { color: 'var(--blue)', bg: 'rgba(96,165,250,.1)' },
+  development: { color: 'var(--t4)', bg: 'var(--surface)' },
+}
+
+export default function FlagsPage() {
+  return (
+    <AdminLayout>
+      <div className="rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
+        <table className="w-full text-[0.75rem]">
+          <thead><tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}>
+            {['Flag','Description','Environment','Min Plan','Status'].map(h => <th key={h} className="text-left px-4 py-2.5 text-[0.6rem] font-bold uppercase tracking-wider" style={{ color: 'var(--t4)' }}>{h}</th>)}
+          </tr></thead>
+          <tbody>{flags.map(f => (
+            <tr key={f.name} style={{ borderBottom: '1px solid var(--border)' }}>
+              <td className="px-4 py-2.5 font-mono font-semibold text-[0.72rem]">{f.name}</td>
+              <td className="px-4 py-2.5" style={{ color: 'var(--t3)' }}>{f.desc}</td>
+              <td className="px-4 py-2.5"><span className="text-[0.58rem] font-bold px-1.5 py-0.5 rounded" style={{ color: envColor[f.env].color, background: envColor[f.env].bg }}>{f.env}</span></td>
+              <td className="px-4 py-2.5"><span className="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded" style={{ background: 'var(--acc-d)', color: 'var(--acc)' }}>{f.plan}</span></td>
+              <td className="px-4 py-2.5">
+                <div className="w-9 h-5 rounded-full relative cursor-pointer transition-all" style={{ background: f.enabled ? 'var(--acc2)' : 'var(--border)' }}>
+                  <div className="absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all" style={{ left: f.enabled ? '18px' : '2px' }} />
+                </div>
+              </td>
+            </tr>
+          ))}</tbody>
+        </table>
+      </div>
+    </AdminLayout>
+  )
+}
+
+
+==================================================
+FILE: .\app\admin\translations\page.tsx
+==================================================
+
+'use client'
+import AdminLayout from '@/components/admin/AdminLayout'
+import { Search, Plus } from 'lucide-react'
+
+const languages = [
+  { code: 'en', name: 'English', keys: 1284, translated: 1284, pct: 100 },
+  { code: 'tr', name: 'Turkish', keys: 1284, translated: 1180, pct: 92 },
+  { code: 'de', name: 'German', keys: 1284, translated: 956, pct: 74 },
+  { code: 'fr', name: 'French', keys: 1284, translated: 890, pct: 69 },
+  { code: 'es', name: 'Spanish', keys: 1284, translated: 720, pct: 56 },
+  { code: 'ja', name: 'Japanese', keys: 1284, translated: 340, pct: 26 },
+]
+
+const keys = [
+  { key: 'hero.title', en: 'See the market faster, clearer, deeper.', tr: 'Piyasayı daha hızlı, daha net, daha derin görün.', ns: 'marketing' },
+  { key: 'hero.cta', en: 'Start Free', tr: 'Ücretsiz Başla', ns: 'marketing' },
+  { key: 'nav.pricing', en: 'Pricing', tr: 'Fiyatlandırma', ns: 'common' },
+  { key: 'dashboard.alerts', en: 'Alerts active', tr: 'Aktif alarmlar', ns: 'portal' },
+  { key: 'plan.pro.name', en: 'Pro', tr: 'Pro', ns: 'billing' },
+]
+
+export default function TranslationsPage() {
+  return (
+    <AdminLayout>
+      <div className="grid grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+        {languages.map(l => (
+          <div key={l.code} className="p-3 rounded-lg" style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}>
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[0.75rem] font-bold">{l.code.toUpperCase()}</span>
+              <span className="text-[0.6rem] font-bold" style={{ color: l.pct === 100 ? 'var(--green-val)' : l.pct > 70 ? 'var(--amber)' : 'var(--red-val)' }}>{l.pct}%</span>
+            </div>
+            <div className="text-[0.62rem]" style={{ color: 'var(--t3)' }}>{l.name}</div>
+            <div className="w-full h-1 rounded-full mt-2" style={{ background: 'var(--border)' }}>
+              <div className="h-full rounded-full" style={{ width: `${l.pct}%`, background: l.pct === 100 ? 'var(--green-val)' : l.pct > 70 ? 'var(--amber)' : 'var(--red-val)' }} />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex items-center gap-3 mb-4">
+        <div className="flex items-center gap-2 flex-1 px-3 py-2 rounded-lg" style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}>
+          <Search size={14} style={{ color: 'var(--t4)' }} />
+          <input placeholder="Search translation keys..." className="bg-transparent outline-none text-[0.78rem] w-full" style={{ color: 'var(--t1)' }} />
+        </div>
+        <select className="px-3 py-2 rounded-lg text-[0.72rem]" style={{ border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--t2)' }}>
+          <option>All namespaces</option><option>marketing</option><option>common</option><option>portal</option><option>billing</option>
+        </select>
+        <button className="btn-primary text-[0.72rem] py-2 px-4 gap-1"><Plus size={14} /> Add key</button>
+      </div>
+
+      <div className="rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
+        <table className="w-full text-[0.75rem]">
+          <thead><tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}>
+            {['Key','Namespace','English','Turkish',''].map(h => <th key={h} className="text-left px-4 py-2.5 text-[0.6rem] font-bold uppercase tracking-wider" style={{ color: 'var(--t4)' }}>{h}</th>)}
+          </tr></thead>
+          <tbody>{keys.map(k => (
+            <tr key={k.key} style={{ borderBottom: '1px solid var(--border)' }}>
+              <td className="px-4 py-2.5 font-mono font-medium text-[0.68rem]">{k.key}</td>
+              <td className="px-4 py-2.5"><span className="text-[0.58rem] font-semibold px-1.5 py-0.5 rounded" style={{ background: 'var(--surface)', color: 'var(--t3)' }}>{k.ns}</span></td>
+              <td className="px-4 py-2.5" style={{ color: 'var(--t2)' }}>{k.en}</td>
+              <td className="px-4 py-2.5" style={{ color: 'var(--t3)' }}>{k.tr}</td>
+              <td className="px-4 py-2.5 text-right"><button className="text-[0.68rem] font-medium" style={{ color: 'var(--acc)' }}>Edit</button></td>
+            </tr>
+          ))}</tbody>
+        </table>
+      </div>
+    </AdminLayout>
+  )
+}
+
+
+==================================================
+FILE: .\app\admin\payments\page.tsx
+==================================================
+
+"use client";
+
+import { Activity, DollarSign, RefreshCcw, AlertTriangle } from "lucide-react";
+
+// Mock graph data
+const graphData = [
+  { day: "Mon", rate: 98, vol: 4200 },
+  { day: "Tue", rate: 99, vol: 5100 },
+  { day: "Wed", rate: 95, vol: 3800 },
+  { day: "Thu", rate: 97, vol: 6200 },
+  { day: "Fri", rate: 100, vol: 7100 },
+  { day: "Sat", rate: 99, vol: 8400 },
+  { day: "Sun", rate: 98, vol: 5900 },
+];
+
+export default function PaymentsPage() {
+  return (
+    <div className="max-w-6xl mx-auto">
+      {/* Top Metrics */}
+      <div className="grid grid-cols-4 gap-4 mb-8">
+        {[
+          { label: "Gross Volume (7d)", val: "$40,700", icon: DollarSign, color: "var(--green-val)" },
+          { label: "Success Rate", val: "98.2%", icon: Activity, color: "var(--acc)" },
+          { label: "Refunds", val: "$420.00", icon: RefreshCcw, color: "var(--amber)" },
+          { label: "Failed Charges", val: "14", icon: AlertTriangle, color: "var(--red-val)" }
+        ].map((m, i) => (
+          <div key={i} className="p-5 rounded-xl border flex flex-col gap-3" style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--t4)' }}>{m.label}</span>
+              <m.icon size={14} style={{ color: m.color }} />
+            </div>
+            <span className="text-2xl font-bold">{m.val}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Success Rate Graph */}
+      <div className="p-6 rounded-xl border mb-8" style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}>
+        <h3 className="text-sm font-bold mb-6">Payment Success Rate (Last 7 Days)</h3>
+        <div className="flex items-end gap-2 h-48 w-full">
+          {graphData.map((d, i) => (
+            <div key={i} className="flex-1 flex flex-col items-center gap-2 group relative">
+              {/* Tooltip */}
+              <div className="absolute -top-8 bg-black text-white text-[0.6rem] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none">
+                {d.rate}% � ${d.vol}
+              </div>
+              {/* Bar */}
+              <div 
+                className="w-full rounded-t-sm transition-all duration-500 hover:opacity-80" 
+                style={{ 
+                  height: d.rate + "%", 
+                  background: d.rate < 97 ? 'var(--amber)' : 'var(--acc)',
+                  minHeight: '10%'
+                }} 
+              />
+              <span className="text-[0.65rem] font-medium" style={{ color: 'var(--t4)' }}>{d.day}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Recent Transactions Table */}
+      <div className="rounded-xl border overflow-hidden" style={{ borderColor: 'var(--border)' }}>
+        <div className="p-4 border-b flex justify-between items-center" style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}>
+          <h3 className="text-sm font-bold">Recent Transactions</h3>
+          <input type="text" placeholder="Search by email or ID..." className="px-3 py-1.5 text-xs rounded-md outline-none w-64" style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--t1)' }} />
+        </div>
+        <table className="w-full text-left text-xs">
+          <thead style={{ background: 'var(--surface)', color: 'var(--t4)' }}>
+            <tr>
+              <th className="px-4 py-3 font-semibold uppercase">Email / User</th>
+              <th className="px-4 py-3 font-semibold uppercase">Amount</th>
+              <th className="px-4 py-3 font-semibold uppercase">Status</th>
+              <th className="px-4 py-3 font-semibold uppercase">Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            {[
+              { email: "sarah@example.com", amount: "$99.00", status: "Succeeded", date: "Just now" },
+              { email: "mike.t@domain.co", amount: "$299.00", status: "Succeeded", date: "5 mins ago" },
+              { email: "investor99@web.net", amount: "$99.00", status: "Failed", date: "12 mins ago" },
+            ].map((t, i) => (
+              <tr key={i} className="border-b last:border-0" style={{ borderColor: 'var(--border)' }}>
+                <td className="px-4 py-3 font-mono">{t.email}</td>
+                <td className="px-4 py-3 font-bold">{t.amount}</td>
+                <td className="px-4 py-3">
+                  <span className="px-2 py-0.5 rounded text-[0.6rem] font-bold" style={{ 
+                    background: t.status === "Succeeded" ? 'rgba(52,211,153,0.1)' : 'rgba(248,113,113,0.1)',
+                    color: t.status === "Succeeded" ? 'var(--green-val)' : 'var(--red-val)'
+                  }}>
+                    {t.status}
+                  </span>
+                </td>
+                <td className="px-4 py-3" style={{ color: 'var(--t4)' }}>{t.date}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+
+==================================================

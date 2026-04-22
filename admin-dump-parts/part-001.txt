@@ -1,0 +1,815 @@
+PART 1
+
+
+==================================================
+FILE: .\app\api\admin\users\route.ts
+==================================================
+
+import { NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
+import { createServerSupabase } from '@/lib/supabase/server'
+
+function adminClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+      },
+    }
+  )
+}
+
+async function requireAdmin() {
+  const supabase = createServerSupabase()
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser()
+
+  if (userError || !user) {
+    return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) }
+  }
+
+  const { data: roleData, error: roleError } = await supabase
+    .from('user_roles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  if (roleError || roleData?.role !== 'admin') {
+    return { error: NextResponse.json({ error: 'Forbidden' }, { status: 403 }) }
+  }
+
+  return { user }
+}
+
+export async function GET(request: Request) {
+  try {
+    const auth = await requireAdmin()
+    if ('error' in auth) return auth.error
+
+    const url = new URL(request.url)
+    const page = Number(url.searchParams.get('page') || '1')
+    const perPage = Math.min(Number(url.searchParams.get('perPage') || '20'), 100)
+    const search = (url.searchParams.get('search') || '').trim()
+
+    const supabase = adminClient()
+
+    const { data, error } = await supabase.auth.admin.listUsers({ page, perPage })
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    const users = data.users || []
+    const ids = users.map((u) => u.id)
+
+    const { data: profiles, error: profilesError } = ids.length
+      ? await supabase
+          .from('profiles')
+          .select('id, plan, subscriptionstatus, fullname, referralcode, createdat, billinginterval')
+          .in('id', ids)
+      : { data: [], error: null }
+
+    if (profilesError) {
+      return NextResponse.json({ error: profilesError.message }, { status: 500 })
+    }
+
+    const { data: adminProfiles, error: adminProfilesError } = ids.length
+      ? await supabase
+          .from('admin_user_profiles')
+          .select('user_id, account_status, subscription_bonus_months, credits, notes, last_admin_action, last_admin_action_at, closed_at')
+          .in('user_id', ids)
+      : { data: [], error: null }
+
+    if (adminProfilesError) {
+      return NextResponse.json({ error: adminProfilesError.message }, { status: 500 })
+    }
+
+    const profileMap = new Map((profiles || []).map((p) => [p.id, p]))
+    const adminMap = new Map((adminProfiles || []).map((p) => [p.user_id, p]))
+
+    let merged = users.map((u) => {
+      const p: any = profileMap.get(u.id) || {}
+      const a: any = adminMap.get(u.id) || {}
+      return {
+        id: u.id,
+        email: u.email,
+        created_at: u.created_at,
+        last_sign_in_at: u.last_sign_in_at,
+        email_confirmed_at: u.email_confirmed_at,
+        user_metadata: u.user_metadata,
+        plan: p.plan || 'free',
+        subscription_status: p.subscriptionstatus || 'inactive',
+        fullname: p.fullname || u.user_metadata?.fullname || '',
+        referralcode: p.referralcode || '',
+        createdat: p.createdat || u.created_at,
+        billinginterval: p.billinginterval || 'month',
+        account_status: a.account_status || 'active',
+        subscription_bonus_months: a.subscription_bonus_months || 0,
+        credits: a.credits || 0,
+        notes: a.notes || '',
+        last_admin_action: a.last_admin_action || '',
+        last_admin_action_at: a.last_admin_action_at || null,
+        closed_at: a.closed_at || null,
+      }
+    })
+
+    if (search) {
+      const q = search.toLowerCase()
+      merged = merged.filter((u) =>
+        [u.email, u.fullname, u.id, u.referralcode, u.plan, u.subscription_status, u.account_status]
+          .filter(Boolean)
+          .some((v) => String(v).toLowerCase().includes(q))
+      )
+    }
+
+    return NextResponse.json({
+      users: merged,
+      page,
+      perPage,
+      total: data.total || merged.length,
+      totalPages: data.total ? Math.ceil(data.total / perPage) : 1,
+    })
+  } catch (e: any) {
+    return NextResponse.json({ error: e.message || 'Failed to load users' }, { status: 500 })
+  }
+}
+
+
+==================================================
+FILE: .\app\api\admin\users\[id]\route.ts
+==================================================
+
+import { NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
+import { createServerSupabase } from '@/lib/supabase/server'
+
+function adminClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+      },
+    }
+  )
+}
+
+async function requireAdmin() {
+  const supabase = createServerSupabase()
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser()
+
+  if (userError || !user) {
+    return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) }
+  }
+
+  const { data: roleData, error: roleError } = await supabase
+    .from('user_roles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  if (roleError || roleData?.role !== 'admin') {
+    return { error: NextResponse.json({ error: 'Forbidden' }, { status: 403 }) }
+  }
+
+  return { user }
+}
+
+export async function GET(
+  _request: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const auth = await requireAdmin()
+    if ('error' in auth) return auth.error
+
+    const supabase = adminClient()
+    const { id: userId } = await context.params
+
+    const [{ data: userRes, error: userErr }, { data: profileRes, error: profileErr }, { data: adminRes, error: adminErr }] =
+      await Promise.all([
+        supabase.auth.admin.getUserById(userId),
+        supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
+        supabase.from('admin_user_profiles').select('*').eq('user_id', userId).maybeSingle(),
+      ])
+
+    if (userErr) return NextResponse.json({ error: userErr.message }, { status: 500 })
+    if (profileErr) return NextResponse.json({ error: profileErr.message }, { status: 500 })
+    if (adminErr) return NextResponse.json({ error: adminErr.message }, { status: 500 })
+
+    return NextResponse.json({
+      user: userRes.user,
+      profile: profileRes || null,
+      admin: adminRes || null,
+    })
+  } catch (e: any) {
+    return NextResponse.json({ error: e.message || 'Failed to load user' }, { status: 500 })
+  }
+}
+
+export async function POST(
+  request: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const auth = await requireAdmin()
+    if ('error' in auth) return auth.error
+
+    const body = await request.json()
+    const supabase = adminClient()
+    const { id: userId } = await context.params
+
+    const now = new Date().toISOString()
+
+    const updates: any = {
+      user_id: userId,
+      updated_at: now,
+      last_admin_action_at: now,
+    }
+
+    if (typeof body.account_status === 'string') updates.account_status = body.account_status
+    if (typeof body.subscription_bonus_months === 'number') updates.subscription_bonus_months = body.subscription_bonus_months
+    if (typeof body.credits === 'number') updates.credits = body.credits
+    if (typeof body.notes === 'string') updates.notes = body.notes
+    if (typeof body.last_admin_action === 'string') updates.last_admin_action = body.last_admin_action
+
+    if (body.close_account === true) {
+      updates.account_status = 'closed'
+      updates.closed_at = now
+    }
+
+    if (body.open_account === true) {
+      updates.account_status = 'active'
+      updates.closed_at = null
+    }
+
+    const { error } = await supabase.from('admin_user_profiles').upsert(updates)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    return NextResponse.json({ ok: true })
+  } catch (e: any) {
+    return NextResponse.json({ error: e.message || 'Failed to update user' }, { status: 500 })
+  }
+}
+
+
+==================================================
+FILE: .\app\admin\users\page.tsx
+==================================================
+
+'use client'
+
+import { useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
+
+type UserRow = {
+  id: string
+  email: string | null
+  created_at: string | null
+  last_sign_in_at: string | null
+  fullname: string
+  plan: string
+  subscription_status: string
+  account_status: string
+  credits: number
+  subscription_bonus_months: number
+  notes: string
+}
+
+export default function AdminUsersPage() {
+  const [users, setUsers] = useState<UserRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
+  const [total, setTotal] = useState(0)
+  const perPage = 20
+
+  const load = async (pageOverride?: number, searchOverride?: string) => {
+    setLoading(true)
+    const currentPage = pageOverride ?? page
+    const currentSearch = searchOverride ?? search
+
+    const res = await fetch(
+      `/api/admin/users?page=${currentPage}&perPage=${perPage}&search=${encodeURIComponent(currentSearch)}`
+    )
+    const json = await res.json()
+    setUsers(json.users || [])
+    setTotal(json.total || 0)
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    load()
+  }, [page])
+
+  const filteredCount = useMemo(() => users.length, [users])
+
+  return (
+    <div className="max-w-7xl">
+      <div className="mb-8 flex items-end justify-between gap-4">
+        <div>
+          <h1 className="mb-2 text-2xl font-bold tracking-tight" style={{ color: 'var(--t1)' }}>
+            User Management
+          </h1>
+          <p className="text-sm" style={{ color: 'var(--t3)' }}>
+            Real Supabase users, subscription controls, bonuses, and account actions.
+          </p>
+        </div>
+        <div className="text-sm" style={{ color: 'var(--t3)' }}>
+          Showing {filteredCount} of {total.toLocaleString()} users
+        </div>
+      </div>
+
+      <div className="mb-4 flex gap-3">
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search email, name, plan, status..."
+          className="w-full rounded-lg px-3 py-2.5 text-sm outline-none"
+          style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--t1)' }}
+        />
+        <button
+          onClick={() => {
+            setPage(1)
+            load(1, search)
+          }}
+          className="btn-primary px-4 py-2 text-sm"
+        >
+          Search
+        </button>
+      </div>
+
+      <div className="overflow-hidden rounded-xl" style={{ border: '1px solid var(--border)' }}>
+        <table className="w-full text-sm">
+          <thead style={{ background: 'var(--surface)' }}>
+            <tr>
+              <th className="p-4 text-left">User</th>
+              <th className="p-4 text-left">Plan</th>
+              <th className="p-4 text-left">Status</th>
+              <th className="p-4 text-left">Credits</th>
+              <th className="p-4 text-left">Last sign in</th>
+              <th className="p-4 text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr>
+                <td className="p-6" colSpan={6} style={{ color: 'var(--t3)' }}>
+                  Loading users...
+                </td>
+              </tr>
+            ) : users.length ? (
+              users.map((u) => (
+                <tr key={u.id} style={{ borderTop: '1px solid var(--border)' }}>
+                  <td className="p-4">
+                    <div className="font-medium" style={{ color: 'var(--t1)' }}>
+                      {u.fullname || u.email}
+                    </div>
+                    <div className="text-xs" style={{ color: 'var(--t4)' }}>
+                      {u.email}
+                    </div>
+                  </td>
+                  <td className="p-4" style={{ color: 'var(--t2)' }}>
+                    {u.plan}
+                  </td>
+                  <td className="p-4" style={{ color: 'var(--t2)' }}>
+                    {u.account_status}
+                  </td>
+                  <td className="p-4" style={{ color: 'var(--t2)' }}>
+                    {u.credits}
+                  </td>
+                  <td className="p-4" style={{ color: 'var(--t2)' }}>
+                    {u.last_sign_in_at ? new Date(u.last_sign_in_at).toLocaleString() : 'Never'}
+                  </td>
+                  <td className="p-4 text-right">
+                    <Link href={`/admin/users/${u.id}`} className="btn-secondary px-3 py-2 text-xs">
+                      View
+                    </Link>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td className="p-6" colSpan={6} style={{ color: 'var(--t3)' }}>
+                  No users found.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="mt-4 flex gap-2">
+        <button
+          disabled={page <= 1}
+          onClick={() => setPage((p) => Math.max(1, p - 1))}
+          className="btn-secondary px-3 py-2 text-sm"
+        >
+          Prev
+        </button>
+        <button
+          disabled={users.length < perPage}
+          onClick={() => setPage((p) => p + 1)}
+          className="btn-secondary px-3 py-2 text-sm"
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  )
+}
+
+
+==================================================
+FILE: .\app\admin\users\[id]\page.tsx
+==================================================
+
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useParams } from 'next/navigation'
+
+export default function AdminUserDetailPage() {
+  const params = useParams<{ id: string }>()
+  const [data, setData] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [message, setMessage] = useState('')
+
+  const [form, setForm] = useState({
+    account_status: 'active',
+    subscription_bonus_months: 0,
+    credits: 0,
+    notes: '',
+    last_admin_action: '',
+  })
+
+  const load = async () => {
+    setLoading(true)
+    const res = await fetch(`/api/admin/users/${params.id}`)
+    const json = await res.json()
+    setData(json)
+    setForm({
+      account_status: json.admin?.account_status || 'active',
+      subscription_bonus_months: json.admin?.subscription_bonus_months || 0,
+      credits: json.admin?.credits || 0,
+      notes: json.admin?.notes || '',
+      last_admin_action: json.admin?.last_admin_action || '',
+    })
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    if (params.id) load()
+  }, [params.id])
+
+  const save = async (payload: any) => {
+    setSaving(true)
+    setMessage('')
+
+    const res = await fetch(`/api/admin/users/${params.id}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+
+    const json = await res.json()
+    setMessage(json.ok ? 'Saved.' : json.error || 'Failed.')
+    setSaving(false)
+
+    if (json.ok) load()
+  }
+
+  if (loading) return <div style={{ color: 'var(--t3)' }}>Loading user...</div>
+
+  const user = data?.user
+  const profile = data?.profile
+  const admin = data?.admin
+
+  return (
+    <div className="max-w-5xl">
+      <div className="mb-6">
+        <h1 className="mb-2 text-2xl font-bold" style={{ color: 'var(--t1)' }}>
+          {profile?.fullname || user?.email || 'User detail'}
+        </h1>
+        <p className="text-sm" style={{ color: 'var(--t3)' }}>
+          {user?.email}
+        </p>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <section
+          className="rounded-xl p-6"
+          style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}
+        >
+          <h2 className="mb-4 text-sm font-bold" style={{ color: 'var(--t1)' }}>
+            Account
+          </h2>
+          <div className="space-y-3 text-sm">
+            <Row label="User ID" value={user?.id} />
+            <Row label="Plan" value={profile?.plan || 'free'} />
+            <Row label="Subscription" value={profile?.subscriptionstatus || 'inactive'} />
+            <Row label="Created" value={user?.created_at ? new Date(user.created_at).toLocaleString() : '—'} />
+            <Row label="Last sign in" value={user?.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleString() : 'Never'} />
+          </div>
+        </section>
+
+        <section
+          className="rounded-xl p-6"
+          style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}
+        >
+          <h2 className="mb-4 text-sm font-bold" style={{ color: 'var(--t1)' }}>
+            Controls
+          </h2>
+
+          <div className="space-y-3">
+            <label className="block">
+              <div className="mb-2 text-xs font-semibold uppercase" style={{ color: 'var(--t4)' }}>
+                Account status
+              </div>
+              <select
+                value={form.account_status}
+                onChange={(e) => setForm((p) => ({ ...p, account_status: e.target.value }))}
+                className="w-full rounded-lg px-3 py-2.5 text-sm"
+                style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--t1)' }}
+              >
+                <option value="active">active</option>
+                <option value="closed">closed</option>
+                <option value="suspended">suspended</option>
+              </select>
+            </label>
+
+            <label className="block">
+              <div className="mb-2 text-xs font-semibold uppercase" style={{ color: 'var(--t4)' }}>
+                Subscription bonus months
+              </div>
+              <input
+                type="number"
+                value={form.subscription_bonus_months}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, subscription_bonus_months: Number(e.target.value) }))
+                }
+                className="w-full rounded-lg px-3 py-2.5 text-sm"
+                style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--t1)' }}
+              />
+            </label>
+
+            <label className="block">
+              <div className="mb-2 text-xs font-semibold uppercase" style={{ color: 'var(--t4)' }}>
+                Credits
+              </div>
+              <input
+                type="number"
+                value={form.credits}
+                onChange={(e) => setForm((p) => ({ ...p, credits: Number(e.target.value) }))}
+                className="w-full rounded-lg px-3 py-2.5 text-sm"
+                style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--t1)' }}
+              />
+            </label>
+
+            <label className="block">
+              <div className="mb-2 text-xs font-semibold uppercase" style={{ color: 'var(--t4)' }}>
+                Notes
+              </div>
+              <textarea
+                rows={5}
+                value={form.notes}
+                onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))}
+                className="w-full rounded-lg px-3 py-2.5 text-sm"
+                style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--t1)' }}
+              />
+            </label>
+
+            <label className="block">
+              <div className="mb-2 text-xs font-semibold uppercase" style={{ color: 'var(--t4)' }}>
+                Last admin action
+              </div>
+              <input
+                value={form.last_admin_action}
+                onChange={(e) => setForm((p) => ({ ...p, last_admin_action: e.target.value }))}
+                className="w-full rounded-lg px-3 py-2.5 text-sm"
+                style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--t1)' }}
+              />
+            </label>
+
+            <div className="flex flex-wrap gap-2 pt-2">
+              <button
+                disabled={saving}
+                onClick={() => save(form)}
+                className="btn-primary px-4 py-2 text-sm"
+              >
+                Save changes
+              </button>
+
+              <button
+                disabled={saving}
+                onClick={() =>
+                  save({
+                    ...form,
+                    close_account: true,
+                    last_admin_action: 'closed account',
+                  })
+                }
+                className="btn-secondary px-4 py-2 text-sm"
+              >
+                Close account
+              </button>
+
+              <button
+                disabled={saving}
+                onClick={() =>
+                  save({
+                    ...form,
+                    open_account: true,
+                    last_admin_action: 'opened account',
+                  })
+                }
+                className="btn-secondary px-4 py-2 text-sm"
+              >
+                Open account
+              </button>
+            </div>
+
+            {message ? (
+              <div className="pt-1 text-sm" style={{ color: 'var(--t3)' }}>
+                {message}
+              </div>
+            ) : null}
+          </div>
+        </section>
+
+        <section
+          className="rounded-xl p-6 md:col-span-2"
+          style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}
+        >
+          <h2 className="mb-4 text-sm font-bold" style={{ color: 'var(--t1)' }}>
+            Raw profile data
+          </h2>
+          <pre className="overflow-auto text-xs" style={{ color: 'var(--t2)' }}>
+            {JSON.stringify({ user, profile, admin }, null, 2)}
+          </pre>
+        </section>
+      </div>
+    </div>
+  )
+}
+
+function Row({ label, value }: { label: string; value: any }) {
+  return (
+    <div
+      className="flex items-start justify-between gap-4 border-b pb-2"
+      style={{ borderColor: 'var(--border)' }}
+    >
+      <span style={{ color: 'var(--t4)' }}>{label}</span>
+      <span className="text-right" style={{ color: 'var(--t2)' }}>
+        {String(value ?? '—')}
+      </span>
+    </div>
+  )
+}
+
+
+
+
+==================================================
+FILE: .\app\admin\content\page.tsx
+==================================================
+
+'use client'
+
+import { useEffect, useState } from 'react'
+import { Plus, Search } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
+import Link from 'next/link'
+
+const statusStyle: Record<string, { color: string; bg: string }> = {
+  Published: { color: 'var(--green-val)', bg: 'rgba(52,211,153,.1)' },
+  Draft: { color: 'var(--amber)', bg: 'rgba(251,191,36,.1)' },
+  Scheduled: { color: 'var(--blue)', bg: 'rgba(96,165,250,.1)' },
+}
+
+// Define the type for our database row
+type Article = {
+  id: string
+  title: string
+  status: string
+  category: string
+  author: string
+  published_date: string
+}
+
+export default function ContentPage() {
+  const supabase = createClient()
+  const [articles, setArticles] = useState<Article[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function fetchArticles() {
+      const { data } = await supabase
+        .from('articles')
+        .select('*')
+        .order('created_at', { ascending: false })
+      
+      if (data) setArticles(data)
+      setLoading(false)
+    }
+    
+    fetchArticles()
+  }, [supabase])
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="flex items-center gap-2 flex-1 px-3 py-2 rounded-lg" style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}>
+          <Search size={14} style={{ color: 'var(--t4)' }} />
+          <input placeholder="Search articles..." className="bg-transparent outline-none text-[0.78rem] w-full" style={{ color: 'var(--t1)' }} />
+        </div>
+        <select className="px-3 py-2 rounded-lg text-[0.72rem]" style={{ border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--t2)' }}>
+          <option>All statuses</option>
+          <option>Published</option>
+          <option>Draft</option>
+          <option>Scheduled</option>
+        </select>
+        
+        {/* NEW ARTICLE BUTTON */}
+        <Link 
+          href="/admin/content/new"
+          className="text-[0.72rem] py-2 px-4 flex items-center justify-center gap-1.5 rounded-lg font-semibold hover:opacity-90 transition-opacity"
+          style={{ background: 'var(--acc)', color: 'white' }}
+        >
+          <Plus size={14} /> New article
+        </Link>
+      </div>
+
+      <div className="rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
+        <table className="w-full text-[0.75rem]">
+          <thead>
+            <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}>
+              {['Title','Category','Author','Status','Date',''].map(h => (
+                <th key={h} className="text-left px-4 py-2.5 text-[0.6rem] font-bold uppercase tracking-wider" style={{ color: 'var(--t4)' }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y" style={{ borderColor: 'var(--border)' }}>
+            {loading ? (
+              <tr>
+                <td colSpan={6} className="px-4 py-8 text-center" style={{ color: 'var(--t3)' }}>
+                  Loading articles...
+                </td>
+              </tr>
+            ) : articles.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="px-4 py-8 text-center" style={{ color: 'var(--t3)' }}>
+                  No articles found.
+                </td>
+              </tr>
+            ) : (
+              articles.map(a => (
+                <tr key={a.id} className="transition-colors hover:opacity-80" style={{ background: 'var(--bg)' }}>
+                  <td className="px-4 py-2.5 font-semibold">{a.title}</td>
+                  <td className="px-4 py-2.5" style={{ color: 'var(--t3)' }}>{a.category}</td>
+                  <td className="px-4 py-2.5" style={{ color: 'var(--t3)' }}>{a.author}</td>
+                  <td className="px-4 py-2.5">
+                    <span className="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded" style={{ 
+                      color: statusStyle[a.status]?.color || 'var(--t2)', 
+                      background: statusStyle[a.status]?.bg || 'var(--border)' 
+                    }}>
+                      {a.status}
+                    </span>
+                  </td>
+                  <td className="px-4 py-2.5 font-mono" style={{ color: 'var(--t4)' }}>
+                    {new Date(a.published_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </td>
+                  
+                  {/* EDIT ARTICLE BUTTON */}
+                  <td className="px-4 py-2.5 text-right">
+                    <Link 
+                      href={`/admin/content/edit/${a.id}`} 
+                      className="text-[0.68rem] font-medium hover:underline" 
+                      style={{ color: 'var(--acc)' }}
+                    >
+                      Edit
+                    </Link>
+                  </td>
+                  
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+
+==================================================
