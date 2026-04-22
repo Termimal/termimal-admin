@@ -3,13 +3,13 @@
     "version":  "0.1.0",
     "private":  true,
     "scripts":  {
-                    "preview":  "opennextjs-cloudflare build \u0026\u0026 opennextjs-cloudflare preview",
+                    "dev":  "next dev",
                     "build":  "next build",
-                    "start":  "next start",
-                    "lint":  "eslint",
-                    "pages:build":  "opennextjs-cloudflare build \u0026\u0026 node scripts/copy-opennext-assets.js",
-                    "deploy":  "opennextjs-cloudflare build \u0026\u0026 wrangler deploy",
-                    "dev":  "next dev"
+                    "cf:build":  "opennextjs-cloudflare build",
+                    "preview":  "opennextjs-cloudflare build \u0026\u0026 opennextjs-cloudflare preview",
+                    "deploy":  "opennextjs-cloudflare build \u0026\u0026 opennextjs-cloudflare deploy",
+                    "upload":  "opennextjs-cloudflare build \u0026\u0026 opennextjs-cloudflare upload",
+                    "cf-typegen":  "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
                 },
     "dependencies":  {
                          "@supabase/ssr":  "^0.10.2",
