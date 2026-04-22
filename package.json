@@ -7,7 +7,7 @@
                     "build":  "next build",
                     "start":  "next start",
                     "lint":  "eslint",
-                    "pages:build":  "opennextjs-cloudflare build",
+                    "pages:build":  "opennextjs-cloudflare build \u0026\u0026 node scripts/copy-opennext-assets.js",
                     "deploy":  "opennextjs-cloudflare build \u0026\u0026 wrangler deploy",
                     "dev":  "next dev"
                 },
