@@ -28,11 +28,22 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
-  // Protect admin routes
-  if (!user && request.nextUrl.pathname.startsWith('/admin')) {
+  if (!user) {
     return NextResponse.redirect(new URL('/login', request.url))
+  }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  if (!profile || !['admin', 'superadmin'].includes(profile.role)) {
+    return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
   return response
