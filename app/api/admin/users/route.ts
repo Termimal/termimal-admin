@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server'
+﻿import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { createServerSupabase } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 
 function adminClient() {
   return createClient(
@@ -17,7 +17,7 @@ function adminClient() {
 }
 
 async function requireAdmin() {
-  const supabase = createServerSupabase()
+  const supabase = createClient()
 
   const {
     data: { user },

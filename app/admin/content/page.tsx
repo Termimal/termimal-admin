@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
@@ -39,9 +39,9 @@ function formatStatus(status: string) {
 }
 
 function formatDate(value: string | null) {
-  if (!value) return '—'
+  if (!value) return 'â€”'
   const d = new Date(value)
-  if (Number.isNaN(d.getTime())) return '—'
+  if (Number.isNaN(d.getTime())) return 'â€”'
   return d.toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
@@ -95,7 +95,7 @@ export default function ContentPage() {
         setError(error.message)
         setArticles([])
       } else {
-        setArticles((data as ArticleRow[]) || [])
+        setArticles((data as unknown as ArticleRow[]) || [])
       }
 
       setLoading(false)
@@ -219,7 +219,7 @@ export default function ContentPage() {
                 const authorLabel =
                   a.profiles?.fullname?.trim() ||
                   a.profiles?.email?.trim() ||
-                  (a.authorid ? `${a.authorid.slice(0, 8)}...` : '—')
+                  (a.authorid ? `${a.authorid.slice(0, 8)}...` : 'â€”')
 
                 const displayDate =
                   a.status === 'published'
@@ -240,7 +240,7 @@ export default function ContentPage() {
                     </td>
 
                     <td className="px-4 py-3" style={{ color: 'var(--t3)' }}>
-                      {a.category || '—'}
+                      {a.category || 'â€”'}
                     </td>
 
                     <td className="px-4 py-3" style={{ color: 'var(--t3)' }}>
