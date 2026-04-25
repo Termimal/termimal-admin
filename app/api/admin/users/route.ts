@@ -18,6 +18,7 @@ function adminClient() {
 
 async function requireAdmin() {
   const supabase = createServerSupabase()
+
   const {
     data: { user },
     error: userError,
@@ -27,13 +28,13 @@ async function requireAdmin() {
     return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) }
   }
 
-  const { data: roleData, error: roleError } = await supabase
-    .from('user_roles')
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
     .select('role')
     .eq('id', user.id)
     .single()
 
-  if (roleError || roleData?.role !== 'admin') {
+  if (profileError || !profile || !['admin', 'superadmin'].includes(profile.role)) {
     return { error: NextResponse.json({ error: 'Forbidden' }, { status: 403 }) }
   }
 
@@ -53,7 +54,9 @@ export async function GET(request: Request) {
     const supabase = adminClient()
 
     const { data, error } = await supabase.auth.admin.listUsers({ page, perPage })
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
 
     const users = data.users || []
     const ids = users.map((u) => u.id)
@@ -61,7 +64,9 @@ export async function GET(request: Request) {
     const { data: profiles, error: profilesError } = ids.length
       ? await supabase
           .from('profiles')
-          .select('id, plan, subscriptionstatus, fullname, referralcode, createdat, billinginterval')
+          .select(
+            'id, plan, subscriptionstatus, fullname, referralcode, createdat, billinginterval, role'
+          )
           .in('id', ids)
       : { data: [], error: null }
 
@@ -72,7 +77,9 @@ export async function GET(request: Request) {
     const { data: adminProfiles, error: adminProfilesError } = ids.length
       ? await supabase
           .from('admin_user_profiles')
-          .select('user_id, account_status, subscription_bonus_months, credits, notes, last_admin_action, last_admin_action_at, closed_at')
+          .select(
+            'user_id, account_status, subscription_bonus_months, credits, notes, last_admin_action, last_admin_action_at, closed_at'
+          )
           .in('user_id', ids)
       : { data: [], error: null }
 
@@ -86,6 +93,7 @@ export async function GET(request: Request) {
     let merged = users.map((u) => {
       const p: any = profileMap.get(u.id) || {}
       const a: any = adminMap.get(u.id) || {}
+
       return {
         id: u.id,
         email: u.email,
@@ -95,10 +103,15 @@ export async function GET(request: Request) {
         user_metadata: u.user_metadata,
         plan: p.plan || 'free',
         subscription_status: p.subscriptionstatus || 'inactive',
-        fullname: p.fullname || u.user_metadata?.fullname || '',
+        fullname:
+          p.fullname ||
+          u.user_metadata?.full_name ||
+          u.user_metadata?.fullname ||
+          '',
         referralcode: p.referralcode || '',
         createdat: p.createdat || u.created_at,
         billinginterval: p.billinginterval || 'month',
+        role: p.role || 'user',
         account_status: a.account_status || 'active',
         subscription_bonus_months: a.subscription_bonus_months || 0,
         credits: a.credits || 0,
@@ -112,7 +125,16 @@ export async function GET(request: Request) {
     if (search) {
       const q = search.toLowerCase()
       merged = merged.filter((u) =>
-        [u.email, u.fullname, u.id, u.referralcode, u.plan, u.subscription_status, u.account_status]
+        [
+          u.email,
+          u.fullname,
+          u.id,
+          u.referralcode,
+          u.plan,
+          u.subscription_status,
+          u.account_status,
+          u.role,
+        ]
           .filter(Boolean)
           .some((v) => String(v).toLowerCase().includes(q))
       )
@@ -126,6 +148,9 @@ export async function GET(request: Request) {
       totalPages: data.total ? Math.ceil(data.total / perPage) : 1,
     })
   } catch (e: any) {
-    return NextResponse.json({ error: e.message || 'Failed to load users' }, { status: 500 })
+    return NextResponse.json(
+      { error: e.message || 'Failed to load users' },
+      { status: 500 }
+    )
   }
 }

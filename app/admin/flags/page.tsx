@@ -5,22 +5,15 @@ import { createClient } from '@/lib/supabase/client'
 
 type FeatureFlag = {
   id: string
-  name: string
+  key: string
   description: string | null
-  environment: string
   enabled: boolean
-  min_plan: string | null
-}
-
-const envColor: Record<string, { color: string; bg: string }> = {
-  production: { color: 'var(--green-val)', bg: 'rgba(52,211,153,.1)' },
-  beta: { color: 'var(--amber)', bg: 'rgba(251,191,36,.1)' },
-  staging: { color: 'var(--blue)', bg: 'rgba(96,165,250,.1)' },
-  development: { color: 'var(--t4)', bg: 'var(--surface)' },
+  createdat: string | null
 }
 
 export default function FlagsPage() {
   const supabase = createClient()
+
   const [flags, setFlags] = useState<FeatureFlag[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -29,54 +22,175 @@ export default function FlagsPage() {
   const load = async () => {
     setLoading(true)
     setError('')
-    const { data, error } = await supabase.from('feature_flags').select('id, name, description, environment, enabled, min_plan').order('name', { ascending: true })
+
+    const { data, error } = await supabase
+      .from('featureflags')
+      .select('id, key, description, enabled, createdat')
+      .order('key', { ascending: true })
+
     if (error) {
       setError(error.message)
       setFlags([])
     } else {
-      setFlags(data || [])
+      setFlags((data as FeatureFlag[]) || [])
     }
+
     setLoading(false)
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    load()
+  }, [])
 
   const toggleFlag = async (flag: FeatureFlag) => {
     setSavingId(flag.id)
+    setError('')
+
     const next = !flag.enabled
-    const { error } = await supabase.from('feature_flags').update({ enabled: next }).eq('id', flag.id)
-    if (!error) {
-      setFlags((prev) => prev.map((f) => (f.id === flag.id ? { ...f, enabled: next } : f)))
-    } else {
+
+    const { error } = await supabase
+      .from('featureflags')
+      .update({ enabled: next })
+      .eq('id', flag.id)
+
+    if (error) {
       setError(error.message)
+    } else {
+      setFlags((prev) =>
+        prev.map((f) => (f.id === flag.id ? { ...f, enabled: next } : f))
+      )
     }
+
     setSavingId(null)
   }
 
   return (
     <div className="max-w-6xl">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold tracking-tight mb-1" style={{ color: 'var(--t1)' }}>Feature Flags</h1>
-        <p className="text-sm" style={{ color: 'var(--t3)' }}>Production data only.</p>
+        <h1
+          className="text-2xl font-bold tracking-tight mb-1"
+          style={{ color: 'var(--t1)', letterSpacing: '-0.02em' }}
+        >
+          Feature Flags
+        </h1>
+        <p className="text-sm" style={{ color: 'var(--t3)' }}>
+          Toggle product capabilities that are stored in the featureflags table.
+        </p>
       </div>
 
-      {error ? <div className="mb-4 rounded-lg px-4 py-3 text-sm" style={{ background: 'rgba(248,113,113,.1)', color: 'var(--red-val)' }}>{error}</div> : null}
+      {error ? (
+        <div
+          className="mb-4 rounded-lg px-4 py-3 text-sm"
+          style={{ background: 'rgba(248,113,113,.1)', color: 'var(--red-val)' }}
+        >
+          {error}
+        </div>
+      ) : null}
 
-      <div className="rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
-        <table className="w-full text-[0.75rem]">
-          <thead><tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}>{['Flag','Description','Environment','Min Plan','Status'].map(h => <th key={h} className="text-left px-4 py-2.5 text-[0.6rem] font-bold uppercase tracking-wider" style={{ color: 'var(--t4)' }}>{h}</th>)}</tr></thead>
+      <div
+        className="rounded-xl overflow-hidden"
+        style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}
+      >
+        <table className="w-full text-sm">
+          <thead>
+            <tr
+              style={{
+                borderBottom: '1px solid var(--border)',
+                background: 'var(--surface)',
+              }}
+            >
+              {['Flag', 'Description', 'Created', 'Status'].map((h) => (
+                <th
+                  key={h}
+                  className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wider"
+                  style={{ color: 'var(--t4)' }}
+                >
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+
           <tbody>
-            {loading ? <tr><td colSpan={5} className="px-4 py-8 text-center" style={{ color: 'var(--t3)' }}>Loading flags...</td></tr> : null}
-            {!loading && flags.length === 0 ? <tr><td colSpan={5} className="px-4 py-8 text-center" style={{ color: 'var(--t3)' }}>No feature flags found.</td></tr> : null}
-            {flags.map(f => (
-              <tr key={f.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                <td className="px-4 py-2.5 font-mono font-semibold text-[0.72rem]">{f.name}</td>
-                <td className="px-4 py-2.5" style={{ color: 'var(--t3)' }}>{f.description || '—'}</td>
-                <td className="px-4 py-2.5"><span className="text-[0.58rem] font-bold px-1.5 py-0.5 rounded" style={{ color: envColor[f.environment]?.color || 'var(--t2)', background: envColor[f.environment]?.bg || 'var(--surface)' }}>{f.environment}</span></td>
-                <td className="px-4 py-2.5"><span className="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded" style={{ background: 'var(--acc-d)', color: 'var(--acc)' }}>{f.min_plan || 'all'}</span></td>
-                <td className="px-4 py-2.5"><button onClick={() => toggleFlag(f)} disabled={savingId === f.id} className="w-9 h-5 rounded-full relative transition-all disabled:opacity-60" style={{ background: f.enabled ? 'var(--acc2)' : 'var(--border)' }} aria-label={`Toggle ${f.name}`}><div className="absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all" style={{ left: f.enabled ? '18px' : '2px' }} /></button></td>
+            {loading ? (
+              <tr>
+                <td
+                  colSpan={4}
+                  className="px-4 py-8 text-center"
+                  style={{ color: 'var(--t3)' }}
+                >
+                  Loading flags...
+                </td>
               </tr>
-            ))}
+            ) : flags.length === 0 ? (
+              <tr>
+                <td
+                  colSpan={4}
+                  className="px-4 py-8 text-center"
+                  style={{ color: 'var(--t3)' }}
+                >
+                  No feature flags found.
+                </td>
+              </tr>
+            ) : (
+              flags.map((flag) => (
+                <tr key={flag.id} style={{ borderTop: '1px solid var(--border)' }}>
+                  <td className="px-4 py-3">
+                    <div
+                      className="font-mono font-semibold text-sm"
+                      style={{ color: 'var(--t1)' }}
+                    >
+                      {flag.key}
+                    </div>
+                  </td>
+
+                  <td className="px-4 py-3" style={{ color: 'var(--t3)' }}>
+                    {flag.description || '—'}
+                  </td>
+
+                  <td className="px-4 py-3 text-xs font-mono" style={{ color: 'var(--t4)' }}>
+                    {flag.createdat
+                      ? new Date(flag.createdat).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })
+                      : '—'}
+                  </td>
+
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <span
+                        className="text-[11px] font-semibold px-2 py-1 rounded"
+                        style={{
+                          color: flag.enabled ? 'var(--green-val)' : 'var(--t3)',
+                          background: flag.enabled
+                            ? 'rgba(52,211,153,.1)'
+                            : 'rgba(148,163,184,.12)',
+                        }}
+                      >
+                        {flag.enabled ? 'Enabled' : 'Disabled'}
+                      </span>
+
+                      <button
+                        onClick={() => toggleFlag(flag)}
+                        disabled={savingId === flag.id}
+                        className="w-10 h-6 rounded-full relative transition-all disabled:opacity-60"
+                        style={{
+                          background: flag.enabled ? 'var(--acc2)' : 'var(--border)',
+                        }}
+                        aria-label={`Toggle ${flag.key}`}
+                      >
+                        <div
+                          className="absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all"
+                          style={{ left: flag.enabled ? '18px' : '2px' }}
+                        />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
