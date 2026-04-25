@@ -1,118 +1,45 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-import { createServerSupabase } from '@/lib/supabase/server'
+import { NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
 
-function adminClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-        detectSessionInUrl: false,
-      },
-    }
-  )
-}
-
-async function requireAdmin() {
-  const supabase = createServerSupabase()
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser()
-
-  if (userError || !user) {
-    return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) }
-  }
-
-  const { data: roleData, error: roleError } = await supabase
-    .from('user_roles')
-    .select('role')
-    .eq('id', user.id)
-    .single()
-
-  if (roleError || roleData?.role !== 'admin') {
-    return { error: NextResponse.json({ error: 'Forbidden' }, { status: 403 }) }
-  }
-
-  return { user }
-}
-
-export async function GET(
-  _request: Request,
-  context: { params: Promise<{ id: string }> }
-) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const auth = await requireAdmin()
-    if ('error' in auth) return auth.error
-
-    const supabase = adminClient()
-    const { id: userId } = await context.params
-
-    const [{ data: userRes, error: userErr }, { data: profileRes, error: profileErr }, { data: adminRes, error: adminErr }] =
-      await Promise.all([
-        supabase.auth.admin.getUserById(userId),
-        supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
-        supabase.from('admin_user_profiles').select('*').eq('user_id', userId).maybeSingle(),
-      ])
-
-    if (userErr) return NextResponse.json({ error: userErr.message }, { status: 500 })
-    if (profileErr) return NextResponse.json({ error: profileErr.message }, { status: 500 })
-    if (adminErr) return NextResponse.json({ error: adminErr.message }, { status: 500 })
-
-    return NextResponse.json({
-      user: userRes.user,
-      profile: profileRes || null,
-      admin: adminRes || null,
-    })
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message || 'Failed to load user' }, { status: 500 })
+    const { id } = await params;
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { data, error } = await supabase.from('profiles').select('*').eq('id', id).single();
+    if (error) throw error;
+    return NextResponse.json(data);
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
-export async function POST(
-  request: Request,
-  context: { params: Promise<{ id: string }> }
-) {
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const auth = await requireAdmin()
-    if ('error' in auth) return auth.error
+    const { id } = await params;
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const body = await request.json();
+    const { data, error } = await supabase.from('profiles').update(body).eq('id', id).select().single();
+    if (error) throw error;
+    return NextResponse.json(data);
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
 
-    const body = await request.json()
-    const supabase = adminClient()
-    const { id: userId } = await context.params
-
-    const now = new Date().toISOString()
-
-    const updates: any = {
-      user_id: userId,
-      updated_at: now,
-      last_admin_action_at: now,
-    }
-
-    if (typeof body.account_status === 'string') updates.account_status = body.account_status
-    if (typeof body.subscription_bonus_months === 'number') updates.subscription_bonus_months = body.subscription_bonus_months
-    if (typeof body.credits === 'number') updates.credits = body.credits
-    if (typeof body.notes === 'string') updates.notes = body.notes
-    if (typeof body.last_admin_action === 'string') updates.last_admin_action = body.last_admin_action
-
-    if (body.close_account === true) {
-      updates.account_status = 'closed'
-      updates.closed_at = now
-    }
-
-    if (body.open_account === true) {
-      updates.account_status = 'active'
-      updates.closed_at = null
-    }
-
-    const { error } = await supabase.from('admin_user_profiles').upsert(updates)
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
-    return NextResponse.json({ ok: true })
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message || 'Failed to update user' }, { status: 500 })
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await params;
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { error } = await supabase.from('profiles').delete().eq('id', id);
+    if (error) throw error;
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
