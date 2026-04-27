@@ -1,4 +1,6 @@
-'use client'
+﻿'use client'
+
+export const dynamic = 'force-dynamic'
 import AdminLayout from '@/components/admin/AdminLayout'
 import { Search, Plus } from 'lucide-react'
 
