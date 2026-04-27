@@ -1,10 +1,10 @@
-{
+﻿{
     "name":  "termimal-admin",
     "version":  "0.1.0",
     "private":  true,
     "scripts":  {
                     "preview":  "opennextjs-cloudflare build \u0026\u0026 opennextjs-cloudflare preview",
-                    "build":  "next build",
+                    "build":  "opennextjs-cloudflare build",
                     "start":  "next start",
                     "lint":  "eslint",
                     "pages:build":  "opennextjs-cloudflare build \u0026\u0026 node scripts/copy-opennext-assets.js",
@@ -23,16 +23,16 @@
                          "tailwind-merge":  "^3.5.0"
                      },
     "devDependencies":  {
-                            "@opennextjs/cloudflare":  "^1.19.3",
-                            "@tailwindcss/postcss":  "^4",
-                            "@types/node":  "^20",
-                            "@types/react":  "^19",
-                            "@types/react-dom":  "^19",
-                            "eslint":  "^9",
-                            "eslint-config-next":  "15.5.2",
                             "tailwindcss":  "^4",
+                            "@types/react-dom":  "^19",
+                            "@types/node":  "^20",
+                            "eslint":  "^9",
+                            "@tailwindcss/postcss":  "^4",
+                            "@opennextjs/cloudflare":  "latest",
+                            "@types/react":  "^19",
                             "typescript":  "^5",
-                            "wrangler":  "^4.84.1"
+                            "wrangler":  "^4.84.1",
+                            "eslint-config-next":  "15.5.2"
                         },
     "optionalDependencies":  {
                                  "@tailwindcss/oxide-linux-x64-gnu":  "*",
