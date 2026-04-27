@@ -1,9 +1,9 @@
--- ═══════════════════════════════════════════
+﻿-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 -- TERMIMAL DATABASE SCHEMA
 -- Run this in Supabase SQL Editor
--- ═══════════════════════════════════════════
+-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
--- ─── User Profiles ───
+-- â”€â”€â”€ User Profiles â”€â”€â”€
 -- Extends Supabase auth.users
 create table public.profiles (
   id uuid references auth.users on delete cascade primary key,
@@ -27,7 +27,7 @@ create table public.profiles (
   updated_at timestamptz default now()
 );
 
--- ─── Watchlists ───
+-- â”€â”€â”€ Watchlists â”€â”€â”€
 create table public.watchlists (
   id uuid default gen_random_uuid() primary key,
   user_id uuid references public.profiles(id) on delete cascade not null,
@@ -38,7 +38,7 @@ create table public.watchlists (
   updated_at timestamptz default now()
 );
 
--- ─── Alerts ───
+-- â”€â”€â”€ Alerts â”€â”€â”€
 create table public.alerts (
   id uuid default gen_random_uuid() primary key,
   user_id uuid references public.profiles(id) on delete cascade not null,
@@ -52,7 +52,7 @@ create table public.alerts (
   created_at timestamptz default now()
 );
 
--- ─── Saved Workspaces ───
+-- â”€â”€â”€ Saved Workspaces â”€â”€â”€
 create table public.workspaces (
   id uuid default gen_random_uuid() primary key,
   user_id uuid references public.profiles(id) on delete cascade not null,
@@ -64,7 +64,7 @@ create table public.workspaces (
   updated_at timestamptz default now()
 );
 
--- ─── Referral Events ───
+-- â”€â”€â”€ Referral Events â”€â”€â”€
 create table public.referral_events (
   id uuid default gen_random_uuid() primary key,
   referrer_id uuid references public.profiles(id) not null,
@@ -74,7 +74,7 @@ create table public.referral_events (
   created_at timestamptz default now()
 );
 
--- ─── Support Tickets ───
+-- â”€â”€â”€ Support Tickets â”€â”€â”€
 create table public.support_tickets (
   id uuid default gen_random_uuid() primary key,
   user_id uuid references public.profiles(id) on delete cascade not null,
@@ -87,7 +87,7 @@ create table public.support_tickets (
   updated_at timestamptz default now()
 );
 
--- ─── Blog Articles (CMS) ───
+-- â”€â”€â”€ Blog Articles (CMS) â”€â”€â”€
 create table public.articles (
   id uuid default gen_random_uuid() primary key,
   title text not null,
@@ -107,7 +107,7 @@ create table public.articles (
   updated_at timestamptz default now()
 );
 
--- ─── Invoices ───
+-- â”€â”€â”€ Invoices â”€â”€â”€
 create table public.invoices (
   id uuid default gen_random_uuid() primary key,
   user_id uuid references public.profiles(id) on delete cascade not null,
@@ -122,7 +122,7 @@ create table public.invoices (
   created_at timestamptz default now()
 );
 
--- ─── Audit Log ───
+-- â”€â”€â”€ Audit Log â”€â”€â”€
 create table public.audit_logs (
   id uuid default gen_random_uuid() primary key,
   user_id uuid references public.profiles(id),
@@ -134,7 +134,7 @@ create table public.audit_logs (
   created_at timestamptz default now()
 );
 
--- ─── Translation Keys ───
+-- â”€â”€â”€ Translation Keys â”€â”€â”€
 create table public.translations (
   id uuid default gen_random_uuid() primary key,
   key text not null,
@@ -146,7 +146,7 @@ create table public.translations (
   unique(key, namespace, locale)
 );
 
--- ─── Feature Flags ───
+-- â”€â”€â”€ Feature Flags â”€â”€â”€
 create table public.feature_flags (
   id uuid default gen_random_uuid() primary key,
   key text unique not null,
@@ -155,16 +155,27 @@ create table public.feature_flags (
   created_at timestamptz default now()
 );
 
--- ─── System Settings ───
+-- â”€â”€â”€ System Settings â”€â”€â”€
 create table public.system_settings (
   key text primary key,
   value jsonb not null,
   updated_at timestamptz default now()
 );
 
--- ═══════════════════════════════════════════
+
+-- --- FAQs (CMS-managed) ---
+create table public.faqs (
+  id         uuid default gen_random_uuid() primary key,
+  question   text not null,
+  answer     text not null,
+  is_active  boolean not null default true,
+  sort_order integer not null default 0,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 -- ROW LEVEL SECURITY (RLS)
--- ═══════════════════════════════════════════
+-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 alter table public.profiles enable row level security;
 alter table public.watchlists enable row level security;
@@ -199,6 +210,12 @@ create policy "Users can create tickets" on public.support_tickets for insert wi
 
 -- Articles: everyone can read published
 create policy "Anyone can read published articles" on public.articles for select using (status = 'published');
+alter table public.faqs enable row level security;
+
+create policy "Anyone can read active faqs"
+  on public.faqs for select
+  using (is_active = true);
+
 
 -- Invoices: users can view their own
 create policy "Users can view own invoices" on public.invoices for select using (auth.uid() = user_id);
@@ -206,9 +223,9 @@ create policy "Users can view own invoices" on public.invoices for select using 
 -- Admin policies (users with role = 'admin' or 'super_admin')
 -- These use service_role key via createAdminSupabase(), bypassing RLS
 
--- ═══════════════════════════════════════════
+-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 -- FUNCTIONS & TRIGGERS
--- ═══════════════════════════════════════════
+-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 -- Auto-create profile on signup
 create or replace function public.handle_new_user()
@@ -246,10 +263,12 @@ create trigger update_workspaces_updated_at before update on public.workspaces
   for each row execute procedure public.update_updated_at();
 create trigger update_articles_updated_at before update on public.articles
   for each row execute procedure public.update_updated_at();
+create trigger update_faqs_updated_at before update on public.faqs
+  for each row execute procedure public.update_updated_at();
 
--- ═══════════════════════════════════════════
+-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 -- SEED DATA
--- ═══════════════════════════════════════════
+-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 -- Default feature flags
 insert into public.feature_flags (key, enabled, description) values
