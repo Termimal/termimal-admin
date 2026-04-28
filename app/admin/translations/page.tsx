@@ -1,4 +1,6 @@
 'use client'
+
+export const dynamic = 'force-dynamic'
 import AdminLayout from '@/components/admin/AdminLayout'
 import { Search, Plus } from 'lucide-react'
 
@@ -12,9 +14,9 @@ const languages = [
 ]
 
 const keys = [
-  { key: 'hero.title', en: 'See the market faster, clearer, deeper.', tr: 'Piyasayı daha hızlı, daha net, daha derin görün.', ns: 'marketing' },
-  { key: 'hero.cta', en: 'Start Free', tr: 'Ücretsiz Başla', ns: 'marketing' },
-  { key: 'nav.pricing', en: 'Pricing', tr: 'Fiyatlandırma', ns: 'common' },
+  { key: 'hero.title', en: 'See the market faster, clearer, deeper.', tr: 'PiyasayÄ± daha hÄ±zlÄ±, daha net, daha derin gÃ¶rÃ¼n.', ns: 'marketing' },
+  { key: 'hero.cta', en: 'Start Free', tr: 'Ãœcretsiz BaÅŸla', ns: 'marketing' },
+  { key: 'nav.pricing', en: 'Pricing', tr: 'FiyatlandÄ±rma', ns: 'common' },
   { key: 'dashboard.alerts', en: 'Alerts active', tr: 'Aktif alarmlar', ns: 'portal' },
   { key: 'plan.pro.name', en: 'Pro', tr: 'Pro', ns: 'billing' },
 ]

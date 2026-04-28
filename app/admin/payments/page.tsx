@@ -1,4 +1,6 @@
-﻿"use client";
+"use client"
+
+export const dynamic = 'force-dynamic';
 
 import { Activity, DollarSign, RefreshCcw, AlertTriangle } from "lucide-react";
 
