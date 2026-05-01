@@ -15,7 +15,15 @@ import {
   LogOut,
 } from 'lucide-react'
 
-const NAV = [
+type NavItem = {
+  href: string
+  label: string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  icon: any
+  exact?: boolean
+}
+
+const NAV: { group: string; items: NavItem[] }[] = [
   {
     group: 'Overview',
     items: [
