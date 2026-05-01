@@ -1,19 +1,11 @@
-﻿
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-
 
 function adminClient() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-        detectSessionInUrl: false,
-      },
-    }
+    { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } }
   )
 }
 
@@ -54,7 +46,6 @@ export async function POST(
     const body = await request.json()
     const supabase = adminClient()
     const { id: userId } = await context.params
-
     const now = new Date().toISOString()
 
     const updates: any = {
@@ -68,16 +59,7 @@ export async function POST(
     if (typeof body.credits === 'number') updates.credits = body.credits
     if (typeof body.notes === 'string') updates.notes = body.notes
     if (typeof body.last_admin_action === 'string') updates.last_admin_action = body.last_admin_action
-
-    if (body.close_account === true) {
-      updates.account_status = 'closed'
-      updates.closed_at = now
-    }
-
-    if (body.open_account === true) {
-      updates.account_status = 'active'
-      updates.closed_at = null
-    }
+    if (typeof body.is_test_user === 'boolean') updates.is_test_user = body.is_test_user
 
     const { error } = await supabase.from('admin_user_profiles').upsert(updates)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
@@ -87,7 +69,3 @@ export async function POST(
     return NextResponse.json({ error: e.message || 'Failed to update user' }, { status: 500 })
   }
 }
-
-
-
-
