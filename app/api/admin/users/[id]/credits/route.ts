@@ -1,30 +1,22 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-
-function adminClient() {
-  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } })
-}
-
-export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
+const sb = () => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false} })
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const body = await request.json()
-    const { id: userId } = await context.params
-    const supabase = adminClient()
-    const now = new Date().toISOString()
-    const amount = parseInt(body.amount)
-    if (isNaN(amount) || amount === 0) return NextResponse.json({ error: 'Invalid amount' }, { status: 400 })
-
-    await supabase.from('credits').insert({ user_id: userId, amount, reason: body.reason || 'Admin adjustment', note: body.note || null })
-
-    const { data: existing } = await supabase.from('admin_user_profiles').select('credits').eq('user_id', userId).maybeSingle()
-    const newTotal = (existing?.credits ?? 0) + amount
-
-    const { error } = await supabase.from('admin_user_profiles').upsert({
-      user_id: userId, credits: newTotal, updated_at: now,
-      last_admin_action_at: now, last_admin_action: `credit adjustment: ${amount > 0 ? '+' : ''}${amount}`
-    })
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    return NextResponse.json({ ok: true, newTotal })
-  } catch (e: any) { return NextResponse.json({ error: e.message }, { status: 500 }) }
+    const { id } = await params
+    const { amount, reason } = await req.json()
+    if (!amount || isNaN(amount)) return NextResponse.json({ error:'Invalid amount' }, { status:400 })
+    const client = sb()
+    const { data: existing } = await client.from('admin_user_profiles').select('credits,credit_history').eq('user_id',id).single()
+    const current = existing?.credits || 0
+    const history = existing?.credit_history || []
+    history.push({ amount, reason:reason||'Admin adjustment', created_at:new Date().toISOString() })
+    const { error } = await client.from('admin_user_profiles').upsert({
+      user_id:id, credits:current+amount, credit_history:history,
+      last_admin_action:`credits_adjusted_${amount>0?'+':''}${amount}`,
+      last_admin_action_at:new Date().toISOString(),
+    }, { onConflict:'user_id' })
+    if (error) return NextResponse.json({ error:error.message }, { status:500 })
+    return NextResponse.json({ ok:true, new_balance:current+amount })
+  } catch (e:any) { return NextResponse.json({ error:e.message }, { status:500 }) }
 }
