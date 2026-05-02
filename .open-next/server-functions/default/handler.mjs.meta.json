@@ -3307,7 +3307,7 @@
       "format": "cjs"
     },
     ".open-next/server-functions/default/node_modules/next/dist/server/load-manifest.external.js": {
-      "bytes": 155575,
+      "bytes": 155573,
       "imports": [
         {
           "path": "path",
@@ -8943,7 +8943,7 @@
           "bytesInOutput": 8265
         },
         ".open-next/server-functions/default/node_modules/next/dist/server/load-manifest.external.js": {
-          "bytesInOutput": 134071
+          "bytesInOutput": 134069
         },
         ".open-next/server-functions/default/node_modules/next/dist/server/app-render/action-async-storage-instance.js": {
           "bytesInOutput": 501
@@ -9303,7 +9303,7 @@
           "bytesInOutput": 60394
         }
       },
-      "bytes": 4010825
+      "bytes": 4010823
     }
   }
 }
