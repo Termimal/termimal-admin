@@ -1,0 +1,17 @@
+{
+  "name": "termimal-admin",
+  "compatibility_date": "2026-05-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "main": ".open-next/worker.js",
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "placement": {
+    "mode": "smart"
+  },
+  "vars": {
+    "NEXT_PUBLIC_SUPABASE_URL": "https://kqmgxnxvmahnvrmizfzr.supabase.co",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtxbWd4bnh2bWFobnZybWl6ZnpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxOTM0NTcsImV4cCI6MjA5MTc2OTQ1N30.B5g1rrpBTR9J1iLzd5Xzatqa3iGSFPxISDIou3DxwHA"
+  }
+}
