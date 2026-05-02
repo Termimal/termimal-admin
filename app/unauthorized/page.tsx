@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 export default function UnauthorizedPage() {
   return (
     <div className="flex h-screen w-full flex-col items-center justify-center bg-zinc-950 text-white">

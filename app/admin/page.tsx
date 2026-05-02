@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
 import { Users, CreditCard, Star, Crown, ArrowRight } from 'lucide-react'
