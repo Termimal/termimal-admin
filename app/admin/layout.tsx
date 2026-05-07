@@ -16,6 +16,13 @@ import {
   ShieldAlert,
   ListTodo,
   Map,
+  Inbox,
+  History,
+  Search,
+  Image as ImageIcon,
+  HelpCircle,
+  Megaphone,
+  Zap,
 } from 'lucide-react'
 
 type NavItem = {
@@ -32,6 +39,7 @@ const NAV: { group: string; items: NavItem[] }[] = [
     items: [
       { href: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true },
       { href: '/admin/anomalies', label: 'Anomaly Detection', icon: ShieldAlert },
+      { href: '/admin/audit-log', label: 'Audit Log', icon: History },
     ],
   },
   {
@@ -39,6 +47,7 @@ const NAV: { group: string; items: NavItem[] }[] = [
     items: [
       { href: '/admin/items',    label: 'Open Items', icon: ListTodo },
       { href: '/admin/roadmap',  label: 'Roadmap',    icon: Map },
+      { href: '/admin/support',  label: 'Support Inbox', icon: Inbox },
     ],
   },
   {
@@ -52,14 +61,18 @@ const NAV: { group: string; items: NavItem[] }[] = [
   {
     group: 'Content',
     items: [
-      { href: '/admin/content', label: 'Content', icon: FileText },
-      { href: '/admin/banners', label: 'Banners', icon: Flag },
-      { href: '/admin/flags', label: 'Feature Flags', icon: Flag },
+      { href: '/admin/content',       label: 'Content',       icon: FileText },
+      { href: '/admin/banners',       label: 'Banners',       icon: ImageIcon },
+      { href: '/admin/announcements', label: 'Announcements', icon: Megaphone },
+      { href: '/admin/faqs',          label: 'FAQs',          icon: HelpCircle },
+      { href: '/admin/seo',           label: 'SEO & Meta',    icon: Search },
+      { href: '/admin/flags',         label: 'Feature Flags', icon: Zap },
     ],
   },
   {
     group: 'System',
     items: [
+      { href: '/admin/system',   label: 'System',   icon: Settings },
       { href: '/admin/settings', label: 'Settings', icon: Settings },
     ],
   },

@@ -17,6 +17,15 @@ import { NextResponse, type NextRequest } from 'next/server'
  * Defence-in-depth: each API route should ALSO re-check the role
  * (cookie-bound supabase client + RLS), but this middleware is the
  * first line.
+ * admin session. A previous version of this middleware only gated
+ * /admin (the page routes) and left /api/admin/* exposed — anyone with
+ * the URL could `curl /api/admin/users` and download the full user
+ * list (emails, subscription state, Stripe IDs, …).
+ *
+ * Now we gate both /admin/* AND /api/admin/* and require role in
+ * {admin,super_admin}. Defence-in-depth: API routes should also
+ * re-check the role inside the handler, but middleware is the first
+ * line.
  */
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
@@ -42,6 +51,9 @@ export async function middleware(request: NextRequest) {
   const path     = request.nextUrl.pathname
   const isPage   = path.startsWith('/admin')
   const isApi    = path.startsWith('/api/admin')
+  const path   = request.nextUrl.pathname
+  const isPage = path.startsWith('/admin')
+  const isApi  = path.startsWith('/api/admin')
 
   if (isPage || isApi) {
     if (!user) {
@@ -55,6 +67,8 @@ export async function middleware(request: NextRequest) {
     }
 
     // Verify the caller has an admin role. user_roles uses (id, role).
+    // Verify the caller has an admin role. user_roles uses (id, role)
+    // — the id IS the user_id, not a separate column.
     const { data: role } = await supabase
       .from('user_roles')
       .select('role')
@@ -73,6 +87,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Redirect logged-in admins away from /login → /admin.
+  // Redirect signed-in admins away from /login → /admin.
   if (path === '/login' && user) {
     const url = request.nextUrl.clone()
     url.pathname = '/admin'
