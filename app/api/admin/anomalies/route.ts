@@ -26,8 +26,13 @@
  * Auth: this route assumes the calling session has already passed the
  * admin gate from middleware.ts. The service-role key is used only
  * inside the route — never returned to the client.
+ *
+ * Runtime: default Node runtime (NOT edge) because OpenNext for
+ * Cloudflare requires edge-runtime routes to be defined as separate
+ * functions in the open-next config, and the rest of /app/api/admin/*
+ * uses the default runtime — keeping anomalies on the same runtime
+ * keeps the bundle simple.
  */
-export const runtime = 'edge'
 
 import { NextResponse } from 'next/server'
 import { createClient as createSbClient } from '@supabase/supabase-js'
