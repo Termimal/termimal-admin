@@ -1,48 +1,103 @@
 'use client'
 export const dynamic = 'force-dynamic'
-import AdminLayout from '@/components/admin/AdminLayout'
 
-const flags = [
-  { name: 'macro_intelligence', desc: 'Polymarket event risk integration', env: 'production', enabled: true, plan: 'Premium' },
-  { name: 'onchain_analytics', desc: 'MVRV, Z-Score, realized cap overlays', env: 'production', enabled: true, plan: 'Premium' },
-  { name: 'cot_reports', desc: 'CFTC COT positioning data', env: 'production', enabled: true, plan: 'Pro' },
-  { name: 'advanced_screener', desc: 'Multi-filter market screener', env: 'production', enabled: true, plan: 'Pro' },
-  { name: 'api_access', desc: 'REST API for data export', env: 'beta', enabled: false, plan: 'Premium' },
-  { name: 'ai_insights', desc: 'AI-generated market summaries', env: 'staging', enabled: false, plan: 'Premium' },
-  { name: 'social_sentiment', desc: 'Social media sentiment feed', env: 'development', enabled: false, plan: 'Pro' },
-  { name: 'backtesting', desc: 'Strategy backtesting engine', env: 'development', enabled: false, plan: 'Premium' },
-]
+import { useEffect, useState } from 'react'
+import { Flag } from 'lucide-react'
+import { PageHeader, Section, EmptyState } from '@/components/admin/PageChrome'
+import { createClient } from '@/lib/supabase/client'
 
-const envColor: Record<string, { color: string; bg: string }> = {
-  production: { color: 'var(--green-val)', bg: 'rgba(52,211,153,.1)' },
-  beta: { color: 'var(--amber)', bg: 'rgba(251,191,36,.1)' },
-  staging: { color: 'var(--blue)', bg: 'rgba(96,165,250,.1)' },
-  development: { color: 'var(--t4)', bg: 'var(--surface)' },
+interface FlagRow {
+  id:          string
+  key:         string
+  description: string | null
+  enabled:     boolean
+  created_at:  string | null
 }
 
 export default function FlagsPage() {
+  const sb = createClient()
+  const [flags, setFlags]     = useState<FlagRow[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      const { data, error } = await sb
+        .from('feature_flags')
+        .select('id, key, description, enabled, created_at')
+        .order('created_at', { ascending: true })
+      if (cancelled) return
+      if (!error && data) setFlags(data as FlagRow[])
+      setLoading(false)
+    }
+    load()
+    return () => { cancelled = true }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  async function toggle(id: string, next: boolean) {
+    // Optimistic.
+    setFlags(prev => prev.map(f => f.id === id ? { ...f, enabled: next } : f))
+    const { error } = await sb.from('feature_flags').update({ enabled: next }).eq('id', id)
+    if (error) {
+      // Revert on failure.
+      setFlags(prev => prev.map(f => f.id === id ? { ...f, enabled: !next } : f))
+    }
+  }
+
   return (
-    <AdminLayout>
-      <div className="rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
-        <table className="w-full text-[0.75rem]">
-          <thead><tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}>
-            {['Flag','Description','Environment','Min Plan','Status'].map(h => <th key={h} className="text-left px-4 py-2.5 text-[0.6rem] font-bold uppercase tracking-wider" style={{ color: 'var(--t4)' }}>{h}</th>)}
-          </tr></thead>
-          <tbody>{flags.map(f => (
-            <tr key={f.name} style={{ borderBottom: '1px solid var(--border)' }}>
-              <td className="px-4 py-2.5 font-mono font-semibold text-[0.72rem]">{f.name}</td>
-              <td className="px-4 py-2.5" style={{ color: 'var(--t3)' }}>{f.desc}</td>
-              <td className="px-4 py-2.5"><span className="text-[0.58rem] font-bold px-1.5 py-0.5 rounded" style={{ color: envColor[f.env].color, background: envColor[f.env].bg }}>{f.env}</span></td>
-              <td className="px-4 py-2.5"><span className="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded" style={{ background: 'var(--acc-d)', color: 'var(--acc)' }}>{f.plan}</span></td>
-              <td className="px-4 py-2.5">
-                <div className="w-9 h-5 rounded-full relative cursor-pointer transition-all" style={{ background: f.enabled ? 'var(--acc2)' : 'var(--border)' }}>
-                  <div className="absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all" style={{ left: f.enabled ? '18px' : '2px' }} />
-                </div>
-              </td>
-            </tr>
-          ))}</tbody>
-        </table>
-      </div>
-    </AdminLayout>
+    <div style={{ maxWidth: 1100 }}>
+      <PageHeader
+        icon={<Flag size={14} />}
+        eyebrow="Feature Flags"
+        title="Module toggles"
+        description="Switch product modules on or off. Changes take effect on the next request — no redeploy required."
+        accent="amber"
+      />
+
+      <Section flush accent="amber">
+        {loading ? (
+          <div style={{ padding: 24, fontSize: 13, color: 'var(--t3)' }}>Loading flags…</div>
+        ) : flags.length === 0 ? (
+          <EmptyState icon={<Flag size={20} />} title="No feature flags defined" description="Add rows to public.feature_flags to manage them here." />
+        ) : (
+          <div className="table-wrap" style={{ border: 'none', borderRadius: 0 }}>
+            <table className="table-root">
+              <thead>
+                <tr>
+                  <th>Flag</th>
+                  <th>Description</th>
+                  <th style={{ textAlign: 'right' }}>Created</th>
+                  <th style={{ textAlign: 'right' }}>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {flags.map(f => (
+                  <tr key={f.id}>
+                    <td style={{ fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 12, color: 'var(--t1)' }}>{f.key}</td>
+                    <td style={{ color: 'var(--t3)' }}>{f.description || '—'}</td>
+                    <td style={{ textAlign: 'right', color: 'var(--t4)', fontSize: 12 }}>
+                      {f.created_at ? new Date(f.created_at).toLocaleDateString() : '—'}
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <button
+                        type="button"
+                        className="toggle"
+                        data-checked={f.enabled}
+                        onClick={() => toggle(f.id, !f.enabled)}
+                        aria-pressed={f.enabled}
+                        title={f.enabled ? 'Disable' : 'Enable'}
+                      >
+                        <span className="toggle-thumb" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Section>
+    </div>
   )
 }

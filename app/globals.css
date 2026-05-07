@@ -285,4 +285,89 @@ img, picture, video, canvas, svg { display: block; max-width: 100%; }
 
   .msg-ok { font-size: 0.75rem; padding: 0.5rem 0.75rem; border-radius: 0.5rem; background: var(--acc-bg); color: var(--acc); border: 1px solid var(--acc-border); }
   .msg-err { font-size: 0.75rem; padding: 0.5rem 0.75rem; border-radius: 0.5rem; background: var(--red-bg); color: var(--red); }
+
+  /* ── Visual polish layer ──────────────────────────────────────
+     Subtle gradients, hover lifts, KPI accents. Pages should rely
+     on these classes instead of repeating the same inline styles. */
+
+  .surface-raised {
+    background: linear-gradient(180deg, var(--surface2) 0%, var(--surface) 100%);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+  }
+
+  /* KPI variants — consistent value colour per accent. */
+  .kpi-card.kpi-acc    .kpi-value { color: var(--acc) }
+  .kpi-card.kpi-blue   .kpi-value { color: var(--blue) }
+  .kpi-card.kpi-amber  .kpi-value { color: var(--amber) }
+  .kpi-card.kpi-red    .kpi-value { color: var(--red) }
+  .kpi-card.kpi-purple .kpi-value { color: var(--purple) }
+  .kpi-card.kpi-green  .kpi-value { color: var(--green) }
+
+  /* Card hover lift for clickable cards — small, calm, no shadow flicker. */
+  .card-link {
+    display: block;
+    transition: transform var(--ease), border-color var(--ease), background var(--ease);
+  }
+  .card-link:hover {
+    border-color: var(--border2);
+    background: var(--surface2);
+    transform: translateY(-1px);
+  }
+
+  /* Section header divider used by the shared Section component
+     when title is present and content needs a thin separator. */
+  .section-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 12px 0;
+  }
+
+  /* Form-grid helpers — keeps every settings page laid out the same way. */
+  .form-grid    { display: grid; gap: 16px; }
+  .form-grid-2  { grid-template-columns: 1fr 1fr; }
+  @media (max-width: 720px) {
+    .form-grid-2 { grid-template-columns: 1fr; }
+  }
+
+  /* Anchor-style inline buttons used in copy text. */
+  .a-link {
+    color: var(--acc);
+    text-decoration: none;
+    font-weight: 600;
+    border-bottom: 1px solid transparent;
+    transition: border-color var(--ease);
+  }
+  .a-link:hover { border-bottom-color: var(--acc-border); }
+
+  /* Sticky save bar shadow already styled inline — this is a safety
+     fallback if the inline shadow ever gets stripped. */
+  .save-bar {
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+  }
+
+  /* Generic pill chip — used by tag editors, filter values, etc. */
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--t2);
+  }
+  .chip-acc    { background: var(--acc-bg);    color: var(--acc);    border-color: var(--acc-border) }
+  .chip-blue   { background: var(--blue-bg);   color: var(--blue);   border-color: rgba(96,165,250,0.22) }
+  .chip-amber  { background: var(--amber-bg);  color: var(--amber);  border-color: rgba(251,191,36,0.22) }
+  .chip-red    { background: var(--red-bg);    color: var(--red);    border-color: rgba(248,113,113,0.22) }
+  .chip-green  { background: var(--green-bg);  color: var(--green);  border-color: rgba(52,211,153,0.22) }
+  .chip-purple { background: var(--purple-bg); color: var(--purple); border-color: rgba(167,139,250,0.22) }
 }
