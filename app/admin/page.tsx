@@ -12,6 +12,7 @@ import {
   Settings,
   Wallet,
   ShieldAlert,
+  ListTodo,
 } from 'lucide-react'
 
 const cards = [
@@ -20,6 +21,12 @@ const cards = [
     title: 'Anomaly Detection',
     description: 'Live alerts: signup bursts, IP-density, cross-country logins, failed-payment surges.',
     icon: ShieldAlert,
+  },
+  {
+    href: '/admin/items',
+    title: 'Open Items',
+    description: 'Project board for bugs, features, and ops follow-ups. Kanban view with priority + assignee filters.',
+    icon: ListTodo,
   },
   {
     href: '/admin/users',
