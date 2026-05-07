@@ -8,12 +8,10 @@ import { createClient } from '@/lib/supabase/client'
 type ProfileRow = {
   id: string
   email: string | null
-  fullname?: string | null
   full_name?: string | null
   plan?: string | null
-  subscriptionstatus?: string | null
-  referralcode?: string | null
-  createdat?: string | null
+  subscription_status?: string | null
+  referral_code?: string | null
   created_at?: string | null
 }
 
@@ -76,7 +74,7 @@ export default function UsersPage() {
     ] = await Promise.all([
       supabase
         .from('profiles')
-        .select('id, email, fullname, full_name, plan, subscriptionstatus, referralcode, createdat, created_at')
+        .select('id, email, full_name, plan, subscription_status, referral_code, created_at')
         .order('created_at', { ascending: false }),
       supabase
         .from('admin_user_profiles')
@@ -116,7 +114,7 @@ export default function UsersPage() {
 
       const fullName =
         [admin?.first_name, admin?.last_name].filter(Boolean).join(' ').trim() ||
-        p.fullname ||
+        p.full_name ||
         p.full_name ||
         'Unnamed user'
 
@@ -125,9 +123,9 @@ export default function UsersPage() {
         fullName,
         email: p.email || auth?.email || '—',
         plan: p.plan || 'free',
-        status: (admin?.account_status || p.subscriptionstatus || 'active').toLowerCase(),
+        status: (admin?.account_status || p.subscription_status || 'active').toLowerCase(),
         credits: admin?.credits ?? 0,
-        joinedAt: p.createdat || p.created_at || null,
+        joinedAt: p.created_at || null,
         lastSignInAt: auth?.last_sign_in_at || null,
         phone: admin?.phone || auth?.phone || '—',
         providerList: rawProviders,

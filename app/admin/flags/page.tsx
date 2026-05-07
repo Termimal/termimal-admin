@@ -8,7 +8,7 @@ type FeatureFlag = {
   key: string
   description: string | null
   enabled: boolean
-  createdat: string | null
+  created_at: string | null
 }
 
 export default function FlagsPage() {
@@ -25,7 +25,7 @@ export default function FlagsPage() {
 
     const { data, error } = await supabase
       .from('featureflags')
-      .select('id, key, description, enabled, createdat')
+      .select('id, key, description, enabled, created_at')
       .order('key', { ascending: true })
 
     if (error) {
@@ -149,8 +149,8 @@ export default function FlagsPage() {
                   </td>
 
                   <td className="px-4 py-3 text-xs font-mono" style={{ color: 'var(--t4)' }}>
-                    {flag.createdat
-                      ? new Date(flag.createdat).toLocaleDateString('en-US', {
+                    {flag.created_at
+                      ? new Date(flag.created_at).toLocaleDateString('en-US', {
                           month: 'short',
                           day: 'numeric',
                           year: 'numeric',

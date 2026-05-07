@@ -8,14 +8,14 @@ type FAQ = {
   id: string
   question: string
   answer: string
-  isactive: boolean
-  createdat?: string | null
+  is_active: boolean
+  created_at?: string | null
 }
 
 type FAQForm = {
   question: string
   answer: string
-  isactive: boolean
+  is_active: boolean
 }
 
 export default function FAQEditor() {
@@ -31,7 +31,7 @@ export default function FAQEditor() {
   const [formData, setFormData] = useState<FAQForm>({
     question: '',
     answer: '',
-    isactive: true,
+    is_active: true,
   })
 
   useEffect(() => {
@@ -44,8 +44,8 @@ export default function FAQEditor() {
 
     const { data, error } = await supabase
       .from('faqs')
-      .select('id, question, answer, isactive, createdat')
-      .order('createdat', { ascending: true })
+      .select('id, question, answer, is_active, created_at')
+      .order('created_at', { ascending: true })
 
     if (error) {
       setError(error.message)
@@ -66,7 +66,7 @@ export default function FAQEditor() {
     const payload = {
       question: formData.question.trim(),
       answer: formData.answer.trim(),
-      isactive: formData.isactive,
+      is_active: formData.is_active,
     }
 
     if (!payload.question || !payload.answer) {
@@ -134,7 +134,7 @@ export default function FAQEditor() {
     setFormData({
       question: faq.question,
       answer: faq.answer,
-      isactive: faq.isactive,
+      is_active: faq.is_active,
     })
   }
 
@@ -143,7 +143,7 @@ export default function FAQEditor() {
     setFormData({
       question: '',
       answer: '',
-      isactive: true,
+      is_active: true,
     })
 
     if (clearMessages) {
@@ -267,11 +267,11 @@ export default function FAQEditor() {
               >
                 <input
                   type="checkbox"
-                  checked={formData.isactive}
+                  checked={formData.is_active}
                   onChange={(e) =>
                     setFormData((prev) => ({
                       ...prev,
-                      isactive: e.target.checked,
+                      is_active: e.target.checked,
                     }))
                   }
                 />
@@ -307,7 +307,7 @@ export default function FAQEditor() {
                 style={{
                   borderColor: editingId === faq.id ? 'var(--acc)' : 'var(--border)',
                   background: 'var(--surface)',
-                  opacity: faq.isactive ? 1 : 0.6,
+                  opacity: faq.is_active ? 1 : 0.6,
                 }}
               >
                 <div className="flex justify-between items-start gap-4">
@@ -320,7 +320,7 @@ export default function FAQEditor() {
                       {faq.answer}
                     </p>
 
-                    {!faq.isactive ? (
+                    {!faq.is_active ? (
                       <span
                         className="inline-block mt-3 text-[11px] font-bold px-2 py-0.5 rounded"
                         style={{

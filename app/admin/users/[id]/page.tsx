@@ -7,14 +7,12 @@ import { createClient } from '@/lib/supabase/client'
 type ProfileRow = {
   id: string
   email: string | null
-  fullname?: string | null
   full_name?: string | null
   plan?: string | null
-  subscriptionstatus?: string | null
-  referralcode?: string | null
-  createdat?: string | null
+  subscription_status?: string | null
+  referral_code?: string | null
   created_at?: string | null
-  billinginterval?: string | null
+  billing_interval?: string | null
 }
 
 type AdminProfileRow = {
@@ -76,7 +74,7 @@ export default function UserDetailPage() {
     setError('')
 
     const [{ data: p, error: pErr }, { data: a, error: aErr }, { data: u, error: uErr }, { data: c, error: cErr }] = await Promise.all([
-      supabase.from('profiles').select('id, email, fullname, full_name, plan, subscriptionstatus, referralcode, createdat, created_at, billinginterval').eq('id', id).maybeSingle(),
+      supabase.from('profiles').select('id, email, full_name, plan, subscription_status, referral_code, created_at, billing_interval').eq('id', id).maybeSingle(),
       supabase.from('admin_user_profiles').select('user_id, first_name, last_name, date_of_birth, phone, account_status, credits, notes, linked_accounts, last_admin_action, last_admin_action_at').eq('user_id', id).maybeSingle(),
       supabase.from('admin_auth_users').select('id, email, last_sign_in_at, phone, app_metadata').eq('id', id).maybeSingle(),
       supabase.from('credit_adjustments').select('id, amount, reason, created_at').eq('user_id', id).order('created_at', { ascending: false }).limit(20)
@@ -109,7 +107,7 @@ export default function UserDetailPage() {
   }, [id])
 
   const displayName = useMemo(() => {
-    return [form.first_name, form.last_name].filter(Boolean).join(' ').trim() || profile?.fullname || profile?.full_name || 'Unnamed user'
+    return [form.first_name, form.last_name].filter(Boolean).join(' ').trim() || profile?.full_name || profile?.full_name || 'Unnamed user'
   }, [form.first_name, form.last_name, profile])
 
   const providerList = useMemo(() => {
@@ -228,11 +226,11 @@ export default function UserDetailPage() {
               <div><span style={{ color: 'var(--t4)' }}>Phone</span><div>{form.phone || '—'}</div></div>
               <div><span style={{ color: 'var(--t4)' }}>Date of birth</span><div>{form.date_of_birth || '—'}</div></div>
               <div><span style={{ color: 'var(--t4)' }}>Plan</span><div>{profile.plan || 'free'}</div></div>
-              <div><span style={{ color: 'var(--t4)' }}>Subscription status</span><div>{profile.subscriptionstatus || form.account_status}</div></div>
-              <div><span style={{ color: 'var(--t4)' }}>Billing interval</span><div>{profile.billinginterval || '—'}</div></div>
-              <div><span style={{ color: 'var(--t4)' }}>Joined</span><div>{profile.createdat || profile.created_at ? new Date(profile.createdat || profile.created_at || '').toLocaleString() : '—'}</div></div>
+              <div><span style={{ color: 'var(--t4)' }}>Subscription status</span><div>{profile.subscription_status || form.account_status}</div></div>
+              <div><span style={{ color: 'var(--t4)' }}>Billing interval</span><div>{profile.billing_interval || '—'}</div></div>
+              <div><span style={{ color: 'var(--t4)' }}>Joined</span><div>{profile.created_at ? new Date(profile.created_at || '').toLocaleString() : '—'}</div></div>
               <div><span style={{ color: 'var(--t4)' }}>Last login</span><div>{authMeta?.last_sign_in_at ? new Date(authMeta.last_sign_in_at).toLocaleString() : 'Never'}</div></div>
-              <div><span style={{ color: 'var(--t4)' }}>Referral code</span><div>{profile.referralcode || '—'}</div></div>
+              <div><span style={{ color: 'var(--t4)' }}>Referral code</span><div>{profile.referral_code || '—'}</div></div>
               <div><span style={{ color: 'var(--t4)' }}>Linked accounts</span><div>{providerList.join(', ')}</div></div>
             </div>
           </div>

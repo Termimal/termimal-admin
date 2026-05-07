@@ -20,13 +20,13 @@ type ArticleRow = {
   category: string | null
   content: string | null
   excerpt: string | null
-  createdat: string | null
+  created_at: string | null
   updatedat: string | null
   publishedat: string | null
   scheduledat: string | null
   authorid: string | null
   profiles?: {
-    fullname: string | null
+    full_name: string | null
     email: string | null
   } | null
 }
@@ -73,17 +73,17 @@ export default function ContentPage() {
           category,
           content,
           excerpt,
-          createdat,
+          created_at,
           updatedat,
           publishedat,
           scheduledat,
           authorid,
           profiles:authorid (
-            fullname,
+            full_name,
             email
           )
         `)
-        .order('createdat', { ascending: false })
+        .order('created_at', { ascending: false })
 
       if (statusFilter !== 'all') {
         query = query.eq('status', statusFilter)
@@ -116,7 +116,7 @@ export default function ContentPage() {
         a.status,
         a.content,
         a.excerpt,
-        a.profiles?.fullname,
+        a.profiles?.full_name,
         a.profiles?.email,
       ]
         .filter(Boolean)
@@ -217,7 +217,7 @@ export default function ContentPage() {
             ) : (
               filteredArticles.map((a) => {
                 const authorLabel =
-                  a.profiles?.fullname?.trim() ||
+                  a.profiles?.full_name?.trim() ||
                   a.profiles?.email?.trim() ||
                   (a.authorid ? `${a.authorid.slice(0, 8)}...` : 'â€”')
 
@@ -226,7 +226,7 @@ export default function ContentPage() {
                     ? a.publishedat
                     : a.status === 'scheduled'
                     ? a.scheduledat
-                    : a.createdat
+                    : a.created_at
 
                 return (
                   <tr key={a.id} style={{ borderTop: '1px solid var(--border)' }}>
