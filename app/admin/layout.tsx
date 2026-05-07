@@ -13,6 +13,9 @@ import {
   ChevronRight,
   Terminal,
   LogOut,
+  ShieldAlert,
+  ListTodo,
+  Map,
 } from 'lucide-react'
 
 type NavItem = {
@@ -28,6 +31,14 @@ const NAV: { group: string; items: NavItem[] }[] = [
     group: 'Overview',
     items: [
       { href: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true },
+      { href: '/admin/anomalies', label: 'Anomaly Detection', icon: ShieldAlert },
+    ],
+  },
+  {
+    group: 'Workflow',
+    items: [
+      { href: '/admin/items',    label: 'Open Items', icon: ListTodo },
+      { href: '/admin/roadmap',  label: 'Roadmap',    icon: Map },
     ],
   },
   {
