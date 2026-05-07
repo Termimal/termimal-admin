@@ -1,6 +1,23 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+/**
+ * Top-level admin auth gate.
+ *
+ * Critical safety property: every /api/admin/* route uses the
+ * SUPABASE_SERVICE_ROLE_KEY internally (it has to — listing all users,
+ * setting plans, granting credits, all need RLS-bypassing auth).
+ * Therefore the routes MUST NEVER be reachable without an authenticated
+ * admin session. The previous middleware only gated /admin (the page
+ * routes) and left /api/admin/* exposed — anyone with the URL could
+ * `curl /api/admin/users` and download the full user list (emails,
+ * subscription state, Stripe IDs, etc.).
+ *
+ * Now we also gate /api/admin/* and require role in {admin,super_admin}.
+ * Defence-in-depth: each API route should ALSO re-check the role
+ * (cookie-bound supabase client + RLS), but this middleware is the
+ * first line.
+ */
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
 
@@ -22,15 +39,41 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Protect /admin routes
-  if (request.nextUrl.pathname.startsWith('/admin') && !user) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/login'
-    return NextResponse.redirect(url)
+  const path     = request.nextUrl.pathname
+  const isPage   = path.startsWith('/admin')
+  const isApi    = path.startsWith('/api/admin')
+
+  if (isPage || isApi) {
+    if (!user) {
+      if (isApi) {
+        return NextResponse.json({ error: 'unauthenticated' }, { status: 401 })
+      }
+      const url = request.nextUrl.clone()
+      url.pathname = '/login'
+      url.searchParams.set('next', path)
+      return NextResponse.redirect(url)
+    }
+
+    // Verify the caller has an admin role. user_roles uses (id, role).
+    const { data: role } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    const isAdmin = role?.role === 'admin' || role?.role === 'super_admin'
+    if (!isAdmin) {
+      if (isApi) {
+        return NextResponse.json({ error: 'forbidden' }, { status: 403 })
+      }
+      const url = request.nextUrl.clone()
+      url.pathname = '/unauthorized'
+      return NextResponse.redirect(url)
+    }
   }
 
-  // Redirect logged-in users away from login
-  if (request.nextUrl.pathname === '/login' && user) {
+  // Redirect logged-in admins away from /login → /admin.
+  if (path === '/login' && user) {
     const url = request.nextUrl.clone()
     url.pathname = '/admin'
     return NextResponse.redirect(url)
