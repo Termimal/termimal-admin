@@ -5,6 +5,7 @@
     "scripts":  {
                     "dev":  "next dev",
                     "build":  "next build",
+                    "pages:build":  "opennextjs-cloudflare build",
                     "cf:build":  "opennextjs-cloudflare build",
                     "preview":  "opennextjs-cloudflare build \u0026\u0026 opennextjs-cloudflare preview",
                     "deploy":  "opennextjs-cloudflare build \u0026\u0026 opennextjs-cloudflare deploy",
