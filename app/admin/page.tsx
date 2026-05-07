@@ -11,9 +11,16 @@ import {
   Coins,
   Settings,
   Wallet,
+  ShieldAlert,
 } from 'lucide-react'
 
 const cards = [
+  {
+    href: '/admin/anomalies',
+    title: 'Anomaly Detection',
+    description: 'Live alerts: signup bursts, IP-density, cross-country logins, failed-payment surges.',
+    icon: ShieldAlert,
+  },
   {
     href: '/admin/users',
     title: 'User Management',
