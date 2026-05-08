@@ -34,14 +34,24 @@
 const fs   = require('fs');
 const path = require('path');
 
-const isCI = process.env.CF_PAGES === '1' || !!process.env.CF_PAGES_BRANCH;
+// CF_PAGES env vars are only set at the deploy step, not the build
+// command. Use the working directory as the reliable signal: every
+// Cloudflare Pages CI build runs out of `/opt/buildhome/repo`. Locally
+// (Windows / WSL / Mac dev), the cwd is the user's checkout — the
+// shim short-circuits so it never mutates your real wrangler.json.
+const cwd = process.cwd();
+const isCloudflareBuildhome =
+  cwd.startsWith('/opt/buildhome') ||
+  cwd.startsWith('/buildhome') ||
+  process.env.CF_PAGES === '1' ||
+  !!process.env.CF_PAGES_BRANCH;
 
-if (!isCI) {
-  console.log('[pages-shim] not running in Cloudflare Pages CI — no-op');
+if (!isCloudflareBuildhome) {
+  console.log('[pages-shim] not in Cloudflare Pages buildhome (cwd=' + cwd + ') — no-op');
   process.exit(0);
 }
 
-console.log('[pages-shim] running inside Cloudflare Pages CI');
+console.log('[pages-shim] running inside Cloudflare Pages CI (cwd=' + cwd + ')');
 
 // 1. Back up the canonical Workers config + replace with Pages-compat config.
 const cfg = JSON.parse(fs.readFileSync('wrangler.json', 'utf8'));
