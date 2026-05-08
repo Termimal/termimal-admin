@@ -74,44 +74,60 @@ export function PageHeader({
 }: PageHeaderProps) {
   const c = accentColors(accent)
   return (
-    <header style={{
-      display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between',
-      gap: 16, marginBottom: 24, flexWrap: 'wrap',
-    }}>
-      <div style={{ minWidth: 0, flex: 1 }}>
-        {(icon || eyebrow) && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-            {icon && (
-              <span style={{
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                width: 28, height: 28, borderRadius: 8,
-                background: c.bg, border: `1px solid ${c.border}`,
-                color: c.fg,
-              }}>{icon}</span>
-            )}
-            {eyebrow && (
-              <span style={{
-                fontSize: 11, fontWeight: 700, letterSpacing: '0.1em',
-                textTransform: 'uppercase', color: c.fg,
-              }}>{eyebrow}</span>
-            )}
+    <header
+      className="hero-panel"
+      style={{
+        marginBottom: 32,
+        padding: '32px 36px',
+      }}
+    >
+      <div
+        style={{
+          position: 'relative',
+          zIndex: 1,
+          display: 'flex',
+          alignItems: 'flex-start',
+          justifyContent: 'space-between',
+          gap: 24,
+          flexWrap: 'wrap',
+        }}
+      >
+        <div style={{ minWidth: 0, flex: 1 }}>
+          {(icon || eyebrow) && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+              {icon && (
+                <span style={{
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  width: 36, height: 36, borderRadius: 10,
+                  background: c.bg, border: `1px solid ${c.border}`,
+                  color: c.fg,
+                  boxShadow: `0 0 24px -8px ${c.fg}`,
+                }}>{icon}</span>
+              )}
+              {eyebrow && (
+                <span style={{
+                  fontSize: 11, fontWeight: 800, letterSpacing: '0.14em',
+                  textTransform: 'uppercase', color: c.fg,
+                }}>{eyebrow}</span>
+              )}
+            </div>
+          )}
+          <h1 style={{
+            fontSize: 30, lineHeight: 1.1, fontWeight: 800,
+            color: 'var(--t1)', letterSpacing: '-0.025em', marginBottom: description ? 12 : 0,
+          }}>{title}</h1>
+          {description && (
+            <p style={{ fontSize: 14, lineHeight: 1.6, color: 'var(--t3)', maxWidth: 720 }}>
+              {description}
+            </p>
+          )}
+        </div>
+        {actions && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+            {actions}
           </div>
         )}
-        <h1 style={{
-          fontSize: 22, lineHeight: 1.2, fontWeight: 700,
-          color: 'var(--t1)', letterSpacing: '-0.01em', marginBottom: description ? 6 : 0,
-        }}>{title}</h1>
-        {description && (
-          <p style={{ fontSize: 13, lineHeight: 1.5, color: 'var(--t3)', maxWidth: 700 }}>
-            {description}
-          </p>
-        )}
       </div>
-      {actions && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-          {actions}
-        </div>
-      )}
     </header>
   )
 }
@@ -136,32 +152,31 @@ export function Section({
   const c = accent ? accentColors(accent) : null
   return (
     <section style={{
-      background: 'var(--surface)',
+      background: 'linear-gradient(180deg, var(--surface2) 0%, var(--surface) 100%)',
       border: '1px solid var(--border)',
-      borderRadius: 14,
+      borderRadius: 16,
       overflow: 'hidden',
-      marginBottom: 16,
+      marginBottom: 24,
     }}>
       {c && (
         <div style={{
-          height: 2,
+          height: 3,
           background: `linear-gradient(90deg, ${c.fg}, transparent 80%)`,
         }} />
       )}
       {(title || description || actions) && (
         <div style={{
           display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
-          gap: 12, padding: '14px 18px',
+          gap: 16, padding: '20px 28px',
           borderBottom: '1px solid var(--border)',
-          background: 'var(--surface)',
         }}>
           <div style={{ minWidth: 0 }}>
             {title && <div style={{
-              fontSize: 13, fontWeight: 600, color: 'var(--t1)',
-              letterSpacing: '-0.005em', marginBottom: description ? 4 : 0,
+              fontSize: 15, fontWeight: 700, color: 'var(--t1)',
+              letterSpacing: '-0.012em', marginBottom: description ? 6 : 0,
             }}>{title}</div>}
             {description && (
-              <div style={{ fontSize: 12, color: 'var(--t3)', lineHeight: 1.5 }}>
+              <div style={{ fontSize: 13, color: 'var(--t3)', lineHeight: 1.6, maxWidth: 640 }}>
                 {description}
               </div>
             )}
@@ -169,7 +184,7 @@ export function Section({
           {actions && <div style={{ flexShrink: 0 }}>{actions}</div>}
         </div>
       )}
-      <div style={{ padding: flush ? 0 : 18 }}>{children}</div>
+      <div style={{ padding: flush ? 0 : 28 }}>{children}</div>
     </section>
   )
 }

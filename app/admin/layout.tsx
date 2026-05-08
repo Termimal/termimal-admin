@@ -124,29 +124,62 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           zIndex: 40,
         }}
       >
-        {/* Logo */}
+        {/* Brand bar */}
         <div
-          className="flex items-center gap-2.5 px-4 py-4"
+          className="flex items-center gap-3 px-5 py-4"
           style={{ borderBottom: '1px solid var(--border)', minHeight: 'var(--header-h)' }}
         >
           <div
-            className="flex items-center justify-center rounded-lg"
-            style={{ width: 28, height: 28, background: 'var(--acc-bg)', border: '1px solid var(--acc-border)' }}
+            className="flex items-center justify-center"
+            style={{
+              width: 34, height: 34,
+              borderRadius: 11,
+              background: 'linear-gradient(135deg, rgba(45,212,164,0.20) 0%, rgba(167,139,250,0.20) 100%)',
+              border: '1px solid var(--border2)',
+              boxShadow: '0 0 18px -4px rgba(45,212,164,0.4), inset 0 1px 0 rgba(255,255,255,0.06)',
+            }}
           >
-            <Terminal size={14} style={{ color: 'var(--acc)' }} />
+            <Terminal size={15} style={{ color: 'var(--acc)' }} />
           </div>
-          <div>
-            <div className="text-sm font-bold tracking-tight" style={{ color: 'var(--t1)' }}>Termimal</div>
-            <div className="text-xs" style={{ color: 'var(--t4)' }}>Admin Panel</div>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{
+              fontSize: 14,
+              fontWeight: 700,
+              letterSpacing: '-0.012em',
+              color: 'var(--t1)',
+            }}>Termimal</div>
+            <div style={{
+              fontSize: 10,
+              fontWeight: 600,
+              letterSpacing: '0.14em',
+              textTransform: 'uppercase',
+              color: 'var(--t4)',
+            }}>Admin · v3</div>
           </div>
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-5">
-          {NAV.map((group) => (
-            <div key={group.group}>
-              <div className="section-title px-1">{group.group}</div>
-              <div className="space-y-0.5">
+        <nav className="flex-1 overflow-y-auto" style={{ padding: '14px 12px 24px' }}>
+          {NAV.map((group, gIdx) => (
+            <div key={group.group} style={{ marginTop: gIdx === 0 ? 0 : 18 }}>
+              <div
+                style={{
+                  fontSize: 10,
+                  fontWeight: 800,
+                  letterSpacing: '0.14em',
+                  textTransform: 'uppercase',
+                  color: 'var(--t4)',
+                  padding: '0 10px',
+                  marginBottom: 8,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                }}
+              >
+                <span>{group.group}</span>
+                <span style={{ flex: 1, height: 1, background: 'var(--border)', opacity: 0.6 }} />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 {group.items.map((item) => (
                   <Link
                     key={item.href}
@@ -156,7 +189,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     <item.icon className="nav-icon" />
                     <span>{item.label}</span>
                     {isActive(item.href, item.exact) && (
-                      <ChevronRight size={12} className="ml-auto" style={{ color: 'var(--t4)' }} />
+                      <ChevronRight size={12} className="ml-auto" style={{ color: 'var(--acc)', opacity: 0.7 }} />
                     )}
                   </Link>
                 ))}
@@ -166,7 +199,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </nav>
 
         {/* Footer */}
-        <div className="px-3 py-3" style={{ borderTop: '1px solid var(--border)' }}>
+        <div style={{
+          padding: '14px 12px',
+          borderTop: '1px solid var(--border)',
+          background: 'linear-gradient(180deg, transparent 0%, var(--surface) 100%)',
+        }}>
           <a href="/api/auth/logout" className="nav-item">
             <LogOut className="nav-icon" />
             <span>Sign out</span>
@@ -178,31 +215,43 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div className="flex flex-col flex-1" style={{ marginLeft: 'var(--sidebar-w)' }}>
         {/* Top bar */}
         <header
-          className="sticky top-0 flex items-center justify-between px-6"
+          className="sticky top-0 flex items-center justify-between"
           style={{
             height: 'var(--header-h)',
-            background: 'rgba(8,8,15,0.85)',
-            backdropFilter: 'blur(12px)',
+            padding: '0 36px',
+            background: 'rgba(8,8,15,0.78)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
             borderBottom: '1px solid var(--border)',
             zIndex: 30,
           }}
         >
-          <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--t3)' }}>
-            <span>Admin</span>
-            <ChevronRight size={12} />
-            <span style={{ color: 'var(--t1)' }}>
+          <div className="flex items-center" style={{ color: 'var(--t3)', fontSize: 13, gap: 8 }}>
+            <span style={{ fontWeight: 500 }}>Admin</span>
+            <ChevronRight size={12} style={{ opacity: 0.5 }} />
+            <span style={{ color: 'var(--t1)', fontWeight: 600, letterSpacing: '-0.005em' }}>
               {(() => {
                 const seg = pathname.split('/').filter(Boolean)
                 const last = seg[seg.length - 1]
                 if (!last || last === 'admin') return 'Dashboard'
-                return last.charAt(0).toUpperCase() + last.slice(1)
+                return last.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
               })()}
             </span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center" style={{ gap: 12 }}>
+            <span className="header-pill" style={{ fontSize: 11 }}>
+              <span className="live-dot" /> Live
+            </span>
             <div
-              className="flex items-center justify-center rounded-full text-xs font-bold"
-              style={{ width: 28, height: 28, background: 'var(--acc-bg)', color: 'var(--acc)' }}
+              className="flex items-center justify-center rounded-full"
+              style={{
+                width: 32, height: 32,
+                background: 'linear-gradient(135deg, var(--acc) 0%, var(--purple) 100%)',
+                color: '#fff',
+                fontSize: 12,
+                fontWeight: 800,
+                boxShadow: '0 4px 12px rgba(45,212,164,0.25)',
+              }}
             >
               A
             </div>
@@ -210,7 +259,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </header>
 
         {/* Content */}
-        <main className="flex-1 p-6 overflow-auto">{children}</main>
+        <main
+          className="flex-1 overflow-auto"
+          style={{ padding: '40px 48px 80px' }}
+        >
+          {children}
+        </main>
       </div>
     </div>
   )
