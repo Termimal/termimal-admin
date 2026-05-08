@@ -1,70 +1,147 @@
 'use client'
-export const dynamic = 'force-dynamic'
-import AdminLayout from '@/components/admin/AdminLayout'
-import { Search, Plus } from 'lucide-react'
 
-const languages = [
-  { code: 'en', name: 'English', keys: 1284, translated: 1284, pct: 100 },
-  { code: 'tr', name: 'Turkish', keys: 1284, translated: 1180, pct: 92 },
-  { code: 'de', name: 'German', keys: 1284, translated: 956, pct: 74 },
-  { code: 'fr', name: 'French', keys: 1284, translated: 890, pct: 69 },
-  { code: 'es', name: 'Spanish', keys: 1284, translated: 720, pct: 56 },
-  { code: 'ja', name: 'Japanese', keys: 1284, translated: 340, pct: 26 },
-]
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Languages, Plus, Trash2, Filter, Search } from 'lucide-react'
+import { PageHeader, Section, EmptyState, Field } from '@/components/admin/PageChrome'
 
-const keys = [
-  { key: 'hero.title', en: 'See the market faster, clearer, deeper.', tr: 'Piyasayı daha hızlı, daha net, daha derin görün.', ns: 'marketing' },
-  { key: 'hero.cta', en: 'Start Free', tr: 'Ücretsiz Başla', ns: 'marketing' },
-  { key: 'nav.pricing', en: 'Pricing', tr: 'Fiyatlandırma', ns: 'common' },
-  { key: 'dashboard.alerts', en: 'Alerts active', tr: 'Aktif alarmlar', ns: 'portal' },
-  { key: 'plan.pro.name', en: 'Pro', tr: 'Pro', ns: 'billing' },
-]
+interface Row {
+  id: string
+  key: string
+  namespace: string
+  locale: string
+  value: string
+  updated_at: string
+}
 
 export default function TranslationsPage() {
+  const [rows, setRows]             = useState<Row[]>([])
+  const [locales, setLocales]       = useState<string[]>([])
+  const [namespaces, setNamespaces] = useState<string[]>([])
+  const [loading, setLoading]       = useState(true)
+  const [filterLocale, setFilterLocale]       = useState('all')
+  const [filterNamespace, setFilterNamespace] = useState('all')
+  const [q, setQ] = useState('')
+  const [draft, setDraft] = useState({ key: '', namespace: '', locale: 'en', value: '' })
+  const [saving, setSaving] = useState(false)
+
+  const load = useCallback(async () => {
+    const params = new URLSearchParams()
+    if (filterLocale !== 'all')    params.set('locale',    filterLocale)
+    if (filterNamespace !== 'all') params.set('namespace', filterNamespace)
+    const r = await fetch(`/api/admin/translations?${params.toString()}`, { cache: 'no-store' })
+    const j = await r.json() as { rows?: Row[]; locales?: string[]; namespaces?: string[] }
+    setRows(j.rows || [])
+    setLocales(j.locales || [])
+    setNamespaces(j.namespaces || [])
+    setLoading(false)
+  }, [filterLocale, filterNamespace])
+  useEffect(() => { load() }, [load])
+
+  const filtered = useMemo(() => {
+    if (!q.trim()) return rows
+    const s = q.toLowerCase()
+    return rows.filter(r => r.key.toLowerCase().includes(s) || r.value.toLowerCase().includes(s))
+  }, [rows, q])
+
+  async function add() {
+    if (!draft.key || !draft.namespace || !draft.locale) return
+    setSaving(true)
+    await fetch('/api/admin/translations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(draft) })
+    setSaving(false)
+    setDraft({ key: '', namespace: draft.namespace, locale: draft.locale, value: '' })
+    load()
+  }
+  async function patch(row: Row) {
+    await fetch('/api/admin/translations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(row) })
+  }
+  async function del(id: string) {
+    if (!confirm('Delete translation?')) return
+    await fetch(`/api/admin/translations?id=${encodeURIComponent(id)}`, { method: 'DELETE' })
+    load()
+  }
+
   return (
-    <AdminLayout>
-      <div className="grid grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
-        {languages.map(l => (
-          <div key={l.code} className="p-3 rounded-lg" style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}>
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-[0.75rem] font-bold">{l.code.toUpperCase()}</span>
-              <span className="text-[0.6rem] font-bold" style={{ color: l.pct === 100 ? 'var(--green-val)' : l.pct > 70 ? 'var(--amber)' : 'var(--red-val)' }}>{l.pct}%</span>
-            </div>
-            <div className="text-[0.62rem]" style={{ color: 'var(--t3)' }}>{l.name}</div>
-            <div className="w-full h-1 rounded-full mt-2" style={{ background: 'var(--border)' }}>
-              <div className="h-full rounded-full" style={{ width: `${l.pct}%`, background: l.pct === 100 ? 'var(--green-val)' : l.pct > 70 ? 'var(--amber)' : 'var(--red-val)' }} />
-            </div>
+    <div style={{ maxWidth: 1100 }}>
+      <PageHeader
+        icon={<Languages size={14} />}
+        eyebrow="i18n"
+        title="Translations"
+        description="Per-locale strings consumed by the marketing site + terminal. Keys are dot-namespaced (e.g. `home.hero.title`)."
+        accent="purple"
+      />
+
+      <Section title="Add or update string" accent="purple">
+        <div className="form-grid">
+          <div className="form-grid form-grid-2">
+            <Field label="Namespace" hint="Logical bucket — marketing, dashboard, errors…">
+              <input className="input" value={draft.namespace} onChange={e => setDraft({ ...draft, namespace: e.target.value })} placeholder="marketing" />
+            </Field>
+            <Field label="Locale" hint="ISO 639 code: en / de / fr / tr / ja…">
+              <input className="input" value={draft.locale} onChange={e => setDraft({ ...draft, locale: e.target.value })} />
+            </Field>
           </div>
-        ))}
-      </div>
-
-      <div className="flex items-center gap-3 mb-4">
-        <div className="flex items-center gap-2 flex-1 px-3 py-2 rounded-lg" style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}>
-          <Search size={14} style={{ color: 'var(--t4)' }} />
-          <input placeholder="Search translation keys..." className="bg-transparent outline-none text-[0.78rem] w-full" style={{ color: 'var(--t1)' }} />
+          <Field label="Key">
+            <input className="input" value={draft.key} onChange={e => setDraft({ ...draft, key: e.target.value })} placeholder="home.hero.title" />
+          </Field>
+          <Field label="Value">
+            <textarea className="input" rows={2} value={draft.value} onChange={e => setDraft({ ...draft, value: e.target.value })} />
+          </Field>
+          <button className="btn-primary btn-sm" onClick={add} disabled={!draft.key || !draft.namespace || !draft.locale || saving} style={{ alignSelf: 'flex-start' }}>
+            <Plus size={11} /> {saving ? 'Saving…' : 'Save'}
+          </button>
         </div>
-        <select className="px-3 py-2 rounded-lg text-[0.72rem]" style={{ border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--t2)' }}>
-          <option>All namespaces</option><option>marketing</option><option>common</option><option>portal</option><option>billing</option>
-        </select>
-        <button className="btn-primary text-[0.72rem] py-2 px-4 gap-1"><Plus size={14} /> Add key</button>
-      </div>
+      </Section>
 
-      <div className="rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
-        <table className="w-full text-[0.75rem]">
-          <thead><tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}>
-            {['Key','Namespace','English','Turkish',''].map(h => <th key={h} className="text-left px-4 py-2.5 text-[0.6rem] font-bold uppercase tracking-wider" style={{ color: 'var(--t4)' }}>{h}</th>)}
-          </tr></thead>
-          <tbody>{keys.map(k => (
-            <tr key={k.key} style={{ borderBottom: '1px solid var(--border)' }}>
-              <td className="px-4 py-2.5 font-mono font-medium text-[0.68rem]">{k.key}</td>
-              <td className="px-4 py-2.5"><span className="text-[0.58rem] font-semibold px-1.5 py-0.5 rounded" style={{ background: 'var(--surface)', color: 'var(--t3)' }}>{k.ns}</span></td>
-              <td className="px-4 py-2.5" style={{ color: 'var(--t2)' }}>{k.en}</td>
-              <td className="px-4 py-2.5" style={{ color: 'var(--t3)' }}>{k.tr}</td>
-              <td className="px-4 py-2.5 text-right"><button className="text-[0.68rem] font-medium" style={{ color: 'var(--acc)' }}>Edit</button></td>
-            </tr>
-          ))}</tbody>
-        </table>
-      </div>
-    </AdminLayout>
+      <Section flush>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', flexWrap: 'wrap' }}>
+          <Filter size={12} style={{ color: 'var(--t4)' }} />
+          <select className="select" value={filterLocale} onChange={e => setFilterLocale(e.target.value)} style={{ minWidth: 130 }}>
+            <option value="all">All locales</option>
+            {locales.map(l => <option key={l} value={l}>{l}</option>)}
+          </select>
+          <select className="select" value={filterNamespace} onChange={e => setFilterNamespace(e.target.value)} style={{ minWidth: 160 }}>
+            <option value="all">All namespaces</option>
+            {namespaces.map(ns => <option key={ns} value={ns}>{ns}</option>)}
+          </select>
+          <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
+            <Search size={12} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--t4)' }} />
+            <input className="input" style={{ paddingLeft: 30 }} placeholder="Search key / value" value={q} onChange={e => setQ(e.target.value)} />
+          </div>
+          <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--t4)' }}>{filtered.length} rows</span>
+        </div>
+      </Section>
+
+      {!loading && filtered.length === 0 && (
+        <EmptyState icon={<Languages size={20}/>} title="No translations" description="Add your first string above." />
+      )}
+
+      {filtered.length > 0 && (
+        <Section flush>
+          <div className="table-wrap" style={{ border: 'none', borderRadius: 0 }}>
+            <table className="table-root">
+              <thead><tr><th>Namespace</th><th>Key</th><th>Locale</th><th>Value</th><th></th></tr></thead>
+              <tbody>
+                {filtered.map(r => (
+                  <tr key={r.id}>
+                    <td><span className="chip">{r.namespace}</span></td>
+                    <td style={{ fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 11 }}>{r.key}</td>
+                    <td><span className="chip chip-blue">{r.locale}</span></td>
+                    <td style={{ minWidth: 320 }}>
+                      <input
+                        className="input"
+                        value={r.value}
+                        onChange={e => setRows(rs => rs.map(x => x.id === r.id ? { ...x, value: e.target.value } : x))}
+                        onBlur={() => patch(r)}
+                      />
+                    </td>
+                    <td><button className="btn-ghost btn-sm" style={{ color: 'var(--red)' }} onClick={() => del(r.id)}><Trash2 size={11} /></button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Section>
+      )}
+    </div>
   )
 }

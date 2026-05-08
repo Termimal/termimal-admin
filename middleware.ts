@@ -48,9 +48,6 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  const path     = request.nextUrl.pathname
-  const isPage   = path.startsWith('/admin')
-  const isApi    = path.startsWith('/api/admin')
   const path   = request.nextUrl.pathname
   const isPage = path.startsWith('/admin')
   const isApi  = path.startsWith('/api/admin')
