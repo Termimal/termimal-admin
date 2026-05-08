@@ -9,6 +9,7 @@ import {
   CreditCard, Gift, History, Activity, Settings, Shield, Zap,
   Star, LogIn, Monitor, Smartphone, Tablet, Crown, Ban, Unlock,
   Edit3, Hash, AlertTriangle, TestTube2, UserCheck, Building2,
+  Receipt, Pin, MessageSquare, Trash2, Skull,
 } from 'lucide-react'
 
 const PLANS = ['free', 'starter', 'pro', 'premium'] as const
@@ -63,12 +64,20 @@ const CREDIT_PACKAGES = [
 ]
 const DISCOUNT_PRESETS = [10, 20, 25, 30, 50, 75, 100]
 const TABS = [
-  { key:'overview',     label:'Overview',     icon:<User size={14}/>       },
-  { key:'subscription', label:'Subscription', icon:<CreditCard size={14}/> },
-  { key:'packages',     label:'Packages',     icon:<Gift size={14}/>       },
-  { key:'credits',      label:'Credits',      icon:<Hash size={14}/>       },
-  { key:'activity',     label:'Activity',     icon:<Activity size={14}/>   },
-  { key:'settings',     label:'Settings',     icon:<Settings size={14}/>   },
+  { key:'overview',     label:'Overview',     icon:<User size={14}/>          },
+  { key:'subscription', label:'Subscription', icon:<CreditCard size={14}/>    },
+  { key:'packages',     label:'Packages',     icon:<Gift size={14}/>          },
+  { key:'credits',      label:'Credits',      icon:<Hash size={14}/>          },
+  { key:'timeline',     label:'Timeline',     icon:<MessageSquare size={14}/> },
+  { key:'activity',     label:'Activity',     icon:<Activity size={14}/>      },
+  { key:'settings',     label:'Settings',     icon:<Settings size={14}/>      },
+]
+const NOTE_KINDS: Array<{ value: string; label: string; color: string }> = [
+  { value: 'note',          label: 'Note',          color: 'var(--t3)'    },
+  { value: 'support',       label: 'Support',       color: 'var(--blue)'  },
+  { value: 'billing_event', label: 'Billing event', color: 'var(--green)' },
+  { value: 'admin_action',  label: 'Admin action',  color: 'var(--amber)' },
+  { value: 'system',        label: 'System',        color: 'var(--t4)'    },
 ]
 
 function InfoRow({ label, value, mono }: { label: string; value: any; mono?: boolean }) {
@@ -128,6 +137,24 @@ export default function AdminUserDetailPage() {
   const [userType, setUserType] = useState('normal')
   const [accountStatus, setAccountStatus] = useState('active')
   const [settingsSaving, setSettingsSaving] = useState(false)
+
+  // Refund panel
+  const [refundInvoiceOrCharge, setRefundInvoiceOrCharge] = useState('')
+  const [refundAmount, setRefundAmount] = useState('')
+  const [refundReason, setRefundReason] = useState('requested_by_customer')
+  const [refundSaving, setRefundSaving] = useState(false)
+
+  // Timeline (customer_notes)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [timeline, setTimeline] = useState<any[]>([])
+  const [newNoteBody, setNewNoteBody] = useState('')
+  const [newNoteKind, setNewNoteKind] = useState('note')
+  const [newNotePinned, setNewNotePinned] = useState(false)
+  const [noteSaving, setNoteSaving] = useState(false)
+
+  // Permanent close
+  const [closeReason, setCloseReason] = useState('')
+  const [closeSaving, setCloseSaving] = useState(false)
 
   const showToast = (ok: boolean, msg: string) => {
     setToast({ ok, msg })
@@ -208,6 +235,100 @@ export default function AdminUserDetailPage() {
     setSettingsSaving(false)
     if (j.ok) { showToast(true, 'Settings saved'); load() }
     else showToast(false, j.error || 'Failed')
+  }
+
+  async function issueRefund() {
+    if (!refundInvoiceOrCharge.trim()) return showToast(false, 'invoice_id or charge_id required')
+    const isInvoice = refundInvoiceOrCharge.startsWith('in_')
+    const amountCents = refundAmount ? Math.round(parseFloat(refundAmount) * 100) : undefined
+    if (refundAmount && (!amountCents || amountCents <= 0)) return showToast(false, 'invalid amount')
+    setRefundSaving(true)
+    const res = await fetch(`/api/admin/users/${id}/refund`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...(isInvoice ? { invoice_id: refundInvoiceOrCharge.trim() } : { charge_id: refundInvoiceOrCharge.trim() }),
+        ...(amountCents ? { amount_cents: amountCents } : {}),
+        reason: refundReason,
+      }),
+    })
+    const j = await res.json()
+    setRefundSaving(false)
+    if (res.ok && j.refund) {
+      showToast(true, `Refund issued: ${j.refund.id}`)
+      setRefundInvoiceOrCharge(''); setRefundAmount('')
+      loadTimeline()
+    } else {
+      showToast(false, j.error || 'Refund failed')
+    }
+  }
+
+  const loadTimeline = useCallback(async () => {
+    const res = await fetch(`/api/admin/customer-notes?user_id=${id}`, { cache: 'no-store' })
+    const j = await res.json() as { notes?: unknown[] }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    setTimeline((j.notes as any[]) || [])
+  }, [id])
+
+  useEffect(() => {
+    if (activeTab === 'timeline') loadTimeline()
+  }, [activeTab, loadTimeline])
+
+  async function addNote() {
+    if (!newNoteBody.trim()) return
+    setNoteSaving(true)
+    const res = await fetch('/api/admin/customer-notes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: id, body: newNoteBody, kind: newNoteKind, pinned: newNotePinned }),
+    })
+    const j = await res.json()
+    setNoteSaving(false)
+    if (res.ok) {
+      setNewNoteBody(''); setNewNoteKind('note'); setNewNotePinned(false)
+      loadTimeline()
+      showToast(true, 'Note added')
+    } else {
+      showToast(false, j.error || 'Failed')
+    }
+  }
+
+  async function togglePinned(noteId: string, pinned: boolean) {
+    const res = await fetch('/api/admin/customer-notes', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: noteId, patch: { pinned: !pinned } }),
+    })
+    if (res.ok) loadTimeline()
+  }
+
+  async function deleteNote(noteId: string) {
+    if (!confirm('Delete this timeline entry? This cannot be undone.')) return
+    const res = await fetch(`/api/admin/customer-notes?id=${encodeURIComponent(noteId)}`, { method: 'DELETE' })
+    if (res.ok) { showToast(true, 'Deleted'); loadTimeline() }
+  }
+
+  async function permanentlyClose() {
+    const userEmail = data?.user?.email
+    const confirm1 = prompt(`Type the user's email (${userEmail || 'unknown'}) to confirm permanent account closure. This is irreversible — auth + profile + every cascading row will be deleted.`)
+    if (confirm1 !== userEmail) {
+      if (confirm1 !== null) showToast(false, 'Email did not match — closure aborted')
+      return
+    }
+    setCloseSaving(true)
+    const res = await fetch(`/api/admin/users/${id}/close`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason: closeReason || 'closed by admin' }),
+    })
+    const j = await res.json()
+    setCloseSaving(false)
+    if (res.ok) {
+      showToast(true, 'Account permanently closed')
+      setTimeout(() => { window.location.href = '/admin/users' }, 1500)
+    } else {
+      showToast(false, j.error || 'Close failed')
+    }
   }
 
   if (loading) return (
@@ -444,6 +565,34 @@ export default function AdminUserDetailPage() {
           </div>
 
           <div className="card card-p" style={{ gridColumn:'1 / -1' }}>
+            <SectionTitle icon={<Receipt size={15}/>} title="Issue refund" sub="Refunds an invoice or charge directly through Stripe — also writes a billing_event entry to the user's timeline." />
+            <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr 1fr auto', gap:10, alignItems:'flex-end' }}>
+              <div>
+                <label className="label">Invoice ID (in_…) or Charge ID (ch_…)</label>
+                <input className="input" value={refundInvoiceOrCharge} onChange={e => setRefundInvoiceOrCharge(e.target.value)} placeholder="in_1Q… or ch_3Q…" style={{ fontFamily:'monospace', fontSize:12 }} />
+              </div>
+              <div>
+                <label className="label">Amount (USD, blank = full)</label>
+                <input className="input" type="number" step="0.01" min="0" value={refundAmount} onChange={e => setRefundAmount(e.target.value)} placeholder="49.00" />
+              </div>
+              <div>
+                <label className="label">Reason</label>
+                <select className="input" value={refundReason} onChange={e => setRefundReason(e.target.value)}>
+                  <option value="requested_by_customer">Requested by customer</option>
+                  <option value="duplicate">Duplicate</option>
+                  <option value="fraudulent">Fraudulent</option>
+                </select>
+              </div>
+              <button onClick={issueRefund} disabled={refundSaving || !refundInvoiceOrCharge.trim()} className="btn btn-primary">
+                {refundSaving ? 'Refunding…' : 'Issue refund'}
+              </button>
+            </div>
+            <div style={{ fontSize:11, color:'var(--t4)', marginTop:8 }}>
+              Tip: paste the invoice id from the Payments tab — leaving amount blank refunds the full remaining amount.
+            </div>
+          </div>
+
+          <div className="card card-p" style={{ gridColumn:'1 / -1' }}>
             <SectionTitle icon={<History size={15}/>} title="Override History" />
             {overrides.length === 0 ? <EmptyState label="No overrides applied yet." /> : (
               <div className="table-wrap">
@@ -560,6 +709,78 @@ export default function AdminUserDetailPage() {
         </div>
       )}
 
+      {/* TIMELINE */}
+      {activeTab === 'timeline' && (
+        <div style={{ display:'grid', gridTemplateColumns:'1fr', gap:16 }}>
+          <div className="card card-p">
+            <SectionTitle icon={<MessageSquare size={15}/>} title="Add timeline entry" sub="Notes are internal-only. Pin to keep at the top of every admin's view." />
+            <div style={{ display:'grid', gridTemplateColumns:'1fr auto auto auto', gap:10, alignItems:'flex-end' }}>
+              <div>
+                <label className="label">Body</label>
+                <textarea
+                  rows={2}
+                  className="input"
+                  style={{ resize:'vertical', fontFamily:'inherit' }}
+                  value={newNoteBody}
+                  onChange={e => setNewNoteBody(e.target.value)}
+                  placeholder="Customer called about double-charge; refunded one invoice."
+                />
+              </div>
+              <div>
+                <label className="label">Kind</label>
+                <select className="input" value={newNoteKind} onChange={e => setNewNoteKind(e.target.value)}>
+                  {NOTE_KINDS.map(k => <option key={k.value} value={k.value}>{k.label}</option>)}
+                </select>
+              </div>
+              <label style={{ display:'flex', alignItems:'center', gap:6, fontSize:12, color:'var(--t3)', cursor:'pointer', paddingBottom:8 }}>
+                <input type="checkbox" checked={newNotePinned} onChange={e => setNewNotePinned(e.target.checked)} />
+                <Pin size={12}/> Pin
+              </label>
+              <button onClick={addNote} disabled={noteSaving || !newNoteBody.trim()} className="btn btn-primary">
+                {noteSaving ? 'Saving…' : 'Add'}
+              </button>
+            </div>
+          </div>
+
+          <div className="card card-p">
+            <SectionTitle icon={<History size={15}/>} title={`Timeline (${timeline.length})`} sub="Notes, billing events, support replies, admin actions — newest first." />
+            {timeline.length === 0 ? <EmptyState label="No timeline entries yet — add a note above or trigger a billing event." /> : (
+              <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                {timeline.map((n: any) => {
+                  const meta = NOTE_KINDS.find(k => k.value === n.kind) || NOTE_KINDS[0]
+                  return (
+                    <div key={n.id} style={{
+                      border:'1px solid var(--border)',
+                      borderLeft: `3px solid ${n.pinned ? 'var(--amber)' : meta.color}`,
+                      borderRadius: 8,
+                      padding: '10px 14px',
+                      background: n.pinned ? 'rgba(251,191,36,0.04)' : 'var(--surface)',
+                    }}>
+                      <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6, fontSize:11, color:'var(--t4)' }}>
+                        <span style={{ color: meta.color, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.04em' }}>{meta.label}</span>
+                        {n.pinned && <span style={{ color:'var(--amber)', display:'inline-flex', alignItems:'center', gap:3 }}><Pin size={10}/> pinned</span>}
+                        <span style={{ marginLeft:'auto' }}>{new Date(n.created_at).toLocaleString()}</span>
+                        {n.author && <span>· {n.author.full_name || n.author.email}</span>}
+                      </div>
+                      <div style={{ fontSize:13, color:'var(--t1)', whiteSpace:'pre-wrap', lineHeight:1.5 }}>{n.body}</div>
+                      <div style={{ display:'flex', gap:6, marginTop:8 }}>
+                        <button onClick={() => togglePinned(n.id, n.pinned)} className="btn btn-ghost btn-sm" style={{ fontSize:11 }}>
+                          <Pin size={11}/> {n.pinned ? 'Unpin' : 'Pin'}
+                        </button>
+                        <button onClick={() => deleteNote(n.id)} className="btn btn-ghost btn-sm" style={{ fontSize:11, color:'var(--red)' }}>
+                          <Trash2 size={11}/> Delete
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ACTIVITY */}
       {activeTab === 'activity' && (
         <div className="card card-p">
@@ -636,6 +857,33 @@ export default function AdminUserDetailPage() {
             <button onClick={load} className="btn btn-secondary">Cancel</button>
             <button onClick={saveSettings} disabled={settingsSaving} className="btn btn-primary">
               {settingsSaving ? 'Saving…' : 'Save Settings'}
+            </button>
+          </div>
+
+          <div className="card card-p" style={{
+            gridColumn:'1 / -1',
+            border:'1px solid rgba(248,113,113,0.35)',
+            background:'rgba(248,113,113,0.04)',
+          }}>
+            <SectionTitle
+              icon={<Skull size={15}/>}
+              title="Danger zone — permanent account closure"
+              sub="GDPR right-to-erasure. Deletes auth user, profile, watchlists, alerts, paper positions, customer notes, and every cascading row. Cancels Stripe subscription. Cannot be undone. Super-admin only."
+            />
+            <label className="label">Reason (recorded in audit log)</label>
+            <input className="input" style={{ marginBottom:14 }} value={closeReason} onChange={e => setCloseReason(e.target.value)} placeholder="e.g. user requested deletion under GDPR Art. 17" />
+            <button
+              onClick={permanentlyClose}
+              disabled={closeSaving}
+              className="btn"
+              style={{
+                background:'rgba(248,113,113,0.12)',
+                color:'var(--red)',
+                border:'1px solid rgba(248,113,113,0.4)',
+                fontWeight:700,
+              }}
+            >
+              {closeSaving ? 'Closing…' : '🗑  Permanently close & delete account'}
             </button>
           </div>
         </div>

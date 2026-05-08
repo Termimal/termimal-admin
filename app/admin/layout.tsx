@@ -33,6 +33,8 @@ import {
   UserPlus,
   Activity,
   Download,
+  DollarSign,
+  Shield,
 } from 'lucide-react'
 
 type NavItem = {
@@ -70,6 +72,7 @@ const NAV: { group: string; items: NavItem[] }[] = [
       { href: '/admin/payments',      label: 'Payments',      icon: Package },
       { href: '/admin/coupons',       label: 'Coupons',       icon: Tag },
       { href: '/admin/cohorts',       label: 'Cohorts',       icon: Users2 },
+      { href: '/admin/finance',       label: 'Finance',       icon: DollarSign },
     ],
   },
   {
@@ -92,6 +95,7 @@ const NAV: { group: string; items: NavItem[] }[] = [
     items: [
       { href: '/admin/system',      label: 'System',         icon: Settings },
       { href: '/admin/maintenance', label: 'Maintenance',    icon: Calendar },
+      { href: '/admin/roles',       label: 'Roles & Perms',  icon: Shield },
       { href: '/admin/invites',     label: 'Admin Invites',  icon: UserPlus },
       { href: '/admin/export',      label: 'Data Export',    icon: Download },
       { href: '/admin/settings',    label: 'Settings',       icon: Settings },

@@ -1,32 +1,36 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { requiredPermission, roleGrants } from '@/lib/admin/permissions'
 
 /**
- * Top-level admin auth gate.
+ * Admin auth gate with RBAC permission check.
  *
- * Critical safety property: every /api/admin/* route uses the
- * SUPABASE_SERVICE_ROLE_KEY internally (it has to — listing all users,
- * setting plans, granting credits, all need RLS-bypassing auth).
- * Therefore the routes MUST NEVER be reachable without an authenticated
- * admin session. The previous middleware only gated /admin (the page
- * routes) and left /api/admin/* exposed — anyone with the URL could
- * `curl /api/admin/users` and download the full user list (emails,
- * subscription state, Stripe IDs, etc.).
+ * Every /admin/* and /api/admin/* request:
+ *   1. Must have a Supabase session (else 401 / redirect to /login).
+ *   2. Caller's role (from public.user_roles) must grant the
+ *      permission required for the path (looked up in
+ *      lib/admin/permissions.PATH_PERMISSIONS).
+ *   3. The role's permission list comes from rbac_roles. Wildcards
+ *      ('*') grant everything (super_admin only).
+ *   4. If no permission required (e.g. /admin/accept-invite), pass.
  *
- * Now we also gate /api/admin/* and require role in {admin,super_admin}.
- * Defence-in-depth: each API route should ALSO re-check the role
- * (cookie-bound supabase client + RLS), but this middleware is the
- * first line.
- * admin session. A previous version of this middleware only gated
- * /admin (the page routes) and left /api/admin/* exposed — anyone with
- * the URL could `curl /api/admin/users` and download the full user
- * list (emails, subscription state, Stripe IDs, …).
- *
- * Now we gate both /admin/* AND /api/admin/* and require role in
- * {admin,super_admin}. Defence-in-depth: API routes should also
- * re-check the role inside the handler, but middleware is the first
- * line.
+ * Backwards-compat: if rbac_roles doesn't have a row for the user's
+ * role name, we fall back to the seeded defaults inside this file
+ * (so accidental data loss in rbac_roles doesn't lock everyone out).
  */
+
+// Fallback role permissions baked in. Mirrors the seed in the
+// 20260508_finance_and_rbac migration.
+const FALLBACK_PERMS: Record<string, string[]> = {
+  super_admin: ['*'],
+  admin:       ['users.read','users.write','billing.read','billing.write','content.read','content.write','seo.read','seo.write','flags.read','flags.write','support.read','support.write','experiments.read','experiments.write','cohorts.read','cohorts.write','translations.read','translations.write','email_templates.read','email_templates.write','audit.read','analytics.read','webhooks.read','items.read','items.write','anomalies.read','system.read','system.write','maintenance.read','maintenance.write','invites.read','invites.write','export.read','banners.read','banners.write','announcements.read','announcements.write','faqs.read','faqs.write','notes.read','notes.write','coupons.read','coupons.write','finance.read'],
+  finance:     ['billing.read','billing.write','billing.refund','finance.read','finance.write','coupons.read','coupons.write','analytics.read','audit.read','export.read','users.read'],
+  support:     ['users.read','support.read','support.write','notes.read','notes.write','billing.read','billing.refund','audit.read'],
+  content_editor: ['content.read','content.write','seo.read','seo.write','translations.read','translations.write','email_templates.read','email_templates.write','banners.read','banners.write','announcements.read','announcements.write','faqs.read','faqs.write'],
+  developer:   ['users.read','billing.read','flags.read','flags.write','experiments.read','experiments.write','system.read','system.write','maintenance.read','maintenance.write','audit.read','webhooks.read','anomalies.read','analytics.read','items.read','items.write'],
+  readonly:    ['users.read','billing.read','content.read','seo.read','flags.read','support.read','experiments.read','cohorts.read','translations.read','email_templates.read','audit.read','analytics.read','webhooks.read','items.read','anomalies.read','system.read','maintenance.read','invites.read','export.read','banners.read','announcements.read','faqs.read','notes.read','finance.read','coupons.read'],
+}
+
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
 
@@ -47,43 +51,69 @@ export async function middleware(request: NextRequest) {
   )
 
   const { data: { user } } = await supabase.auth.getUser()
-
-  const path   = request.nextUrl.pathname
+  const path  = request.nextUrl.pathname
+  const isApi = path.startsWith('/api/admin')
   const isPage = path.startsWith('/admin')
-  const isApi  = path.startsWith('/api/admin')
+
+  // /admin/accept-invite + /api/admin/invites/accept are the admin paths
+  // that DON'T require an existing admin role — that's how new admins
+  // claim their role. They still require an authenticated Supabase
+  // session (the invitee must sign up / log in first).
+  if (path === '/admin/accept-invite' || path === '/api/admin/invites/accept') {
+    if (!user) {
+      if (path.startsWith('/api/')) {
+        return NextResponse.json({ error: 'unauthenticated' }, { status: 401 })
+      }
+      const url = request.nextUrl.clone()
+      url.pathname = '/login'
+      url.searchParams.set('next', path + request.nextUrl.search)
+      return NextResponse.redirect(url)
+    }
+    return supabaseResponse
+  }
 
   if (isPage || isApi) {
     if (!user) {
-      if (isApi) {
-        return NextResponse.json({ error: 'unauthenticated' }, { status: 401 })
-      }
+      if (isApi) return NextResponse.json({ error: 'unauthenticated' }, { status: 401 })
       const url = request.nextUrl.clone()
       url.pathname = '/login'
       url.searchParams.set('next', path)
       return NextResponse.redirect(url)
     }
 
-    // Verify the caller has an admin role. user_roles uses (id, role).
-    // Verify the caller has an admin role. user_roles uses (id, role)
-    // — the id IS the user_id, not a separate column.
-    const { data: role } = await supabase
+    const { data: roleRow } = await supabase
       .from('user_roles')
       .select('role')
       .eq('id', user.id)
       .maybeSingle()
 
-    const isAdmin = role?.role === 'admin' || role?.role === 'super_admin'
-    if (!isAdmin) {
-      if (isApi) {
-        return NextResponse.json({ error: 'forbidden' }, { status: 403 })
-      }
+    if (!roleRow?.role) {
+      if (isApi) return NextResponse.json({ error: 'forbidden — no role' }, { status: 403 })
       const url = request.nextUrl.clone()
       url.pathname = '/unauthorized'
       return NextResponse.redirect(url)
     }
+
+    // Permission check.
+    const perm = requiredPermission(path)
+    if (perm) {
+      // Try rbac_roles first; fall back to baked-in defaults.
+      const { data: rbacRow } = await supabase
+        .from('rbac_roles')
+        .select('permissions')
+        .eq('name', roleRow.role)
+        .maybeSingle()
+      const permsList = (rbacRow?.permissions as string[] | undefined) ?? FALLBACK_PERMS[roleRow.role] ?? []
+      if (!roleGrants(permsList, perm)) {
+        if (isApi) return NextResponse.json({ error: `forbidden — requires ${perm}` }, { status: 403 })
+        const url = request.nextUrl.clone()
+        url.pathname = '/unauthorized'
+        url.searchParams.set('missing', perm)
+        return NextResponse.redirect(url)
+      }
+    }
   }
 
-  // Redirect logged-in admins away from /login → /admin.
   // Redirect signed-in admins away from /login → /admin.
   if (path === '/login' && user) {
     const url = request.nextUrl.clone()
