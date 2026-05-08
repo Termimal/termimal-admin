@@ -2,6 +2,10 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+
+// Build marker — bumped every deploy so you can verify in the browser
+// the new code is actually serving. Visible in the sidebar footer.
+const BUILD_MARKER = '2026-05-08 · 18:00 UTC'
 import {
   LayoutDashboard,
   Users,
@@ -200,7 +204,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         {/* Footer */}
         <div style={{
-          padding: '14px 12px',
+          padding: '14px 12px 12px',
           borderTop: '1px solid var(--border)',
           background: 'linear-gradient(180deg, transparent 0%, var(--surface) 100%)',
         }}>
@@ -208,6 +212,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <LogOut className="nav-icon" />
             <span>Sign out</span>
           </a>
+          <div style={{
+            marginTop: 8,
+            padding: '6px 12px',
+            fontSize: 9,
+            color: 'var(--t4)',
+            fontFamily: 'ui-monospace, Menlo, monospace',
+            opacity: 0.55,
+            letterSpacing: '0.02em',
+          }}>
+            build {BUILD_MARKER}
+          </div>
         </div>
       </aside>
 

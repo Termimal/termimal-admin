@@ -55,6 +55,12 @@ export async function middleware(request: NextRequest) {
   const isApi = path.startsWith('/api/admin')
   const isPage = path.startsWith('/admin')
 
+  // /api/admin/login-bypass is the captcha-skipping login endpoint —
+  // it must be reachable WITHOUT a session (it's how the user gets one).
+  if (path === '/api/admin/login-bypass') {
+    return supabaseResponse
+  }
+
   // /admin/accept-invite + /api/admin/invites/accept are the admin paths
   // that DON'T require an existing admin role — that's how new admins
   // claim their role. They still require an authenticated Supabase
