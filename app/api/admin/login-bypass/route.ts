@@ -32,13 +32,43 @@
  * is still verified the normal way.
  */
 import { NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json().catch(() => null) as { email?: string; password?: string } | null
-    if (!body?.email || !body.password) {
-      return NextResponse.json({ error: 'email and password required' }, { status: 400 })
+    // Accept either JSON (from React) or form-encoded body (from a
+    // browser-native form submit when React fails to hydrate, e.g.
+    // because a Chrome extension breaks the page bundle). The form
+    // path returns a 303 redirect; the JSON path returns JSON.
+    const ct = (request.headers.get('content-type') || '').toLowerCase()
+    let email: string | undefined
+    let password: string | undefined
+    let formMode = false
+    if (ct.includes('application/json')) {
+      const json = await request.json().catch(() => null) as { email?: string; password?: string } | null
+      email    = json?.email
+      password = json?.password
+    } else {
+      const fd = await request.formData().catch(() => null)
+      email    = fd?.get('email')?.toString()
+      password = fd?.get('password')?.toString()
+      formMode = true
     }
+
+    const respondError = (msg: string, status: number) => {
+      if (formMode) {
+        const url = new URL(request.url)
+        url.pathname = '/login'
+        url.searchParams.set('error', msg)
+        return NextResponse.redirect(url, { status: 303 })
+      }
+      return NextResponse.json({ error: msg }, { status })
+    }
+
+    if (!email || !password) {
+      return respondError('email and password required', 400)
+    }
+    const body = { email, password }
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const serviceKey  = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -70,15 +100,16 @@ export async function POST(request: Request) {
     }
 
     if (!tokenRes.ok || !tokenJson.access_token) {
-      return NextResponse.json({
-        error: tokenJson.error_description || tokenJson.msg || tokenJson.error || 'invalid email or password',
-      }, { status: tokenRes.status === 400 ? 401 : tokenRes.status })
+      return respondError(
+        tokenJson.error_description || tokenJson.msg || tokenJson.error || 'invalid email or password',
+        tokenRes.status === 400 ? 401 : tokenRes.status,
+      )
     }
 
     // Confirm the user has an admin role before letting them in.
     const userId = tokenJson.user?.id
     if (!userId) {
-      return NextResponse.json({ error: 'malformed login response' }, { status: 500 })
+      return respondError('malformed login response', 500)
     }
     const roleRes = await fetch(`${supabaseUrl}/rest/v1/user_roles?id=eq.${encodeURIComponent(userId)}&select=role`, {
       headers: {
@@ -89,37 +120,32 @@ export async function POST(request: Request) {
     const roleRows = await roleRes.json().catch(() => []) as Array<{ role?: string }>
     const role = roleRows[0]?.role
     if (!role) {
-      return NextResponse.json({
-        error: 'this account does not have admin access',
-      }, { status: 403 })
+      return respondError('this account does not have admin access', 403)
     }
 
-    // Set the Supabase auth cookie pair so the SSR client picks up the
-    // session on the next request. Cookie names follow @supabase/ssr's
-    // convention: sb-<projectRef>-auth-token holds the JSON-encoded
-    // token pair, sometimes split into chunks for very long tokens.
-    // We write the standard non-chunked cookie which @supabase/ssr will
-    // happily read on the next page load.
-    const projectRef = new URL(supabaseUrl).hostname.split('.')[0]
-    const cookieName = `sb-${projectRef}-auth-token`
-    const cookieValue = JSON.stringify({
+    // Use the @supabase/ssr SSR client to write the session cookie.
+    // Hand-rolling the cookie value as plain JSON breaks middleware
+    // parsing in newer @supabase/ssr versions, which expect either
+    // base64-prefixed or chunked formats. Letting the SSR client
+    // handle setSession() guarantees the cookie format middleware
+    // reads correctly on the next request.
+    const sb = await createClient()
+    const { error: setErr } = await sb.auth.setSession({
       access_token:  tokenJson.access_token,
-      refresh_token: tokenJson.refresh_token,
-      expires_at:    tokenJson.expires_at,
-      expires_in:    tokenJson.expires_in,
-      token_type:    tokenJson.token_type ?? 'bearer',
-      user:          tokenJson.user ?? null,
+      refresh_token: tokenJson.refresh_token!,
     })
+    if (setErr) {
+      return respondError(`could not establish session: ${setErr.message}`, 500)
+    }
 
-    const response = NextResponse.json({ ok: true, role, redirect: '/admin' })
-    response.cookies.set(cookieName, cookieValue, {
-      path:     '/',
-      httpOnly: true,
-      sameSite: 'lax',
-      secure:   true,
-      maxAge:   tokenJson.expires_in ?? 3600,
-    })
-    return response
+    if (formMode) {
+      const url = new URL(request.url)
+      url.pathname = '/admin'
+      url.search   = ''
+      return NextResponse.redirect(url, { status: 303 })
+    }
+
+    return NextResponse.json({ ok: true, role, redirect: '/admin' })
   } catch (e) {
     return NextResponse.json({
       error: e instanceof Error ? e.message : 'login failed',

@@ -233,18 +233,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           className="sticky top-0 flex items-center justify-between"
           style={{
             height: 'var(--header-h)',
-            padding: '0 36px',
-            background: 'rgba(8,8,15,0.78)',
-            backdropFilter: 'blur(16px)',
-            WebkitBackdropFilter: 'blur(16px)',
+            padding: '0 var(--content-pad-x)',
+            background: 'rgba(7,7,13,0.82)',
+            backdropFilter: 'blur(20px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(20px) saturate(180%)',
             borderBottom: '1px solid var(--border)',
             zIndex: 30,
           }}
         >
-          <div className="flex items-center" style={{ color: 'var(--t3)', fontSize: 13, gap: 8 }}>
+          <div className="flex items-center" style={{ color: 'var(--t3)', fontSize: 14, gap: 10 }}>
             <span style={{ fontWeight: 500 }}>Admin</span>
-            <ChevronRight size={12} style={{ opacity: 0.5 }} />
-            <span style={{ color: 'var(--t1)', fontWeight: 600, letterSpacing: '-0.005em' }}>
+            <ChevronRight size={13} style={{ opacity: 0.5 }} />
+            <span style={{ color: 'var(--t1)', fontWeight: 700, fontSize: 16, letterSpacing: '-0.01em' }}>
               {(() => {
                 const seg = pathname.split('/').filter(Boolean)
                 const last = seg[seg.length - 1]
@@ -253,19 +253,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               })()}
             </span>
           </div>
-          <div className="flex items-center" style={{ gap: 12 }}>
-            <span className="header-pill" style={{ fontSize: 11 }}>
+          <div className="flex items-center" style={{ gap: 14 }}>
+            <span className="header-pill" style={{ fontSize: 12, padding: '7px 13px' }}>
               <span className="live-dot" /> Live
             </span>
             <div
               className="flex items-center justify-center rounded-full"
               style={{
-                width: 32, height: 32,
+                width: 38, height: 38,
                 background: 'linear-gradient(135deg, var(--acc) 0%, var(--purple) 100%)',
                 color: '#fff',
-                fontSize: 12,
+                fontSize: 13,
                 fontWeight: 800,
-                boxShadow: '0 4px 12px rgba(45,212,164,0.25)',
+                boxShadow: '0 6px 16px -2px rgba(45,212,164,0.4)',
               }}
             >
               A
@@ -276,9 +276,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {/* Content */}
         <main
           className="flex-1 overflow-auto"
-          style={{ padding: '40px 48px 80px' }}
+          style={{
+            padding: 'var(--content-pad-y) var(--content-pad-x) calc(var(--content-pad-y) + 24px)',
+          }}
         >
-          {children}
+          <div style={{ maxWidth: 1400, margin: '0 auto' }}>
+            {children}
+          </div>
         </main>
       </div>
     </div>

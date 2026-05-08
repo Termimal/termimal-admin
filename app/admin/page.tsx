@@ -50,7 +50,23 @@ async function fetchDashboard() {
     if (p.plan && p.plan in counts) counts[p.plan as keyof PlanCounts]++
   })
   const paying = counts.starter + counts.pro + counts.premium
-  const mrrEstimate = counts.starter * 9 + counts.pro * 29 + counts.premium * 99
+
+  // MRR estimate — REAL paid Stripe subscriptions only. Excludes:
+  //   - admin-granted plan overrides (no stripe_subscription_id)
+  //   - cancelled / unpaid / inactive subscriptions
+  //   - trialing users (not yet paying)
+  // Counts only profiles with a stripe_subscription_id AND a status
+  // that means money is actually moving (active or past_due).
+  const { data: paidRows } = await sb
+    .from('profiles')
+    .select('plan')
+    .in('subscription_status', ['active', 'past_due'])
+    .not('stripe_subscription_id', 'is', null)
+  const paidCounts: PlanCounts = { free: 0, starter: 0, pro: 0, premium: 0 }
+  ;(paidRows ?? []).forEach((p: { plan?: string }) => {
+    if (p.plan && p.plan in paidCounts) paidCounts[p.plan as keyof PlanCounts]++
+  })
+  const mrrEstimate = paidCounts.starter * 9 + paidCounts.pro * 9.99 + paidCounts.premium * 19.99
 
   let refunds30d = 0
   try {
