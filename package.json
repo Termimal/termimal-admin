@@ -7,7 +7,7 @@
         "build": "next build",
         "start": "next start",
         "lint": "eslint",
-        "pages:build": "opennextjs-cloudflare build && node scripts/copy-opennext-assets.js",
+        "pages:build": "node scripts/pages-shim.js",
         "cf:build": "opennextjs-cloudflare build",
         "cf:deploy": "opennextjs-cloudflare build && wrangler deploy --keep-vars",
         "deploy": "opennextjs-cloudflare build && wrangler deploy",
