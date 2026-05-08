@@ -51,7 +51,31 @@ if (!isCloudflareBuildhome) {
   process.exit(0);
 }
 
-console.log('[pages-shim] running inside Cloudflare Pages CI (cwd=' + cwd + ')');
+console.log('[pages-shim] running inside Cloudflare Pages CI (cwd=' + cwd + ')')
+console.log('')
+console.log('═'.repeat(72))
+console.log('  ⚠️  THIS PAGES PROJECT IS DEAD WEIGHT.')
+console.log('  The real admin runs on a Cloudflare WORKER, not Pages.')
+console.log('  → Live at https://bo.termimal.com (Worker termimal-admin)')
+console.log('  → Latest deploys visible at:')
+console.log('    https://dash.cloudflare.com/' +
+            'f47a7cb3d0e8ed5030b7c73afa93d3cc/' +
+            'workers/services/view/termimal-admin/production/deployments')
+console.log('')
+console.log('  The deploy step that follows this build WILL FAIL with a')
+console.log('  10000 auth-error because this Pages project has a stale')
+console.log('  CLOUDFLARE_API_TOKEN that lacks Pages.write scope.')
+console.log('')
+console.log('  TO STOP THESE FAILED-BUILD EMAILS, DO ONE OF:')
+console.log('   A) Disable auto-deploys for this Pages project:')
+console.log('      Settings → Builds & deployments → Branch deployments')
+console.log('      → toggle Production OFF')
+console.log('   B) Delete this Pages project entirely (recommended):')
+console.log('      Settings → bottom of page → Delete project')
+console.log('   C) Remove CLOUDFLARE_API_TOKEN from project env vars:')
+console.log('      Settings → Variables and Secrets → trash icon → Save')
+console.log('═'.repeat(72))
+console.log('');
 
 // 1. Back up the canonical Workers config + replace with Pages-compat config.
 const cfg = JSON.parse(fs.readFileSync('wrangler.json', 'utf8'));
