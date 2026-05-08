@@ -1,0 +1,19 @@
+# Cloudflare Pages compatibility shim.
+#
+# wrangler.json is the canonical Workers config, but the Cloudflare
+# Pages dashboard's "Deploy command" runs `wrangler pages deploy
+# .vercel/output/static` — and wrangler IGNORES wrangler.json for that
+# subcommand because it lacks `pages_build_output_dir` (which would
+# conflict with Workers deploys).
+#
+# This .toml is the fallback wrangler reads when wrangler.json is
+# unusable for the current subcommand. It only ships the static asset
+# subset. The actual SSR worker is deployed separately via
+# `wrangler deploy --keep-vars` (Workers, see wrangler.json) and serves
+# the production traffic at bo.termimal.com.
+#
+# Do not add bindings, secrets, or env vars here — those belong to the
+# Workers deploy. This file's sole purpose is preventing the Pages CI
+# job from erroring with "Must specify a project name."
+name = "termimal-admin"
+pages_build_output_dir = ".vercel/output/static"
