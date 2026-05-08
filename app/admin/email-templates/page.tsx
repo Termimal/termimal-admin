@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Mail, Save, Code } from 'lucide-react'
+import { Mail, Code, Eye, Send } from 'lucide-react'
 import { PageHeader, Section, Tabs, EmptyState, Field, SaveBar } from '@/components/admin/PageChrome'
 
 interface Template {
@@ -22,6 +22,13 @@ export default function EmailTemplatesPage() {
   const [saving, setSaving]   = useState(false)
   const [message, setMessage] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
 
+  // Render preview + test-send pane state.
+  const [previewVars, setPreviewVars] = useState('{}')
+  const [preview, setPreview]         = useState<{ subject: string; html: string; text: string; missing: string[]; unused: string[] } | null>(null)
+  const [previewing, setPreviewing]   = useState(false)
+  const [testTo, setTestTo]           = useState('')
+  const [sending, setSending]         = useState(false)
+
   const load = useCallback(async () => {
     const r = await fetch('/api/admin/email-templates', { cache: 'no-store' })
     const j = await r.json() as { rows?: Template[] }
@@ -40,7 +47,47 @@ export default function EmailTemplatesPage() {
   function selectTemplate(key: string) {
     const r = rows.find(x => x.key === key)
     if (!r) return
-    setActive(key); setDraft(r); setMessage(null)
+    setActive(key); setDraft(r); setMessage(null); setPreview(null)
+    // Pre-fill the preview-variables JSON with the declared variable
+    // names mapped to placeholder strings — admins can edit before
+    // running the render.
+    const seed = Object.fromEntries(Object.keys(r.variables || {}).map(k => [k, `<${k}>`]))
+    setPreviewVars(JSON.stringify(seed, null, 2))
+  }
+
+  async function runPreview() {
+    if (!draft) return
+    let vars: Record<string, unknown> = {}
+    try { vars = JSON.parse(previewVars || '{}') }
+    catch { setMessage({ type: 'err', text: 'Variables must be valid JSON' }); return }
+    setPreviewing(true)
+    const r = await fetch('/api/admin/email-templates/render', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: draft.key, variables: vars }),
+    })
+    const j = await r.json()
+    setPreviewing(false)
+    if (!r.ok) { setMessage({ type: 'err', text: j.error || 'Render failed' }); return }
+    setPreview({ subject: j.subject, html: j.html, text: j.text, missing: j.missing || [], unused: j.unused || [] })
+    setMessage(null)
+  }
+
+  async function sendTest() {
+    if (!draft || !testTo.trim()) return
+    let vars: Record<string, unknown> = {}
+    try { vars = JSON.parse(previewVars || '{}') }
+    catch { setMessage({ type: 'err', text: 'Variables must be valid JSON' }); return }
+    setSending(true)
+    const r = await fetch('/api/admin/email-templates/send-test', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: draft.key, to: testTo.trim(), variables: vars }),
+    })
+    const j = await r.json()
+    setSending(false)
+    if (r.ok) setMessage({ type: 'ok', text: `Test email queued (${j.provider}, id ${j.id})` })
+    else setMessage({ type: 'err', text: j.error || 'Send failed' })
   }
 
   async function save() {
@@ -117,6 +164,74 @@ export default function EmailTemplatesPage() {
                       </span>
                     ))}
                   </div>
+                </div>
+              )}
+            </div>
+          </Section>
+
+          <Section
+            title="Preview & test send"
+            description="Render the template with sample variables, then optionally send a test email. Sender comes from the RESEND_API_KEY worker env var when set."
+            accent="blue"
+          >
+            <div className="form-grid">
+              <Field label="Variables (JSON)" hint="Edit values before rendering — keys not present in the template show as 'unused'.">
+                <textarea
+                  className="input"
+                  rows={4}
+                  value={previewVars}
+                  onChange={e => setPreviewVars(e.target.value)}
+                  style={{ fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 12 }}
+                />
+              </Field>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <button type="button" onClick={runPreview} disabled={previewing} className="btn btn-secondary btn-sm">
+                  <Eye size={11} /> {previewing ? 'Rendering…' : 'Render preview'}
+                </button>
+                <input
+                  className="input"
+                  type="email"
+                  placeholder="test-recipient@yourcompany.com"
+                  value={testTo}
+                  onChange={e => setTestTo(e.target.value)}
+                  style={{ flex: 1, minWidth: 240 }}
+                />
+                <button type="button" onClick={sendTest} disabled={sending || !testTo.trim()} className="btn btn-primary btn-sm">
+                  <Send size={11} /> {sending ? 'Sending…' : 'Send test'}
+                </button>
+              </div>
+
+              {preview && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 8 }}>
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <div style={{ fontSize: 11, color: 'var(--t4)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Rendered subject</div>
+                    <div style={{ padding: '10px 14px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, fontWeight: 600 }}>{preview.subject}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 11, color: 'var(--t4)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>HTML preview</div>
+                    <div
+                      dangerouslySetInnerHTML={{ __html: preview.html }}
+                      style={{ padding: 14, background: '#fff', color: '#111', border: '1px solid var(--border)', borderRadius: 8, minHeight: 120, fontSize: 13, lineHeight: 1.5, overflow: 'auto' }}
+                    />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 11, color: 'var(--t4)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Text fallback</div>
+                    <pre style={{ padding: 14, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, minHeight: 120, fontSize: 12, lineHeight: 1.5, whiteSpace: 'pre-wrap', margin: 0, fontFamily: 'ui-monospace, Menlo, monospace' }}>{preview.text}</pre>
+                  </div>
+                  {(preview.missing.length > 0 || preview.unused.length > 0) && (
+                    <div style={{ gridColumn: '1 / -1', display: 'flex', gap: 16, fontSize: 11 }}>
+                      {preview.missing.length > 0 && (
+                        <div style={{ color: 'var(--amber)' }}>
+                          <strong>Missing:</strong> {preview.missing.map(v => <code key={v} style={{ marginLeft: 4, padding: '0 4px', background: 'var(--amber-bg)', borderRadius: 4 }}>{`{{${v}}}`}</code>)}
+                        </div>
+                      )}
+                      {preview.unused.length > 0 && (
+                        <div style={{ color: 'var(--t4)' }}>
+                          <strong>Unused vars:</strong> {preview.unused.map(v => <code key={v} style={{ marginLeft: 4 }}>{v}</code>)}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

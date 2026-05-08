@@ -73,6 +73,7 @@ const NAV: { group: string; items: NavItem[] }[] = [
       { href: '/admin/coupons',       label: 'Coupons',       icon: Tag },
       { href: '/admin/cohorts',       label: 'Cohorts',       icon: Users2 },
       { href: '/admin/finance',       label: 'Finance',       icon: DollarSign },
+      { href: '/admin/referrals',     label: 'Referrals',     icon: Users2 },
     ],
   },
   {

@@ -44,6 +44,8 @@ export const PERMISSIONS = [
   // RBAC + invites
   'invites.read', 'invites.write',
   'roles.write',
+  // Referrals
+  'referrals.read', 'referrals.write',
 ] as const
 
 export type Permission = typeof PERMISSIONS[number] | '*'
@@ -72,6 +74,7 @@ export const PATH_PERMISSIONS: Array<{ prefix: string; perm: Permission }> = [
   { prefix: '/api/admin/export',                  perm: 'export.read' },
   { prefix: '/api/admin/system',                  perm: 'system.write' },
   { prefix: '/api/admin/roles',                   perm: 'roles.write' },
+  { prefix: '/api/admin/referrals',               perm: 'referrals.write' }, // PATCH — covers reads too
   { prefix: '/api/admin',                         perm: 'users.read' },      // catch-all minimal
 
   // Page routes.
@@ -104,6 +107,7 @@ export const PATH_PERMISSIONS: Array<{ prefix: string; perm: Permission }> = [
   { prefix: '/admin/invites',    perm: 'invites.write' },
   { prefix: '/admin/system',     perm: 'system.read' },
   { prefix: '/admin/roles',      perm: 'roles.write' },
+  { prefix: '/admin/referrals',  perm: 'referrals.read' },
   // Dashboard + settings — minimum admin perm covers it.
   { prefix: '/admin/settings',   perm: 'system.read' },
   { prefix: '/admin',            perm: 'users.read' },
