@@ -1,7 +1,7 @@
 'use client'
 export const dynamic = 'force-dynamic'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -9,7 +9,8 @@ import {
   CreditCard, Gift, History, Activity, Settings, Shield, Zap,
   Star, LogIn, Monitor, Smartphone, Tablet, Crown, Ban, Unlock,
   Edit3, Hash, AlertTriangle, TestTube2, UserCheck, Building2,
-  Receipt, Pin, MessageSquare, Trash2, Skull,
+  Receipt, Pin, MessageSquare, Trash2, Skull, Highlighter, Bold, Italic,
+  Eraser, BadgeCheck, Globe, Clock, Calendar, KeyRound, AtSign, IdCard,
 } from 'lucide-react'
 
 const PLANS = ['free', 'starter', 'pro', 'premium'] as const
@@ -110,6 +111,325 @@ function SectionTitle({ icon, title, sub }: { icon: React.ReactNode; title: stri
 }
 function EmptyState({ label }: { label: string }) {
   return <div style={{ padding:'32px 0', textAlign:'center', color:'var(--t4)', fontSize:13 }}>{label}</div>
+}
+
+/**
+ * Boxed key/value cell — replaces the cramped <InfoRow> rows. Used in
+ * a CSS grid so identity / subscription data lays out as a tile-set
+ * instead of a stack of thin rows.
+ */
+function DataCell({
+  label, value, icon, mono, copyable, accent, span,
+}: {
+  label: string
+  value: React.ReactNode
+  icon?: React.ReactNode
+  mono?: boolean
+  copyable?: string
+  accent?: string
+  /** Set to 2 to take both columns of the parent 2-col grid. */
+  span?: 1 | 2
+}) {
+  return (
+    <div style={{
+      gridColumn: span === 2 ? '1 / -1' : 'auto',
+      padding: '14px 18px',
+      borderRadius: 14,
+      background: 'var(--surface)',
+      border: '1px solid var(--border)',
+      display: 'flex', flexDirection: 'column', gap: 8,
+      minWidth: 0,
+      transition: 'border-color 160ms, background 160ms',
+    }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 6,
+        fontSize: 10.5, fontWeight: 700, letterSpacing: '0.13em',
+        textTransform: 'uppercase', color: 'var(--t4)',
+      }}>
+        {icon && <span style={{ display: 'inline-flex', color: 'var(--t4)' }}>{icon}</span>}
+        {label}
+      </div>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 8,
+        fontSize: 14.5, fontWeight: 600,
+        color: accent || 'var(--t1)',
+        fontFamily: mono ? 'ui-monospace, Menlo, Consolas, monospace' : 'inherit',
+        wordBreak: 'break-all',
+        lineHeight: 1.35,
+        minHeight: 22,
+      }}>
+        {value ?? <span style={{ color: 'var(--t4)' }}>—</span>}
+        {copyable && <CopyBtn text={copyable} />}
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Allow-list of HTML tags + attrs accepted from the notes editor.
+ * The contentEditable area is sanitised on every change — anything else
+ * is stripped before we send the value upstream. We don't trust admin
+ * input either, since notes can be displayed back to other admins.
+ */
+const ALLOWED_TAGS = new Set(['MARK', 'B', 'STRONG', 'I', 'EM', 'U', 'BR', 'DIV', 'P', 'SPAN'])
+function sanitizeHtml(html: string): string {
+  if (typeof document === 'undefined') return html
+  const tpl = document.createElement('template')
+  tpl.innerHTML = html
+  const walk = (node: Node) => {
+    const children = Array.from(node.childNodes)
+    for (const child of children) {
+      if (child.nodeType === Node.ELEMENT_NODE) {
+        const el = child as HTMLElement
+        if (!ALLOWED_TAGS.has(el.tagName)) {
+          // Replace disallowed element with its text contents.
+          while (el.firstChild) node.insertBefore(el.firstChild, el)
+          node.removeChild(el)
+          continue
+        }
+        // Strip every attribute except a single 'style' attr on <mark>
+        // that we control ourselves.
+        for (const attr of Array.from(el.attributes)) {
+          if (el.tagName === 'MARK' && attr.name === 'style') continue
+          el.removeAttribute(attr.name)
+        }
+        if (el.tagName === 'MARK') {
+          el.setAttribute('style',
+            'background:var(--amber-bg);color:var(--amber);padding:0 3px;border-radius:3px;')
+        }
+        walk(el)
+      } else if (child.nodeType !== Node.TEXT_NODE) {
+        node.removeChild(child)
+      }
+    }
+  }
+  walk(tpl.content)
+  return tpl.innerHTML
+}
+
+/**
+ * contentEditable notes panel with a small toolbar (highlight, bold,
+ * italic, clear). Internally we use document.execCommand which is
+ * "deprecated" but still ships in every browser and is by far the
+ * simplest way to do per-selection styling without pulling in a
+ * 60-kB rich-text editor.
+ *
+ * The value we save to the API is `sanitizeHtml(div.innerHTML)`.
+ */
+function HighlightableNotes({
+  value, onChange, onSave, saving,
+}: {
+  value: string
+  onChange: (next: string) => void
+  onSave: () => void
+  saving: boolean
+}) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [dirty, setDirty] = useState(false)
+
+  // Push value INTO the editor only when it changes from the outside
+  // (initial load, after-save reload). Avoids cursor-jumping on every
+  // keystroke.
+  //
+  // The legacy column stored notes as plain text — convert newlines to
+  // <br> so the line breaks survive into contentEditable. If we already
+  // see HTML tags we trust them through the sanitiser instead.
+  useEffect(() => {
+    if (!ref.current) return
+    const looksLikeHtml = /<\w+[^>]*>/.test(value)
+    const next = looksLikeHtml
+      ? sanitizeHtml(value)
+      : value.replace(/[<>&]/g, c => ({ '<':'&lt;','>':'&gt;','&':'&amp;' }[c]!))
+             .replace(/\n/g, '<br>')
+    if (ref.current.innerHTML !== next) ref.current.innerHTML = next
+  }, [value])
+
+  const exec = (cmd: string, arg?: string) => {
+    ref.current?.focus()
+    try { document.execCommand(cmd, false, arg) } catch { /* ignore */ }
+    if (ref.current) {
+      const cleaned = sanitizeHtml(ref.current.innerHTML)
+      if (cleaned !== ref.current.innerHTML) ref.current.innerHTML = cleaned
+      onChange(ref.current.innerHTML)
+      setDirty(true)
+    }
+  }
+
+  const highlight = () => {
+    // Wrap selection in <mark>. execCommand('hiliteColor') would also
+    // work but stamps inline styles on every browser-specific tag —
+    // explicit <mark> insertion is cleaner to sanitise on save.
+    const sel = window.getSelection()
+    if (!sel || sel.isCollapsed) return
+    const range = sel.getRangeAt(0)
+    // If the selection is already inside a <mark>, unwrap it.
+    const ancestor = range.commonAncestorContainer
+    const mark = (ancestor.nodeType === Node.ELEMENT_NODE
+      ? (ancestor as HTMLElement)
+      : ancestor.parentElement)?.closest('mark')
+    if (mark && ref.current?.contains(mark)) {
+      const parent = mark.parentNode
+      while (mark.firstChild) parent?.insertBefore(mark.firstChild, mark)
+      mark.remove()
+      sel.removeAllRanges()
+    } else {
+      const m = document.createElement('mark')
+      m.setAttribute('style',
+        'background:var(--amber-bg);color:var(--amber);padding:0 3px;border-radius:3px;')
+      try { range.surroundContents(m) } catch {
+        // surroundContents fails on partial-selection across nodes —
+        // fall back to extracting + wrapping.
+        const frag = range.extractContents()
+        m.appendChild(frag)
+        range.insertNode(m)
+      }
+      sel.removeAllRanges()
+    }
+    if (ref.current) {
+      const cleaned = sanitizeHtml(ref.current.innerHTML)
+      if (cleaned !== ref.current.innerHTML) ref.current.innerHTML = cleaned
+      onChange(ref.current.innerHTML)
+      setDirty(true)
+    }
+  }
+
+  const clear = () => {
+    if (!ref.current) return
+    // Strip ALL formatting in the entire field (most common request:
+    // "I pasted from gmail and it brought a font soup with it").
+    const text = ref.current.innerText
+    ref.current.innerHTML = ''
+    ref.current.appendChild(document.createTextNode(text))
+    onChange(ref.current.innerHTML)
+    setDirty(true)
+  }
+
+  return (
+    <div className="card-premium" style={{
+      padding: 0, overflow: 'hidden',
+      position: 'sticky', top: 24,
+      display: 'flex', flexDirection: 'column',
+      maxHeight: 'calc(100vh - 56px)',
+    }}>
+      {/* header */}
+      <div style={{
+        padding: '18px 22px',
+        borderBottom: '1px solid var(--border)',
+        background: 'linear-gradient(180deg, var(--surface2) 0%, var(--surface) 100%)',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{
+            width: 36, height: 36, borderRadius: 11,
+            background: 'var(--amber-bg)', color: 'var(--amber)',
+            border: '1px solid rgba(251,191,36,0.3)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Edit3 size={16} />
+          </div>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>Admin Notes</div>
+            <div style={{ fontSize: 11, color: 'var(--t4)', marginTop: 2 }}>
+              Internal — never shown to the user
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* toolbar */}
+      <div style={{
+        display: 'flex', gap: 4, padding: '10px 14px',
+        borderBottom: '1px solid var(--border)',
+        background: 'var(--surface)',
+      }}>
+        <ToolBtn label="Highlight" onClick={highlight} icon={<Highlighter size={13} />} accent="var(--amber)" />
+        <ToolBtn label="Bold"      onClick={() => exec('bold')}    icon={<Bold size={13} />} />
+        <ToolBtn label="Italic"    onClick={() => exec('italic')}  icon={<Italic size={13} />} />
+        <ToolBtn label="Underline" onClick={() => exec('underline')} icon={<u style={{ fontFamily:'serif', fontWeight:800, fontSize:13 }}>U</u>} />
+        <div style={{ flex: 1 }} />
+        <ToolBtn label="Clear formatting" onClick={clear} icon={<Eraser size={13} />} />
+      </div>
+
+      {/* editable area */}
+      <div
+        ref={ref}
+        contentEditable
+        suppressContentEditableWarning
+        spellCheck
+        onInput={() => {
+          if (!ref.current) return
+          onChange(ref.current.innerHTML)
+          setDirty(true)
+        }}
+        onPaste={e => {
+          // Force plain-text paste so a paste from Gmail / Notion doesn't
+          // smuggle in a wall of inline styles, fonts, or scripts.
+          e.preventDefault()
+          const text = e.clipboardData.getData('text/plain')
+          document.execCommand('insertText', false, text)
+        }}
+        style={{
+          flex: 1, minHeight: 240, maxHeight: 'calc(100vh - 320px)',
+          padding: '16px 20px',
+          fontSize: 13.5, lineHeight: 1.65, color: 'var(--t1)',
+          outline: 'none',
+          overflowY: 'auto',
+          fontFamily: 'inherit',
+        }}
+        data-placeholder="Internal notes, support history, special cases…"
+      />
+
+      {/* footer / save */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '12px 16px',
+        borderTop: '1px solid var(--border)',
+        background: 'var(--bg2)',
+        gap: 10,
+      }}>
+        <span style={{ fontSize: 11, color: dirty ? 'var(--amber)' : 'var(--t4)' }}>
+          {dirty ? '● Unsaved' : 'Saved'}
+        </span>
+        <button
+          onClick={() => { onSave(); setDirty(false) }}
+          disabled={saving}
+          className="btn btn-primary btn-sm"
+        >
+          {saving ? 'Saving…' : 'Save notes'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function ToolBtn({
+  label, onClick, icon, accent,
+}: { label: string; onClick: () => void; icon: React.ReactNode; accent?: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={label}
+      aria-label={label}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 6,
+        padding: '7px 11px', borderRadius: 8,
+        background: 'transparent', border: '1px solid transparent',
+        color: accent || 'var(--t3)',
+        fontSize: 12, fontWeight: 600,
+        cursor: 'pointer', transition: 'all 140ms',
+      }}
+      onMouseEnter={e => {
+        e.currentTarget.style.background = 'var(--bg2)'
+        e.currentTarget.style.borderColor = 'var(--border)'
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.background = 'transparent'
+        e.currentTarget.style.borderColor = 'transparent'
+      }}
+    >
+      {icon}
+    </button>
+  )
 }
 
 export default function AdminUserDetailPage() {
@@ -516,46 +836,138 @@ export default function AdminUserDetailPage() {
         })}
       </div>
 
-      {/* OVERVIEW */}
+      {/* OVERVIEW
+          ── 2-column layout ───────────────────────────────────────
+          Main column: Profile + Subscription as boxed data-cell grids
+          Right rail:  HighlightableNotes (sticky) */}
       {activeTab === 'overview' && (
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
-          <div className="card card-p">
-            <SectionTitle icon={<User size={15}/>} title="Profile" />
-            <InfoRow label="Email" value={<span style={{ display:'flex', alignItems:'center', gap:4 }}>{user?.email} <CopyBtn text={user?.email || ''}/></span>} />
-            <InfoRow label="Full name" value={profile?.full_name || '—'} />
-            <InfoRow label="Country" value={profile?.country || '—'} />
-            <InfoRow label="Timezone" value={profile?.timezone || 'UTC'} />
-            <InfoRow label="Email verified" value={user?.email_confirmed_at ? '✓ Yes' : '✗ No'} />
-            <InfoRow label="Auth provider" value={user?.app_metadata?.provider || '—'} />
-            <InfoRow label="Joined" value={user?.created_at ? new Date(user.created_at).toLocaleString() : '—'} />
-            <InfoRow label="Last login" value={user?.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleString() : 'Never'} />
-            <InfoRow label="User ID" value={<span style={{ display:'flex', alignItems:'center', gap:4, fontFamily:'monospace', fontSize:11 }}>{user?.id?.slice(0,24)}… <CopyBtn text={user?.id || ''}/></span>} />
-          </div>
-          <div className="card card-p">
-            <SectionTitle icon={<CreditCard size={15}/>} title="Subscription" />
-            <InfoRow label="Plan" value={<span className={`badge ${planM.badge}`}>{currentPlan}</span>} />
-            <InfoRow label="Status" value={<span className={`badge ${STATUS_META[subStatus] || 'badge-muted'}`}>{subStatus}</span>} />
-            <InfoRow label="Billing interval" value={profile?.billing_interval || '—'} />
-            <InfoRow label="Period end" value={profile?.current_period_end ? new Date(profile.current_period_end).toLocaleDateString() : '—'} />
-            <InfoRow label="Trial ends" value={profile?.trial_ends_at ? new Date(profile.trial_ends_at).toLocaleDateString() : '—'} />
-            <InfoRow label="Stripe customer" value={profile?.stripe_customer_id || '—'} mono />
-            <InfoRow label="Stripe sub ID" value={profile?.stripe_subscription_id || '—'} mono />
-            <InfoRow label="Bonus months" value={admin?.subscription_bonus_months ?? 0} />
-            <InfoRow label="Discount" value={admin?.discount_percent ? `${admin.discount_percent}%` : 'None'} />
-            <InfoRow label="Discount reason" value={admin?.discount_reason || '—'} />
-            <InfoRow label="Last admin action" value={admin?.last_admin_action || '—'} />
-          </div>
-          <div className="card card-p" style={{ gridColumn:'1 / -1' }}>
-            <SectionTitle icon={<Edit3 size={15}/>} title="Admin Notes" sub="Internal only — never visible to the user" />
-            <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={5}
-              placeholder="Internal notes, support history, special cases…"
-              style={{ width:'100%', background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, color:'var(--t1)', padding:'10px 12px', fontSize:13, fontFamily:'inherit', resize:'vertical', outline:'none', lineHeight:1.6 }} />
-            <div style={{ display:'flex', justifyContent:'flex-end', marginTop:10 }}>
-              <button onClick={saveNotes} disabled={notesSaving} className="btn btn-primary btn-sm">
-                {notesSaving ? 'Saving…' : '✓ Save Notes'}
-              </button>
+        <div className="overview-grid">
+          {/* MAIN ─────────────────────────────────────────────── */}
+          <div style={{ display:'flex', flexDirection:'column', gap:16, minWidth:0 }}>
+
+            {/* Profile card — boxed cells in a 2-col grid */}
+            <div className="card-premium" style={{ padding:'24px 28px' }}>
+              <SectionTitle icon={<User size={15}/>} title="Profile" sub="Identity, locale, and account metadata." />
+              <div style={{
+                display:'grid',
+                gridTemplateColumns:'repeat(auto-fit, minmax(220px, 1fr))',
+                gap:12,
+              }}>
+                <DataCell
+                  label="Email" icon={<AtSign size={11}/>}
+                  value={user?.email}
+                  copyable={user?.email}
+                />
+                <DataCell
+                  label="Full name" icon={<User size={11}/>}
+                  value={profile?.full_name}
+                />
+                <DataCell
+                  label="Country" icon={<Globe size={11}/>}
+                  value={profile?.country}
+                />
+                <DataCell
+                  label="Timezone" icon={<Clock size={11}/>}
+                  value={profile?.timezone || 'UTC'}
+                />
+                <DataCell
+                  label="Email verified" icon={<BadgeCheck size={11}/>}
+                  value={user?.email_confirmed_at
+                    ? <span style={{ color:'var(--green)' }}>✓ Verified</span>
+                    : <span style={{ color:'var(--red)' }}>✗ Not verified</span>}
+                />
+                <DataCell
+                  label="Auth provider" icon={<KeyRound size={11}/>}
+                  value={user?.app_metadata?.provider || 'email'}
+                />
+                <DataCell
+                  label="Joined" icon={<Calendar size={11}/>}
+                  value={user?.created_at ? new Date(user.created_at).toLocaleString() : null}
+                />
+                <DataCell
+                  label="Last login" icon={<LogIn size={11}/>}
+                  value={user?.last_sign_in_at
+                    ? new Date(user.last_sign_in_at).toLocaleString()
+                    : <span style={{ color:'var(--t4)' }}>Never</span>}
+                />
+                <DataCell
+                  label="User ID" icon={<IdCard size={11}/>}
+                  value={user?.id} mono copyable={user?.id} span={2}
+                />
+              </div>
+            </div>
+
+            {/* Subscription card — boxed cells, badges as values */}
+            <div className="card-premium" style={{ padding:'24px 28px' }}>
+              <SectionTitle icon={<CreditCard size={15}/>} title="Subscription" sub="Stripe linkage, plan, billing cycle." />
+              <div style={{
+                display:'grid',
+                gridTemplateColumns:'repeat(auto-fit, minmax(220px, 1fr))',
+                gap:12,
+              }}>
+                <DataCell
+                  label="Plan"
+                  value={<span className={`badge ${planM.badge}`} style={{ fontSize:12, padding:'4px 12px', fontWeight:700 }}>{currentPlan}</span>}
+                />
+                <DataCell
+                  label="Status"
+                  value={<span className={`badge ${STATUS_META[subStatus] || 'badge-muted'}`} style={{ fontSize:11, padding:'3px 11px' }}>{subStatus}</span>}
+                />
+                <DataCell
+                  label="Billing interval"
+                  value={profile?.billing_interval}
+                />
+                <DataCell
+                  label="Period end"
+                  value={profile?.current_period_end ? new Date(profile.current_period_end).toLocaleDateString() : null}
+                />
+                <DataCell
+                  label="Trial ends"
+                  value={profile?.trial_ends_at ? new Date(profile.trial_ends_at).toLocaleDateString() : null}
+                />
+                <DataCell
+                  label="Bonus months"
+                  value={admin?.subscription_bonus_months ?? 0}
+                  accent={(admin?.subscription_bonus_months ?? 0) > 0 ? 'var(--acc)' : undefined}
+                />
+                <DataCell
+                  label="Discount"
+                  value={admin?.discount_percent
+                    ? <span style={{ color:'var(--amber)' }}>{admin.discount_percent}% off</span>
+                    : null}
+                />
+                <DataCell
+                  label="Discount reason"
+                  value={admin?.discount_reason}
+                />
+                <DataCell
+                  label="Stripe customer"
+                  value={profile?.stripe_customer_id} mono
+                  copyable={profile?.stripe_customer_id || undefined}
+                  span={2}
+                />
+                <DataCell
+                  label="Stripe subscription"
+                  value={profile?.stripe_subscription_id} mono
+                  copyable={profile?.stripe_subscription_id || undefined}
+                  span={2}
+                />
+                <DataCell
+                  label="Last admin action"
+                  value={admin?.last_admin_action}
+                  span={2}
+                />
+              </div>
             </div>
           </div>
+
+          {/* RIGHT RAIL — Admin Notes panel ─────────────────────── */}
+          <HighlightableNotes
+            value={notes}
+            onChange={setNotes}
+            onSave={saveNotes}
+            saving={notesSaving}
+          />
         </div>
       )}
 

@@ -983,4 +983,42 @@ img, picture, video, canvas, svg { display: block; max-width: 100%; }
 
   /* Number tickers — for animated KPI values. */
   .num-tabular { font-variant-numeric: tabular-nums; letter-spacing: -0.01em }
+
+  /* User-detail Overview tab layout —
+     Two-column grid with a 360-px right rail for Admin Notes.
+     Collapses to a single column at < 1100px so the notes panel
+     drops under the data cards on narrow screens / tablets. */
+  .overview-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 380px;
+    gap: 20px;
+    align-items: start;
+  }
+  @media (max-width: 1100px) {
+    .overview-grid { grid-template-columns: 1fr; }
+  }
+
+  /* contentEditable placeholder — only shows when the field is empty.
+     Mirrors the real <textarea>'s placeholder UX for the highlightable
+     notes panel. */
+  [contenteditable][data-placeholder]:empty::before {
+    content: attr(data-placeholder);
+    color: var(--t4);
+    pointer-events: none;
+  }
+  /* Some browsers leave a stray <br> behind on backspace, breaking
+     `:empty`. Treat that case as empty too. */
+  [contenteditable][data-placeholder]:has(> br:only-child)::before {
+    content: attr(data-placeholder);
+    color: var(--t4);
+    pointer-events: none;
+  }
+  /* Highlighter mark in the notes panel matches our amber palette and
+     stays readable on dark/light themes. */
+  [contenteditable] mark {
+    background: var(--amber-bg);
+    color: var(--amber);
+    padding: 0 3px;
+    border-radius: 3px;
+  }
 }

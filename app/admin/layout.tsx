@@ -39,6 +39,9 @@ import {
   Download,
   DollarSign,
   Shield,
+  TrendingUp,
+  Handshake,
+  Sparkles,
 } from 'lucide-react'
 
 type NavItem = {
@@ -77,7 +80,28 @@ const NAV: { group: string; items: NavItem[] }[] = [
       { href: '/admin/coupons',       label: 'Coupons',       icon: Tag },
       { href: '/admin/cohorts',       label: 'Cohorts',       icon: Users2 },
       { href: '/admin/finance',       label: 'Finance',       icon: DollarSign },
-      { href: '/admin/referrals',     label: 'Referrals',     icon: Users2 },
+    ],
+  },
+  {
+    /**
+     * Marketing — every growth lever. Referrals + Affiliates +
+     * SEO live here together because they all answer the same
+     * question ("how do we get more users?") — splitting them
+     * across Users / Content was confusing.
+     *
+     * Marketing Planner is a dedicated kanban with seeded
+     * acquisition tactics so anyone in the company can see what's
+     * being worked on without poking through the generic Open
+     * Items board.
+     */
+    group: 'Marketing',
+    items: [
+      { href: '/admin/marketing',        label: 'Marketing Planner', icon: Sparkles, exact: true },
+      { href: '/admin/marketing/social', label: 'Social Studio',     icon: Megaphone },
+      { href: '/admin/seo',              label: 'SEO & Meta',        icon: Search },
+      { href: '/admin/seo-pages',        label: 'Per-page SEO',      icon: Search },
+      { href: '/admin/referrals',        label: 'Referrals',         icon: TrendingUp },
+      { href: '/admin/affiliates',       label: 'Affiliates',        icon: Handshake },
     ],
   },
   {
@@ -87,8 +111,6 @@ const NAV: { group: string; items: NavItem[] }[] = [
       { href: '/admin/banners',         label: 'Banners',         icon: ImageIcon },
       { href: '/admin/announcements',   label: 'Announcements',   icon: Megaphone },
       { href: '/admin/faqs',            label: 'FAQs',            icon: HelpCircle },
-      { href: '/admin/seo',             label: 'SEO & Meta',      icon: Search },
-      { href: '/admin/seo-pages',       label: 'Per-page SEO',    icon: Search },
       { href: '/admin/translations',    label: 'Translations',    icon: Languages },
       { href: '/admin/email-templates', label: 'Email Templates', icon: Mail },
       { href: '/admin/flags',           label: 'Feature Flags',   icon: Zap },
