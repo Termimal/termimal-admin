@@ -13,6 +13,7 @@
 import { NextResponse } from 'next/server'
 import { serviceClient } from '@/lib/admin/service-client'
 import { createClient as createSsrClient } from '@/lib/supabase/server'
+import { requireAdmin } from '@/lib/admin/require-admin'
 
 async function requireSuperAdmin(): Promise<{ user_id: string } | NextResponse> {
   const cookieSb = await createSsrClient()
@@ -24,6 +25,8 @@ async function requireSuperAdmin(): Promise<{ user_id: string } | NextResponse> 
 }
 
 export async function GET() {
+  const gate = await requireAdmin('roles.write')
+  if (gate.ok === false) return gate.response
   try {
     const sb = serviceClient()
     const [{ data: roles }, { data: assignments }] = await Promise.all([
@@ -44,6 +47,8 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const gate = await requireAdmin('roles.write')
+  if (gate.ok === false) return gate.response
   try {
     const guard = await requireSuperAdmin()
     if (guard instanceof NextResponse) return guard
@@ -64,6 +69,8 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
+  const gate = await requireAdmin('roles.write')
+  if (gate.ok === false) return gate.response
   try {
     const guard = await requireSuperAdmin()
     if (guard instanceof NextResponse) return guard
@@ -82,6 +89,8 @@ export async function PATCH(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  const gate = await requireAdmin('roles.write')
+  if (gate.ok === false) return gate.response
   try {
     const guard = await requireSuperAdmin()
     if (guard instanceof NextResponse) return guard

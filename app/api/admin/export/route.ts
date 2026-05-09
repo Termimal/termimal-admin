@@ -9,6 +9,7 @@
  */
 import { NextResponse } from 'next/server'
 import { serviceClient } from '@/lib/admin/service-client'
+import { requireAdmin } from '@/lib/admin/require-admin'
 
 const SCHEMAS: Record<string, { table: string; columns: string[]; order: string }> = {
   users:    { table: 'profiles',         columns: ['id','email','full_name','plan','subscription_status','country','referral_code','created_at'], order: 'created_at' },
@@ -25,6 +26,8 @@ function csvEscape(v: unknown): string {
 }
 
 export async function GET(request: Request) {
+  const gate = await requireAdmin('export.read')
+  if (gate.ok === false) return gate.response
   try {
     const u    = new URL(request.url)
     const type = u.searchParams.get('type') || ''

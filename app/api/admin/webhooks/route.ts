@@ -6,8 +6,11 @@
  */
 import { NextResponse } from 'next/server'
 import { serviceClient } from '@/lib/admin/service-client'
+import { requireAdmin } from '@/lib/admin/require-admin'
 
 export async function GET(request: Request) {
+  const gate = await requireAdmin('webhooks.read')
+  if (gate.ok === false) return gate.response
   try {
     const sb = serviceClient()
     const u  = new URL(request.url)

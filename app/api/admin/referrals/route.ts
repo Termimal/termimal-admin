@@ -18,7 +18,7 @@
  */
 import { NextResponse } from 'next/server'
 import { serviceClient } from '@/lib/admin/service-client'
-import { createClient as createSsrClient } from '@/lib/supabase/server'
+import { requireAdmin } from '@/lib/admin/require-admin'
 
 interface ReferralRow {
   id:            string
@@ -39,6 +39,8 @@ const ALLOWED_TRANSITIONS: Record<string, readonly string[]> = {
 }
 
 export async function GET(request: Request) {
+  const gate = await requireAdmin('referrals.write')
+  if (gate.ok === false) return gate.response
   try {
     const sb  = serviceClient()
     const u   = new URL(request.url)
@@ -86,10 +88,10 @@ export async function GET(request: Request) {
 }
 
 export async function PATCH(request: Request) {
+  const gate = await requireAdmin('referrals.write')
+  if (gate.ok === false) return gate.response
   try {
-    const cookieSb = await createSsrClient()
-    const { data: { user: actor } } = await cookieSb.auth.getUser()
-    if (!actor) return NextResponse.json({ error: 'unauthenticated' }, { status: 401 })
+    const actor = gate.user
 
     const body = await request.json().catch(() => null) as {
       id?: string; status?: string; reward_amount?: number; note?: string

@@ -13,7 +13,7 @@
  */
 import { NextResponse } from 'next/server'
 import { renderEmailTemplate } from '@/lib/admin/email-template'
-import { createClient as createSsrClient } from '@/lib/supabase/server'
+import { requireAdmin } from '@/lib/admin/require-admin'
 import { serviceClient } from '@/lib/admin/service-client'
 
 // Per-actor rate-limit: max 5 test sends per hour per admin. Resend
@@ -24,10 +24,10 @@ const SEND_MAX_PER_HOUR = 5
 const HOUR_MS = 60 * 60 * 1000
 
 export async function POST(request: Request) {
+  const gate = await requireAdmin('email_templates.write')
+  if (gate.ok === false) return gate.response
   try {
-    const cookieSb = await createSsrClient()
-    const { data: { user: actor } } = await cookieSb.auth.getUser()
-    if (!actor) return NextResponse.json({ error: 'unauthenticated' }, { status: 401 })
+    const actor = gate.user
 
     const body = await request.json().catch(() => null) as {
       key?: string; to?: string; variables?: Record<string, unknown>

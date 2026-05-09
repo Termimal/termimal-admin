@@ -15,7 +15,7 @@
 // NOTE: stays on the default node runtime — opennextjs-cloudflare's
 // build doesn't allow mixing edge + node functions in one bundle.
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { requireAdmin } from '@/lib/admin/require-admin'
 
 interface ReqBody {
   prompt:    string
@@ -32,10 +32,10 @@ const PLATFORM_LIMITS: Record<string, number> = {
 const cooldown = new Map<string, number>()
 
 export async function POST(request: Request) {
+  const gate = await requireAdmin('users.read')
+  if (gate.ok === false) return gate.response
   try {
-    const sb = await createClient()
-    const { data: { user } } = await sb.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'not authenticated' }, { status: 401 })
+    const user = gate.user
 
     // Per-actor rate limit: 3 generations per 60s window.
     const now = Date.now()

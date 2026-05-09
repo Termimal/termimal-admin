@@ -51,7 +51,7 @@ function AcceptInviteInner() {
       padding: 24,
       background: 'var(--bg)',
     }}>
-      <div className="card card-p" style={{ maxWidth: 480, width: '100%', textAlign: 'center' }}>
+      <div className="card-premium" style={{ maxWidth: 480, width: '100%', textAlign: 'center', padding: '40px 36px' }}>
         <div style={{
           width: 48, height: 48, margin: '0 auto 18px',
           borderRadius: 14,

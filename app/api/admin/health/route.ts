@@ -15,6 +15,7 @@
  */
 import { NextResponse } from 'next/server'
 import { serviceClient } from '@/lib/admin/service-client'
+import { requireAdmin } from '@/lib/admin/require-admin'
 
 interface ProbeResult {
   name:        string
@@ -61,6 +62,8 @@ async function probe(
 }
 
 export async function GET() {
+  const gate = await requireAdmin('analytics.read')
+  if (gate.ok === false) return gate.response
   const t0 = Date.now()
   const sb = serviceClient()
 
