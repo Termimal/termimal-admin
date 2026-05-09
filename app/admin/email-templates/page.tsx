@@ -211,9 +211,25 @@ export default function EmailTemplatesPage() {
                   </div>
                   <div>
                     <div style={{ fontSize: 11, color: 'var(--t4)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700 }}>HTML preview</div>
-                    <div
-                      dangerouslySetInnerHTML={{ __html: preview.html }}
-                      style={{ padding: 16, background: '#fff', color: '#111', border: '1px solid var(--border)', borderRadius: 12, minHeight: 140, fontSize: 13, lineHeight: 1.5, overflow: 'auto' }}
+                    {/*
+                      Render the preview inside a sandboxed iframe with
+                      `srcDoc` so any <script> in the template can't
+                      reach the admin page's DOM, cookies, or APIs.
+                      The previous `dangerouslySetInnerHTML` was a stored
+                      XSS sink — a low-trust template editor saving a
+                      malicious template would phish other admins via
+                      the preview.
+
+                      `sandbox=""` (no allow-* tokens) blocks scripts,
+                      forms, top-level navigation, and same-origin
+                      access — content can render visually but can't
+                      execute code or exfiltrate state.
+                    */}
+                    <iframe
+                      title="HTML preview"
+                      sandbox=""
+                      srcDoc={preview.html}
+                      style={{ width: '100%', padding: 0, background: '#fff', color: '#111', border: '1px solid var(--border)', borderRadius: 12, minHeight: 240, fontSize: 13, lineHeight: 1.5 }}
                     />
                   </div>
                   <div>

@@ -36,6 +36,7 @@
 
 import { NextResponse } from 'next/server'
 import { createClient as createSbClient } from '@supabase/supabase-js'
+import { requireAdmin } from '@/lib/admin/require-admin'
 
 interface Anomaly {
   id:        string
@@ -290,6 +291,8 @@ async function detectCrossCountryLogin(sb: ReturnType<typeof adminClient>): Prom
 // ── Entrypoint ─────────────────────────────────────────────────────
 
 export async function GET() {
+  const gate = await requireAdmin('anomalies.read')
+  if (gate.ok === false) return gate.response
   let sb: ReturnType<typeof adminClient>
   try {
     sb = adminClient()

@@ -28,11 +28,18 @@ import { NextResponse } from 'next/server'
 import { createClient as createServerSupabase } from '@/lib/supabase/server'
 import { roleGrants, type Permission } from './permissions'
 
-interface AdminRow {
-  user_id: string
-  role: string
-  permissions: string[] | null
-}
+/**
+ * Schema reminder:
+ *   public.user_roles  → (id uuid PK = auth.uid, role text)
+ *   public.rbac_roles  → (name text PK, permissions jsonb, …)
+ *
+ * Permissions are NOT denormalised onto user_roles — we look up the
+ * caller's role, then resolve the permission list from rbac_roles.
+ * `super_admin` is conventionally granted `["*"]` which roleGrants()
+ * treats as wildcard-allow.
+ */
+interface UserRoleRow { id: string; role: string }
+interface RbacRow     { permissions: string[] | null }
 
 interface AdminGateOk {
   ok: true
@@ -57,20 +64,31 @@ export async function requireAdmin(
     return { ok: false, response: NextResponse.json({ error: 'not authenticated' }, { status: 401 }) }
   }
 
-  // Read role + permissions for the authenticated caller. The query
-  // goes through RLS — so a non-admin can't even see their own row.
-  const { data, error } = await sb
+  // Step 1 — does this user have a row in user_roles? RLS lets every
+  // authenticated user read their own row.
+  const { data: ur, error: urErr } = await sb
     .from('user_roles')
-    .select('user_id, role, permissions')
-    .eq('user_id', user.id)
-    .maybeSingle<AdminRow>()
-  if (error) {
+    .select('id, role')
+    .eq('id', user.id)
+    .maybeSingle<UserRoleRow>()
+  if (urErr) {
     return { ok: false, response: NextResponse.json({ error: 'role lookup failed' }, { status: 500 }) }
   }
-  if (!data) {
+  if (!ur) {
     return { ok: false, response: NextResponse.json({ error: 'not an admin' }, { status: 403 }) }
   }
-  const permissions = Array.isArray(data.permissions) ? data.permissions : []
+
+  // Step 2 — resolve the role's permission list from rbac_roles.
+  // If the row doesn't exist (rare — system roles seed both tables
+  // together), fall through with an empty list which fails any
+  // explicit perm check.
+  const { data: rb } = await sb
+    .from('rbac_roles')
+    .select('permissions')
+    .eq('name', ur.role)
+    .maybeSingle<RbacRow>()
+  const permissions = Array.isArray(rb?.permissions) ? (rb!.permissions as string[]) : []
+
   if (perm && !roleGrants(permissions, perm)) {
     return { ok: false, response: NextResponse.json({ error: `missing permission: ${perm}` }, { status: 403 }) }
   }
@@ -79,7 +97,7 @@ export async function requireAdmin(
     ok: true,
     sb,
     user: { id: user.id, email: user.email || null },
-    role: data.role,
+    role: ur.role,
     permissions,
   }
 }

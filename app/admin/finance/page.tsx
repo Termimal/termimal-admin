@@ -69,10 +69,25 @@ function KPI({ label, value, accent, trend }: { label: string; value: React.Reac
   )
 }
 
+interface Balance {
+  ok: boolean
+  by_currency: Array<{
+    currency: string
+    available_major: number
+    pending_major:   number
+    eur_equivalent_available: number
+    eur_equivalent_pending:   number
+  }>
+  totals_eur: { available: number; pending: number; gross: number }
+  rates_fetched_at: string | null
+}
+
 export default function FinancePage() {
   const [series, setSeries]     = useState<Bucket[]>([])
   const [summary, setSummary]   = useState<Summary | null>(null)
   const [costs, setCosts]       = useState<Cost[]>([])
+  const [balance, setBalance]   = useState<Balance | null>(null)
+  const [balanceFilter, setBalanceFilter] = useState<string>('all')
   const [tab, setTab]           = useState<'overview' | 'costs'>('overview')
   const [months, setMonths]     = useState(6)
   const [loading, setLoading]   = useState(true)
@@ -81,11 +96,15 @@ export default function FinancePage() {
 
   const load = useCallback(async () => {
     setLoading(true)
-    const [s, c] = await Promise.all([
-      fetch(`/api/admin/finance?months=${months}`,    { cache: 'no-store' }).then(r => r.json()),
-      fetch('/api/admin/finance/costs',                { cache: 'no-store' }).then(r => r.json()),
+    const [s, c, b] = await Promise.all([
+      fetch(`/api/admin/finance?months=${months}`, { cache: 'no-store' }).then(r => r.json()),
+      fetch('/api/admin/finance/costs',             { cache: 'no-store' }).then(r => r.json()),
+      // Stripe Balance API + ECB FX rates. Soft-fails if Stripe isn't
+      // configured — the panel just shows a setup hint.
+      fetch('/api/admin/finance/balance',           { cache: 'no-store' }).then(r => r.json()).catch(() => null),
     ])
     setSeries(s.series ?? []); setSummary(s.summary ?? null); setCosts(c.rows ?? [])
+    setBalance(b && b.ok ? b : null)
     setLoading(false)
   }, [months])
   useEffect(() => { load() }, [load])
@@ -149,6 +168,124 @@ export default function FinancePage() {
 
       {tab === 'overview' && (
         <>
+          {/* ── Stripe live balance, multi-currency, with EUR-equivalent ── */}
+          {balance && balance.by_currency.length > 0 && (
+            <Section
+              accent="green"
+              title="Stripe balance · live"
+              description={
+                <>
+                  Available + pending across every currency Stripe holds for us.
+                  EUR-equivalent uses ECB daily reference rates
+                  {balance.rates_fetched_at ? ` (fetched ${new Date(balance.rates_fetched_at).toLocaleString()})` : ''}.
+                </>
+              }
+              actions={
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <select
+                    value={balanceFilter}
+                    onChange={e => setBalanceFilter(e.target.value)}
+                    className="input"
+                    style={{ minHeight: 34, padding: '4px 12px', fontSize: 12 }}
+                  >
+                    <option value="all">All currencies</option>
+                    {balance.by_currency.map(b => (
+                      <option key={b.currency} value={b.currency}>{b.currency}</option>
+                    ))}
+                  </select>
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => {
+                      const cols = ['currency','available_major','pending_major','eur_equivalent_available','eur_equivalent_pending']
+                      const rows = balance.by_currency
+                        .filter(r => balanceFilter === 'all' || r.currency === balanceFilter)
+                      const csv = [cols.join(','), ...rows.map(r => cols.map(c => (r as any)[c] ?? '').join(','))].join('\n')
+                      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+                      const a = document.createElement('a')
+                      a.href = URL.createObjectURL(blob)
+                      a.download = `stripe-balance-${new Date().toISOString().slice(0,10)}.csv`
+                      a.click()
+                      URL.revokeObjectURL(a.href)
+                    }}
+                  >Export CSV</button>
+                </div>
+              }
+            >
+              {/* Aggregate strip */}
+              <div style={{
+                display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, marginBottom: 14,
+              }}>
+                <div style={{
+                  padding: '16px 18px', borderRadius: 14,
+                  background: 'var(--green-bg)', border: '1px solid rgba(52,211,153,0.3)',
+                }}>
+                  <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.13em', textTransform: 'uppercase', color: 'var(--green)', marginBottom: 6 }}>
+                    Available · EUR equivalent
+                  </div>
+                  <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--t1)', letterSpacing: '-0.025em', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
+                    €{balance.totals_eur.available.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </div>
+                </div>
+                <div style={{
+                  padding: '16px 18px', borderRadius: 14,
+                  background: 'var(--amber-bg)', border: '1px solid rgba(251,191,36,0.3)',
+                }}>
+                  <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.13em', textTransform: 'uppercase', color: 'var(--amber)', marginBottom: 6 }}>
+                    Pending · EUR equivalent
+                  </div>
+                  <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--t1)', letterSpacing: '-0.025em', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
+                    €{balance.totals_eur.pending.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </div>
+                </div>
+                <div style={{
+                  padding: '16px 18px', borderRadius: 14,
+                  background: 'var(--surface)', border: '1px solid var(--border)',
+                }}>
+                  <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.13em', textTransform: 'uppercase', color: 'var(--t4)', marginBottom: 6 }}>
+                    Total · EUR equivalent
+                  </div>
+                  <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--t1)', letterSpacing: '-0.025em', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
+                    €{balance.totals_eur.gross.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Per-currency rows */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {balance.by_currency
+                  .filter(r => balanceFilter === 'all' || r.currency === balanceFilter)
+                  .map(r => (
+                  <div key={r.currency} style={{
+                    display: 'grid', gridTemplateColumns: 'auto 1fr auto auto', gap: 16, alignItems: 'center',
+                    padding: '12px 16px', borderRadius: 12,
+                    background: 'var(--surface)', border: '1px solid var(--border)',
+                  }}>
+                    <span style={{
+                      width: 44, height: 44, borderRadius: 12, flexShrink: 0,
+                      background: 'var(--green-bg)', color: 'var(--green)',
+                      border: '1px solid rgba(52,211,153,0.3)',
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 12, fontWeight: 800, letterSpacing: '0.04em',
+                    }}>{r.currency}</span>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 13, color: 'var(--t1)', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+                        Available {r.currency} {r.available_major.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </div>
+                      <div style={{ fontSize: 11.5, color: 'var(--t4)', marginTop: 2 }}>
+                        Pending {r.currency} {r.pending_major.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </div>
+                    </div>
+                    <span style={{ fontSize: 11, color: 'var(--t4)' }}>≈</span>
+                    <span style={{
+                      fontSize: 16, fontWeight: 800, color: 'var(--t1)',
+                      fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.015em',
+                    }}>€{r.eur_equivalent_available.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  </div>
+                ))}
+              </div>
+            </Section>
+          )}
+
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 14, marginBottom: 28 }}>
             <KPI label="Revenue · 30d" value={summary ? fmt(summary.revenue_30d) : '—'} accent="green"/>
             <KPI label="Refunds · 30d" value={summary ? fmt(summary.refunds_30d) : '—'} accent="amber"/>

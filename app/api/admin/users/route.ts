@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { requireAdmin } from '@/lib/admin/require-admin'
 
 function admin() {
   return createClient(
@@ -10,6 +11,8 @@ function admin() {
 }
 
 export async function GET(request: Request) {
+  const gate = await requireAdmin('users.read')
+  if (gate.ok === false) return gate.response
   try {
     const url = new URL(request.url)
     const page    = Number(url.searchParams.get('page') || '1')

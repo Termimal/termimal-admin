@@ -19,22 +19,21 @@
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { serviceClient } from '@/lib/admin/service-client'
-import { createClient as createSsrClient } from '@/lib/supabase/server'
+import { requireAdmin } from '@/lib/admin/require-admin'
 
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const gate = await requireAdmin('users.write')
+  if (gate.ok === false) return gate.response
   try {
     const { id: userId } = await params
     if (!userId) return NextResponse.json({ error: 'user id required' }, { status: 400 })
 
     // Defence-in-depth: the route handler re-checks the role.
-    const cookieSb = await createSsrClient()
-    const { data: { user: actor } } = await cookieSb.auth.getUser()
-    if (!actor) return NextResponse.json({ error: 'unauthenticated' }, { status: 401 })
-    const { data: role } = await cookieSb.from('user_roles').select('role').eq('id', actor.id).maybeSingle()
-    if (role?.role !== 'super_admin') {
+    const actor = gate.user
+    if (gate.role !== 'super_admin') {
       return NextResponse.json({ error: 'super_admin role required to close accounts' }, { status: 403 })
     }
     if (actor.id === userId) {

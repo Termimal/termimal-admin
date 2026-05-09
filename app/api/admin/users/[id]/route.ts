@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { requireAdmin } from '@/lib/admin/require-admin'
 
 function adminClient() {
   return createClient(
@@ -10,6 +11,8 @@ function adminClient() {
 }
 
 export async function GET(_req: Request, context: { params: Promise<{ id: string }> }) {
+  const gate = await requireAdmin('users.write')
+  if (gate.ok === false) return gate.response
   try {
     const { id: userId } = await context.params
     const supabase = adminClient()
@@ -38,6 +41,8 @@ export async function GET(_req: Request, context: { params: Promise<{ id: string
 }
 
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
+  const gate = await requireAdmin('users.write')
+  if (gate.ok === false) return gate.response
   try {
     const body = await request.json()
     const { id: userId } = await context.params

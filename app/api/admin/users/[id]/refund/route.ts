@@ -12,12 +12,14 @@
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { serviceClient } from '@/lib/admin/service-client'
-import { createClient as createSsrClient } from '@/lib/supabase/server'
+import { requireAdmin } from '@/lib/admin/require-admin'
 
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const gate = await requireAdmin('users.write')
+  if (gate.ok === false) return gate.response
   try {
     const { id: userId } = await params
     if (!userId) return NextResponse.json({ error: 'user id required' }, { status: 400 })
@@ -70,12 +72,11 @@ export async function POST(
     })
 
     // Log in customer_notes timeline.
-    const cookieSb = await createSsrClient()
-    const { data: { user: actor } } = await cookieSb.auth.getUser()
+    const actor = gate.user
     const sb = serviceClient()
     await sb.from('customer_notes').insert({
       user_id:   userId,
-      author_id: actor?.id ?? null,
+      author_id: actor.id,
       kind:      'billing_event',
       body:      `Refund issued: ${refund.id} (${(refund.amount / 100).toFixed(2)} ${refund.currency.toUpperCase()})${body.reason ? ` — ${body.reason}` : ''}`,
       metadata:  { refund_id: refund.id, charge_id: chargeId, amount_cents: refund.amount, currency: refund.currency, reason: body.reason ?? null },

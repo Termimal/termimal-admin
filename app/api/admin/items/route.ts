@@ -15,6 +15,7 @@
  */
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireAdmin } from '@/lib/admin/require-admin'
 
 interface AdminItem {
   id: string
@@ -36,6 +37,8 @@ interface AdminItem {
 interface ProfileLite { id: string; full_name: string | null; email: string | null; avatar_url: string | null }
 
 export async function GET(request: Request) {
+  const gate = await requireAdmin('items.read')
+  if (gate.ok === false) return gate.response
   try {
     const sb  = await createClient()
     const url = new URL(request.url)
@@ -86,10 +89,11 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const gate = await requireAdmin('items.read')
+  if (gate.ok === false) return gate.response
   try {
     const sb = await createClient()
-    const { data: { user } } = await sb.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'not authenticated' }, { status: 401 })
+    const user = gate.user
 
     const body = await request.json().catch(() => null) as Partial<AdminItem> | null
     if (!body || typeof body.title !== 'string' || !body.title.trim()) {

@@ -17,6 +17,7 @@
  */
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireAdmin } from '@/lib/admin/require-admin'
 
 const ALLOWED_FIELDS = [
   'title', 'description', 'status', 'priority', 'category',
@@ -28,13 +29,14 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const gate = await requireAdmin('items.read')
+  if (gate.ok === false) return gate.response
   const { id } = await params
   if (!id) return NextResponse.json({ error: 'missing id' }, { status: 400 })
 
   try {
     const sb = await createClient()
-    const { data: { user } } = await sb.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'not authenticated' }, { status: 401 })
+    const user = gate.user
 
     const body = await request.json().catch(() => null) as Record<string, unknown> | null
     if (!body) return NextResponse.json({ error: 'invalid body' }, { status: 400 })
@@ -88,13 +90,14 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const gate = await requireAdmin('items.read')
+  if (gate.ok === false) return gate.response
   const { id } = await params
   if (!id) return NextResponse.json({ error: 'missing id' }, { status: 400 })
 
   try {
     const sb = await createClient()
-    const { data: { user } } = await sb.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'not authenticated' }, { status: 401 })
+    const user = gate.user
 
     const url = new URL(request.url)
     const hard = url.searchParams.get('hard') === 'true'

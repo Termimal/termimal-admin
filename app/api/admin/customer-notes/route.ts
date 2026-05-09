@@ -8,9 +8,11 @@
  */
 import { NextResponse } from 'next/server'
 import { serviceClient } from '@/lib/admin/service-client'
-import { createClient as createSsrClient } from '@/lib/supabase/server'
+import { requireAdmin } from '@/lib/admin/require-admin'
 
 export async function GET(request: Request) {
+  const gate = await requireAdmin('notes.read')
+  if (gate.ok === false) return gate.response
   try {
     const sb = serviceClient()
     const userId = new URL(request.url).searchParams.get('user_id')
@@ -38,12 +40,12 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const gate = await requireAdmin('notes.read')
+  if (gate.ok === false) return gate.response
   try {
     const sb = serviceClient()
     // Pull caller's id from the cookie session for author_id.
-    const cookieSb = await createSsrClient()
-    const { data: { user } } = await cookieSb.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'not authenticated' }, { status: 401 })
+    const user = gate.user
 
     const body = await request.json().catch(() => null) as {
       user_id?: string; body?: string; kind?: string; pinned?: boolean; metadata?: unknown
@@ -65,6 +67,8 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
+  const gate = await requireAdmin('notes.read')
+  if (gate.ok === false) return gate.response
   try {
     const sb = serviceClient()
     const body = await request.json().catch(() => null) as { id?: string; patch?: Record<string, unknown> } | null
@@ -78,6 +82,8 @@ export async function PATCH(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  const gate = await requireAdmin('notes.read')
+  if (gate.ok === false) return gate.response
   try {
     const sb = serviceClient()
     const id = new URL(request.url).searchParams.get('id')
