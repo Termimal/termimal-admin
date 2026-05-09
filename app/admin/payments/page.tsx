@@ -1,7 +1,8 @@
 'use client'
 export const dynamic = 'force-dynamic'
 
-import { Activity, DollarSign, RefreshCcw, AlertTriangle } from "lucide-react";
+import { Activity, DollarSign, RefreshCcw, AlertTriangle, CreditCard } from "lucide-react";
+import { HeroCard } from '@/components/admin/PageChrome'
 
 // Mock graph data
 const graphData = [
@@ -17,6 +18,14 @@ const graphData = [
 export default function PaymentsPage() {
   return (
     <div className="max-w-6xl mx-auto">
+      <HeroCard
+        accent='green'
+        icon={<CreditCard size={28} />}
+        eyebrow='Billing'
+        title='Payments'
+        subtitle='Stripe charges, refunds, and invoice ledger.'
+      />
+
       {/* Top Metrics */}
       <div className="grid grid-cols-4 gap-4 mb-8">
         {[

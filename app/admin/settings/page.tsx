@@ -1,10 +1,18 @@
 'use client'
 export const dynamic = 'force-dynamic'
+import { Settings } from 'lucide-react'
+import { HeroCard } from '@/components/admin/PageChrome'
+
 export default function AdminSettingsPage() {
   return (
     <div>
-      <h1 className="text-2xl font-bold tracking-tight mb-1" style={{ letterSpacing: '-0.02em' }}>System Settings</h1>
-      <p className="text-sm mb-8" style={{ color: 'var(--t3)' }}>Global configuration, feature flags, and system controls.</p>
+      <HeroCard
+        accent='acc'
+        icon={<Settings size={28} />}
+        eyebrow='Configuration'
+        title='System settings'
+        subtitle='Site-wide preferences, brand, feature flags, and system controls.'
+      />
 
       <div className="p-6 rounded-xl mb-6" style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}>
         <h3 className="text-sm font-bold mb-4">Feature Flags</h3>

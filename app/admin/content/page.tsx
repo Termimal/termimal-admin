@@ -2,7 +2,8 @@
 export const dynamic = 'force-dynamic'
 
 import { useEffect, useState } from 'react'
-import { Plus, Search } from 'lucide-react'
+import { Plus, Search, FileText } from 'lucide-react'
+import { HeroCard } from '@/components/admin/PageChrome'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 
@@ -43,6 +44,14 @@ export default function ContentPage() {
 
   return (
     <div className="flex flex-col gap-4">
+      <HeroCard
+        accent='blue'
+        icon={<FileText size={28} />}
+        eyebrow='CMS'
+        title='Content'
+        subtitle='Articles, blog posts, and long-form content powering /blog and embedded help.'
+      />
+
       <div className="flex items-center gap-3 mb-4">
         <div className="flex items-center gap-2 flex-1 px-3 py-2 rounded-lg" style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}>
           <Search size={14} style={{ color: 'var(--t4)' }} />

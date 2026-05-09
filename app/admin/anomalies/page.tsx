@@ -13,11 +13,9 @@
 
 import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import {
-  AlertTriangle, ShieldAlert, Activity, RefreshCw, Eye, EyeOff,
-  Users, CreditCard, Globe, MapPin, Clock, ArrowUpRight,
-} from 'lucide-react'
+import { AlertTriangle, ShieldAlert, Activity, RefreshCw, Eye, EyeOff, Users, CreditCard, Globe, MapPin, Clock, ArrowUpRight } from 'lucide-react'
 
+import { HeroCard } from '@/components/admin/PageChrome'
 interface Anomaly {
   id:           string
   type:         string
@@ -118,6 +116,14 @@ export default function AnomaliesPage() {
 
   return (
     <div style={{ maxWidth: 1100 }}>
+      <HeroCard
+        accent='red'
+        icon={<ShieldAlert size={28} />}
+        eyebrow='Detection'
+        title='Anomalies'
+        subtitle='Suspicious signups, abuse patterns, and integrity flags computed from profiles.'
+      />
+
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 24 }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>

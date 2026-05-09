@@ -368,76 +368,152 @@ export default function AdminUserDetailPage() {
         </div>
       )}
 
-      <div style={{ marginBottom:20 }}>
-        <Link href="/admin/users" style={{ display:'inline-flex', alignItems:'center', gap:6, fontSize:13, color:'var(--t4)', textDecoration:'none' }}>
-          <ArrowLeft size={14}/> Back to Users
+      <div style={{ marginBottom:24 }}>
+        <Link href="/admin/users" style={{
+          display:'inline-flex', alignItems:'center', gap:8,
+          fontSize:14, fontWeight:600, color:'var(--t3)',
+          textDecoration:'none',
+          padding:'8px 14px', borderRadius:999,
+          border:'1px solid var(--border)',
+          background:'var(--surface)',
+          transition:'all 160ms',
+        }}>
+          <ArrowLeft size={14}/> Back to all users
         </Link>
       </div>
 
-      {/* User hero */}
-      <div className="card card-p" style={{ marginBottom:20, display:'flex', alignItems:'flex-start', gap:20, flexWrap:'wrap' }}>
-        <div style={{
-          width:56, height:56, borderRadius:16, flexShrink:0,
-          background:`linear-gradient(135deg, ${planM.color}44, ${planM.color}22)`,
-          border:`1px solid ${planM.color}44`,
-          display:'flex', alignItems:'center', justifyContent:'center',
-          fontSize:18, fontWeight:800, color:planM.color,
-        }}>{initials}</div>
+      {/* User hero — Revolut-scale */}
+      <div className="card-premium" style={{
+        padding: '36px 40px',
+        marginBottom: 28,
+        borderColor: planM.color + '44',
+      }}>
+        <div style={{ display:'flex', alignItems:'flex-start', gap:24, flexWrap:'wrap' }}>
+          <div style={{
+            width:72, height:72, borderRadius:22, flexShrink:0,
+            background:`linear-gradient(135deg, ${planM.color}44, ${planM.color}22)`,
+            border:`1px solid ${planM.color}55`,
+            display:'flex', alignItems:'center', justifyContent:'center',
+            fontSize:24, fontWeight:800, color:planM.color,
+            boxShadow:`0 0 24px -4px ${planM.color}55`,
+          }}>{initials}</div>
 
-        <div style={{ flex:1, minWidth:0 }}>
-          <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap', marginBottom:6 }}>
-            <h1 style={{ fontSize:18, fontWeight:700, color:'var(--t1)', margin:0 }}>{displayName}</h1>
-            <span className={`badge ${planM.badge}`}>{planM.label}</span>
-            <span className={`badge ${STATUS_META[subStatus] || 'badge-muted'}`}>{subStatus}</span>
-            <span className={`badge ${acctM.badge}`}>{admin?.account_status || 'active'}</span>
-            <span className={`badge ${utM.badge}`} style={{ display:'inline-flex', alignItems:'center', gap:4 }}>{utM.icon} {utM.label}</span>
-            {admin?.discount_percent > 0 && <span className="badge badge-amber">⚡ {admin.discount_percent}% off</span>}
-          </div>
-          <div style={{ display:'flex', gap:16, flexWrap:'wrap', fontSize:12, color:'var(--t4)' }}>
-            <span style={{ display:'flex', alignItems:'center', gap:4 }}>
-              <Mail size={11}/> {user?.email} <CopyBtn text={user?.email || ''}/>
-            </span>
-            <span style={{ display:'flex', alignItems:'center', gap:4 }}>
-              <Hash size={11}/> {user?.id?.slice(0,8)}… <CopyBtn text={user?.id || ''}/>
-            </span>
-            {profile?.stripe_customer_id && (
-              <span style={{ display:'flex', alignItems:'center', gap:4, fontFamily:'monospace', fontSize:11 }}>
-                Stripe: {profile.stripe_customer_id.slice(0,16)}… <CopyBtn text={profile.stripe_customer_id}/>
+          <div style={{ flex:1, minWidth:280 }}>
+            <div style={{
+              fontSize:11, fontWeight:800, letterSpacing:'0.14em',
+              textTransform:'uppercase', color:planM.color, marginBottom:10,
+            }}>
+              {planM.label} · {subStatus}
+            </div>
+            <h1 style={{
+              fontSize:30, fontWeight:800, color:'var(--t1)',
+              letterSpacing:'-0.025em', lineHeight:1.1, marginBottom:14,
+            }}>
+              {displayName}
+            </h1>
+            <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap', marginBottom:14 }}>
+              <span className={`badge ${planM.badge}`} style={{ fontSize:12, padding:'5px 13px', fontWeight:700 }}>{planM.label}</span>
+              <span className={`badge ${STATUS_META[subStatus] || 'badge-muted'}`} style={{ fontSize:11, padding:'4px 11px' }}>{subStatus}</span>
+              <span className={`badge ${acctM.badge}`} style={{ fontSize:11, padding:'4px 11px' }}>{admin?.account_status || 'active'}</span>
+              <span className={`badge ${utM.badge}`} style={{ display:'inline-flex', alignItems:'center', gap:5, fontSize:11, padding:'4px 11px' }}>
+                {utM.icon} {utM.label}
               </span>
-            )}
+              {admin?.discount_percent > 0 && (
+                <span className="badge badge-amber" style={{ fontSize:11, padding:'4px 11px' }}>
+                  ⚡ {admin.discount_percent}% off
+                </span>
+              )}
+            </div>
+            <div style={{
+              display:'flex', gap:20, flexWrap:'wrap',
+              fontSize:13, color:'var(--t3)',
+              alignItems:'center',
+            }}>
+              <span style={{ display:'flex', alignItems:'center', gap:6 }}>
+                <Mail size={13}/> {user?.email} <CopyBtn text={user?.email || ''}/>
+              </span>
+              <span style={{ display:'flex', alignItems:'center', gap:6, fontFamily:'ui-monospace,monospace', fontSize:12 }}>
+                <Hash size={12}/> {user?.id?.slice(0,8)}… <CopyBtn text={user?.id || ''}/>
+              </span>
+              {profile?.stripe_customer_id && (
+                <span style={{ display:'flex', alignItems:'center', gap:6, fontFamily:'ui-monospace,monospace', fontSize:12 }}>
+                  Stripe: {profile.stripe_customer_id.slice(0,16)}… <CopyBtn text={profile.stripe_customer_id}/>
+                </span>
+              )}
+            </div>
           </div>
+
+          <button onClick={load} className="btn btn-secondary btn-sm" style={{
+            minHeight:38, flexShrink:0, padding:'8px 16px', fontSize:13,
+          }}>
+            <RefreshCw size={13}/> Refresh
+          </button>
         </div>
 
-        <div style={{ display:'flex', gap:12, flexWrap:'wrap', flexShrink:0 }}>
+        {/* Three big metric tiles below the identity row */}
+        <div style={{
+          display:'grid',
+          gridTemplateColumns:'repeat(auto-fit, minmax(180px, 1fr))',
+          gap:14,
+          marginTop:24,
+          paddingTop:24,
+          borderTop:'1px solid var(--border)',
+        }}>
           {[
-            { label:'Credits',   value: admin?.credits ?? 0,                   color:'var(--amber)'  },
-            { label:'Bonus Mo',  value: admin?.subscription_bonus_months ?? 0, color:'var(--acc)'    },
-            { label:'Packages',  value: packageHistory.length,                  color:'var(--purple)' },
+            { label:'Credits',         value: admin?.credits ?? 0,                   color:'var(--amber)',  bg:'var(--amber-bg)'  },
+            { label:'Bonus months',    value: admin?.subscription_bonus_months ?? 0, color:'var(--acc)',    bg:'var(--acc-bg)'    },
+            { label:'Packages granted',value: packageHistory.length,                 color:'var(--purple)', bg:'var(--purple-bg)' },
           ].map(s => (
-            <div key={s.label} style={{ textAlign:'center', background:'var(--surface)', border:'1px solid var(--border)', borderRadius:10, padding:'10px 18px', minWidth:72 }}>
-              <div style={{ fontSize:22, fontWeight:800, color:s.color, fontVariantNumeric:'tabular-nums' }}>{s.value}</div>
-              <div style={{ fontSize:10, color:'var(--t4)', marginTop:2, textTransform:'uppercase', letterSpacing:'0.06em' }}>{s.label}</div>
+            <div key={s.label} style={{
+              padding:'18px 20px',
+              borderRadius:'var(--r-lg)',
+              background:s.bg,
+              border:`1px solid ${s.color}33`,
+            }}>
+              <div style={{
+                fontSize:11, fontWeight:700, letterSpacing:'0.12em',
+                textTransform:'uppercase', color:s.color, marginBottom:8,
+              }}>{s.label}</div>
+              <div style={{
+                fontSize:30, fontWeight:800, color:'var(--t1)',
+                letterSpacing:'-0.025em', lineHeight:1, fontVariantNumeric:'tabular-nums',
+              }}>{s.value}</div>
             </div>
           ))}
         </div>
-        <button onClick={load} style={{ background:'var(--surface)', border:'1px solid var(--border)', color:'var(--t3)', borderRadius:8, padding:'7px 12px', cursor:'pointer', display:'flex', alignItems:'center', gap:6, fontSize:12, flexShrink:0 }}>
-          <RefreshCw size={12}/> Refresh
-        </button>
       </div>
 
-      {/* Tabs */}
-      <div style={{ display:'flex', gap:2, marginBottom:20, background:'var(--surface)', border:'1px solid var(--border)', borderRadius:12, padding:5, width:'fit-content', flexWrap:'wrap' }}>
-        {TABS.map(t => (
-          <button key={t.key} onClick={() => setActiveTab(t.key)}
-            style={{
-              display:'flex', alignItems:'center', gap:6,
-              padding:'7px 14px', borderRadius:8, border:'none', cursor:'pointer', fontSize:13,
-              background: activeTab === t.key ? 'var(--acc)' : 'transparent',
-              color: activeTab === t.key ? '#fff' : 'var(--t3)',
-              fontWeight: activeTab === t.key ? 700 : 500,
-              transition:'all 0.15s',
-            }}>{t.icon} {t.label}</button>
-        ))}
+      {/* Tabs — pill-style, generous */}
+      <div style={{
+        display:'flex', gap:6, marginBottom:24,
+        background:'var(--surface)',
+        border:'1px solid var(--border)',
+        borderRadius:'var(--r-xl)',
+        padding:6,
+        width:'fit-content', maxWidth:'100%',
+        flexWrap:'wrap',
+        boxShadow:'var(--shadow-sm)',
+      }}>
+        {TABS.map(t => {
+          const on = activeTab === t.key
+          return (
+            <button key={t.key} onClick={() => setActiveTab(t.key)}
+              style={{
+                display:'flex', alignItems:'center', gap:8,
+                padding:'10px 18px', borderRadius:'var(--r-lg)',
+                border:on ? '1px solid var(--acc-border)' : '1px solid transparent',
+                cursor:'pointer', fontSize:14,
+                background: on
+                  ? 'linear-gradient(180deg, var(--acc-bg), color-mix(in srgb, var(--acc) 8%, transparent))'
+                  : 'transparent',
+                color: on ? 'var(--acc)' : 'var(--t3)',
+                fontWeight: on ? 700 : 500,
+                letterSpacing:'-0.005em',
+                boxShadow: on ? '0 0 12px -4px var(--acc)' : 'none',
+                transition:'all 160ms cubic-bezier(0.16,1,0.3,1)',
+              }}>{t.icon} {t.label}</button>
+          )
+        })}
       </div>
 
       {/* OVERVIEW */}

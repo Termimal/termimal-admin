@@ -2,7 +2,8 @@
 export const dynamic = 'force-dynamic'
 
 import { useEffect, useState } from 'react'
-import { Search, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react'
+import { Search, ChevronLeft, ChevronRight, RefreshCw, CreditCard } from 'lucide-react'
+import { HeroCard } from '@/components/admin/PageChrome'
 import Link from 'next/link'
 
 const PLAN_BADGE: Record<string,string> = { free:'badge-muted', starter:'badge-blue', pro:'badge-acc', premium:'badge-purple' }
@@ -40,6 +41,14 @@ export default function AdminSubscriptionsPage() {
 
   return (
     <div>
+      <HeroCard
+        accent='acc'
+        icon={<CreditCard size={28} />}
+        eyebrow='Recurring'
+        title='Subscriptions'
+        subtitle='Active Stripe subscriptions, trial windows, billing intervals, and renewals.'
+      />
+
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 24 }}>
         <div>
           <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--t1)', marginBottom: 4 }}>Subscriptions</h1>

@@ -15,11 +15,9 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import {
-  ListTodo, Plus, Search, Filter, X, Trash2, ChevronDown,
-  AlertCircle, Calendar, User as UserIcon, Tag,
-} from 'lucide-react'
+import { ListTodo, Plus, Search, Filter, X, Trash2, ChevronDown, AlertCircle, Calendar, User as UserIcon, Tag } from 'lucide-react'
 
+import { HeroCard } from '@/components/admin/PageChrome'
 interface AdminItem {
   id: string
   title: string
@@ -204,6 +202,14 @@ export default function AdminItemsPage() {
 
   return (
     <div style={{ maxWidth: 1400 }}>
+      <HeroCard
+        accent='purple'
+        icon={<ListTodo size={28} />}
+        eyebrow='Workflow'
+        title='Open items'
+        subtitle='Tasks, tickets, and roadmap entries — kanban view of admin_items.'
+      />
+
       <div style={{ marginBottom: 24 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
           <ListTodo size={16} style={{ color: 'var(--acc)' }} />

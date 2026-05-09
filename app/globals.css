@@ -257,29 +257,61 @@ img, picture, video, canvas, svg { display: block; max-width: 100%; }
   .badge-acc { background: var(--acc-bg); color: var(--acc); border: 1px solid var(--acc-border); }
   .badge-muted { background: var(--surface2); color: var(--t3); }
 
-  .table-wrap { overflow-x: auto; border-radius: var(--r-xl); border: 1px solid var(--border); }
-  .table-root { width: 100%; font-size: 0.95rem; border-collapse: collapse; }
-  .table-root thead {
+  .table-wrap {
+    overflow-x: auto;
+    border-radius: var(--r-xl);
+    border: 1px solid var(--border);
     background: linear-gradient(180deg, var(--surface2) 0%, var(--surface) 100%);
+    box-shadow: var(--shadow-sm);
+  }
+  .table-root {
+    width: 100%;
+    font-size: 0.95rem;
+    border-collapse: collapse;
+    border-spacing: 0;
+  }
+  .table-root thead {
+    background: linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.02) 100%);
+    backdrop-filter: blur(8px);
   }
   .table-root th {
-    padding: 1.25rem 1.75rem;
+    padding: 1.5rem 1.75rem;
     text-align: left;
     font-size: 0.7rem;
     font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.14em;
     color: var(--t4);
     border-bottom: 1px solid var(--border);
+    background: transparent;
+    white-space: nowrap;
   }
+  .table-root th:first-child { padding-left: 2rem; }
+  .table-root th:last-child  { padding-right: 2rem; }
   .table-root td {
     padding: 1.4rem 1.75rem;
     border-top: 1px solid var(--border);
     color: var(--t2);
+    font-size: 0.95rem;
+    line-height: 1.5;
   }
-  .table-root tbody tr { transition: background var(--ease); }
-  .table-root tbody tr:hover { background: var(--surface); }
+  .table-root td:first-child { padding-left: 2rem; }
+  .table-root td:last-child  { padding-right: 2rem; }
+  .table-root tbody tr {
+    transition: background var(--ease), transform var(--ease);
+  }
+  .table-root tbody tr:hover {
+    background: linear-gradient(90deg, var(--surface2) 0%, transparent 100%);
+  }
+  .table-root tbody tr:hover td:first-child {
+    box-shadow: inset 3px 0 0 var(--acc);
+  }
   .table-root tbody tr:last-child td { border-bottom: none; }
+
+  /* Numeric / monospaced columns inside tables */
+  .table-root td.num,
+  .table-root .num { font-variant-numeric: tabular-nums; font-family: var(--font-mono), ui-monospace, Menlo, monospace; }
+  .table-root td .small { font-size: 12px; color: var(--t4); }
 
   .nav-item {
     display: flex;

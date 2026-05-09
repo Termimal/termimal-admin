@@ -3,8 +3,9 @@ export const dynamic = 'force-dynamic'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Plus, Trash2, Edit2, X, Save } from 'lucide-react'
+import { Plus, Trash2, Edit2, X, Save, HelpCircle } from 'lucide-react'
 
+import { HeroCard } from '@/components/admin/PageChrome'
 type FAQ = {
   id: string
   question: string
@@ -73,6 +74,14 @@ export default function FAQEditor() {
 
   return (
     <div className="max-w-6xl">
+      <HeroCard
+        accent='blue'
+        icon={<HelpCircle size={28} />}
+        eyebrow='Support'
+        title='FAQs'
+        subtitle='Frequently asked questions surfaced on /help and the support widget.'
+      />
+
       <div className="mb-8">
         <h1 className="text-2xl font-bold tracking-tight mb-1">FAQ Management</h1>
         <p className="text-sm" style={{ color: 'var(--t3)' }}>Add, update, or remove Frequently Asked Questions from your site.</p>

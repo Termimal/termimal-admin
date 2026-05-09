@@ -1,7 +1,8 @@
 'use client'
 export const dynamic = 'force-dynamic'
 import { useEffect, useState } from 'react'
-import { Plus, Bell, Send, X, Trash2 } from 'lucide-react'
+import { Plus, Bell, Send, X, Trash2, Megaphone } from 'lucide-react'
+import { HeroCard } from '@/components/admin/PageChrome'
 type Ann = { id?:string; title:string; content:string; type:string; target:string; status?:string; created_at?:string }
 const empty=():Ann=>({title:'',content:'',type:'announcement',target:'all'})
 const TYPE_CLS: Record<string,string> = { announcement:'badge-acc', email:'badge-blue', alert:'badge-red' }
@@ -17,6 +18,14 @@ export default function AnnouncementsPage() {
   const del=async(id:string)=>{if(!confirm('Delete?'))return;await fetch('/api/admin/announcements',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})});await load()}
   return (
     <div style={{display:'flex',flexDirection:'column',gap:20,maxWidth:820}}>
+      <HeroCard
+        accent='amber'
+        icon={<Megaphone size={28} />}
+        eyebrow='Site-wide'
+        title='Announcements'
+        subtitle='Banners and announcements shown to all customers across the marketing site.'
+      />
+
       <div className="page-header">
         <div><div className="page-title">Announcements</div><div className="page-sub">Broadcast messages to users</div></div>
         <div className="page-actions"><button className="btn btn-primary btn-sm" onClick={()=>setEditing(empty())}><Plus size={13}/>New</button></div>
