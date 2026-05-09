@@ -34,8 +34,55 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
+// In-memory rate-limit buckets — per email + per IP. Resets when the
+// isolate restarts; intentionally aggressive ceilings so a brute-force
+// is throttled even if the attacker hits multiple isolates.
+const EMAIL_BUCKETS = new Map<string, number[]>() // key: email -> ts[]
+const IP_BUCKETS    = new Map<string, number[]>() // key: ip    -> ts[]
+const FAIL_BUCKETS  = new Map<string, number[]>() // key: email -> ts[] of FAILED attempts
+const EMAIL_MAX_PER_HOUR = 10
+const IP_MAX_PER_MIN     = 5
+const FAIL_MAX_PER_HOUR  = 5
+const HOUR_MS = 60 * 60 * 1000
+const MIN_MS  = 60 * 1000
+function pruneAndCount(map: Map<string, number[]>, key: string, windowMs: number): number {
+  const now = Date.now()
+  const arr = map.get(key) ?? []
+  while (arr.length && arr[0] < now - windowMs) arr.shift()
+  map.set(key, arr)
+  return arr.length
+}
+function record(map: Map<string, number[]>, key: string) {
+  const arr = map.get(key) ?? []
+  arr.push(Date.now())
+  map.set(key, arr)
+}
+function clientIp(request: Request): string {
+  return request.headers.get('cf-connecting-ip')
+      ?? request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+      ?? 'unknown'
+}
+
 export async function POST(request: Request) {
   try {
+    // ── Origin / Sec-Fetch-Site enforcement ─────────────────────
+    // Reject cross-site POSTs to close the login-CSRF surface that
+    // could otherwise be used to log a victim's browser into an
+    // attacker's account (then chained with admin XSS).
+    const sfs = request.headers.get('sec-fetch-site')
+    if (sfs && sfs !== 'same-origin' && sfs !== 'same-site' && sfs !== 'none') {
+      return NextResponse.json({ error: 'cross-site requests rejected' }, { status: 403 })
+    }
+    const origin = request.headers.get('origin')
+    const host   = request.headers.get('host')
+    if (origin && host) {
+      try {
+        const u = new URL(origin)
+        if (u.host !== host) {
+          return NextResponse.json({ error: 'origin mismatch' }, { status: 403 })
+        }
+      } catch { /* malformed origin — treat as no origin, fall through */ }
+    }
     // Accept either JSON (from React) or form-encoded body (from a
     // browser-native form submit when React fails to hydrate, e.g.
     // because a Chrome extension breaks the page bundle). The form
@@ -68,6 +115,24 @@ export async function POST(request: Request) {
     if (!email || !password) {
       return respondError('email and password required', 400)
     }
+
+    // ── Rate-limit gate ─────────────────────────────────────────
+    // Per-IP cap (5/min/IP) catches scripted brute-force from a
+    // single source. Per-email cap (10/hour) catches credential
+    // stuffing across distributed sources targeting one account.
+    // Per-email FAIL cap (5/hour) is the real teeth — throttles
+    // even slow distributed guessing once 5 wrong passwords land.
+    const ip       = clientIp(request)
+    const lcEmail  = email.toLowerCase().trim()
+    const ipCount      = pruneAndCount(IP_BUCKETS,    ip,      MIN_MS)
+    const emailCount   = pruneAndCount(EMAIL_BUCKETS, lcEmail, HOUR_MS)
+    const failCount    = pruneAndCount(FAIL_BUCKETS,  lcEmail, HOUR_MS)
+    if (ipCount    >= IP_MAX_PER_MIN)     return respondError(`too many login attempts from this IP. Try again in 1 minute.`,    429)
+    if (emailCount >= EMAIL_MAX_PER_HOUR) return respondError(`too many login attempts for this email. Try again in 1 hour.`,   429)
+    if (failCount  >= FAIL_MAX_PER_HOUR)  return respondError(`account temporarily locked after too many failed attempts. Try again in 1 hour, or use the "Forgot password" link to reset.`, 429)
+    record(IP_BUCKETS,    ip)
+    record(EMAIL_BUCKETS, lcEmail)
+
     const body = { email, password }
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -100,8 +165,11 @@ export async function POST(request: Request) {
     }
 
     if (!tokenRes.ok || !tokenJson.access_token) {
+      // Record FAILED attempt — feeds the per-email lock-out above.
+      record(FAIL_BUCKETS, lcEmail)
       return respondError(
-        tokenJson.error_description || tokenJson.msg || tokenJson.error || 'invalid email or password',
+        // Generic message: never confirm whether the email exists.
+        'invalid email or password',
         tokenRes.status === 400 ? 401 : tokenRes.status,
       )
     }

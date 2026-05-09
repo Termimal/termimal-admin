@@ -33,7 +33,8 @@ export async function POST(
       return NextResponse.json({ error: 'invoice_id or charge_id required' }, { status: 400 })
     }
 
-    let chargeId = body.charge_id
+    let chargeId   = body.charge_id
+    let chargeRow: Stripe.Charge | null = null
     if (!chargeId && body.invoice_id) {
       // Resolve invoice → payment_intent → charge.
       const invoice = await stripe.invoices.retrieve(body.invoice_id, { expand: ['payment_intent'] })
@@ -41,6 +42,24 @@ export async function POST(
       const ch = pi?.latest_charge
       chargeId = typeof ch === 'string' ? ch : (ch as Stripe.Charge | null)?.id
       if (!chargeId) return NextResponse.json({ error: 'invoice has no associated charge' }, { status: 422 })
+    }
+    // SECURITY (Critical #3 from audit): the request can hand us any
+    // ch_… or in_… in the body. Without this check, a support-tier
+    // admin with billing.refund could refund any Stripe charge in
+    // the account, not just charges belonging to the user in the URL.
+    // Look the charge up, then assert customer === profile.stripe_customer_id.
+    chargeRow = await stripe.charges.retrieve(chargeId!)
+    const chargeCustomer = typeof chargeRow.customer === 'string' ? chargeRow.customer : chargeRow.customer?.id
+    {
+      const adm = serviceClient()
+      const { data: prof } = await adm.from('profiles').select('stripe_customer_id').eq('id', userId).maybeSingle<{ stripe_customer_id: string | null }>()
+      const expectedCustomer = prof?.stripe_customer_id
+      if (!expectedCustomer || !chargeCustomer || chargeCustomer !== expectedCustomer) {
+        return NextResponse.json({
+          error: 'charge does not belong to this user',
+          detail: { user_stripe_customer: expectedCustomer, charge_customer: chargeCustomer },
+        }, { status: 403 })
+      }
     }
 
     const refund = await stripe.refunds.create({

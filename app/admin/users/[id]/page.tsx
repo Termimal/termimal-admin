@@ -12,6 +12,7 @@ import {
   Receipt, Pin, MessageSquare, Trash2, Skull, Highlighter, Bold, Italic,
   Eraser, BadgeCheck, Globe, Clock, Calendar, KeyRound, AtSign, IdCard,
 } from 'lucide-react'
+import { Field } from '@/components/admin/PageChrome'
 
 const PLANS = ['free', 'starter', 'pro', 'premium'] as const
 const PLAN_META: Record<string, { color: string; label: string; badge: string }> = {
@@ -971,224 +972,212 @@ export default function AdminUserDetailPage() {
         </div>
       )}
 
-      {/* SUBSCRIPTION */}
+      {/* SUBSCRIPTION
+          ── Plan + Discount side-by-side, then full-width
+              Grant-period / Refund / Override-history sections.
+          All cards use card-premium and the new pill-button family. */}
       {activeTab === 'subscription' && (
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
-          <div className="card card-p">
-            <SectionTitle icon={<Zap size={15}/>} title="Set Plan Directly" sub="Admin override — bypasses Stripe billing" />
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:14 }}>
-              {PLANS.map(p => (
-                <button key={p} onClick={() => setSelPlan(p)}
-                  style={{
-                    padding:'10px 14px', borderRadius:8, cursor:'pointer', textAlign:'left', fontSize:13, fontWeight:600,
-                    background: selPlan === p ? `${PLAN_META[p].color}18` : 'var(--surface)',
-                    border:`1.5px solid ${selPlan === p ? PLAN_META[p].color + '66' : 'var(--border)'}`,
-                    color: selPlan === p ? PLAN_META[p].color : 'var(--t2)',
-                    transition:'all 0.15s',
-                  }}>{p.charAt(0).toUpperCase() + p.slice(1)}</button>
-              ))}
-            </div>
-            <button onClick={changePlan} disabled={planSaving} className="btn btn-primary" style={{ width:'100%' }}>
-              {planSaving ? 'Applying…' : `Apply "${selPlan}" plan`}
-            </button>
-          </div>
+        <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
 
-          <div className="card card-p">
-            <SectionTitle icon={<Star size={15}/>} title="Subscription Discount" sub="% off their next billing cycle" />
-            <label className="label">Discount %</label>
-            <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:10 }}>
-              {DISCOUNT_PRESETS.map(p => (
-                <button key={p} onClick={() => setDiscPct(String(p))}
-                  style={{
-                    padding:'4px 10px', borderRadius:6, border:'1px solid', cursor:'pointer', fontSize:12, fontWeight:600,
-                    background: discPct === String(p) ? 'var(--amber-bg)' : 'var(--surface)',
-                    borderColor: discPct === String(p) ? 'rgba(251,191,36,0.3)' : 'var(--border)',
-                    color: discPct === String(p) ? 'var(--amber)' : 'var(--t3)',
-                  }}>{p}%</button>
-              ))}
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(360px, 1fr))', gap:16 }}>
+            {/* Set plan directly */}
+            <div className="card-premium" style={{ padding:'24px 28px' }}>
+              <SectionTitle icon={<Zap size={15}/>} title="Set Plan Directly" sub="Admin override — bypasses Stripe billing" />
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(2, minmax(0, 1fr))', gap:10, marginBottom:18 }}>
+                {PLANS.map(p => {
+                  const m = PLAN_META[p]
+                  const on = selPlan === p
+                  return (
+                    <button key={p} onClick={() => setSelPlan(p)}
+                      style={{
+                        padding:'14px 18px', borderRadius:14, cursor:'pointer', textAlign:'left',
+                        background: on ? `${m.color}1A` : 'var(--surface)',
+                        border: `1px solid ${on ? m.color + '66' : 'var(--border)'}`,
+                        boxShadow: on ? `0 0 0 3px ${m.color}22` : 'none',
+                        transition:'all 160ms',
+                        display:'flex', alignItems:'center', gap:12,
+                      }}>
+                      <div style={{
+                        width:36, height:36, borderRadius:11,
+                        background: on ? `${m.color}22` : 'var(--surface2)',
+                        border: `1px solid ${on ? m.color + '55' : 'var(--border)'}`,
+                        color: on ? m.color : 'var(--t3)',
+                        display:'inline-flex', alignItems:'center', justifyContent:'center',
+                        flexShrink:0,
+                      }}>
+                        {p === 'premium' ? <Crown size={16}/>
+                         : p === 'pro'   ? <Star  size={16}/>
+                         : p === 'starter' ? <Zap size={16}/>
+                         :                   <UserCheck size={16}/>}
+                      </div>
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{
+                          fontSize:14, fontWeight:700,
+                          color: on ? m.color : 'var(--t1)',
+                          letterSpacing:'-0.01em',
+                        }}>
+                          {p.charAt(0).toUpperCase() + p.slice(1)}
+                        </div>
+                        <div style={{ fontSize:11, color:'var(--t4)', marginTop:2 }}>
+                          {p === currentPlan ? 'Current plan' : `Switch to ${p}`}
+                        </div>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+              <button onClick={changePlan} disabled={planSaving} className="btn btn-primary" style={{ width:'100%', minHeight:42 }}>
+                {planSaving ? 'Applying…' : `Apply "${selPlan}" plan`}
+              </button>
             </div>
-            <input className="input" style={{ marginBottom:10 }} type="number" value={discPct} onChange={e => setDiscPct(e.target.value)} placeholder="Custom %" />
-            <label className="label">Reason</label>
-            <input className="input" style={{ marginBottom:10 }} value={discReason} onChange={e => setDiscReason(e.target.value)} placeholder="Loyalty, support credit, promo…" />
-            <label className="label">Expires (optional)</label>
-            <input className="input" style={{ marginBottom:14 }} type="date" value={discExpiry} onChange={e => setDiscExpiry(e.target.value)} />
-            <button onClick={applyDiscount} disabled={discSaving} className="btn btn-primary" style={{ width:'100%' }}>
-              {discSaving ? 'Applying…' : 'Set Discount'}
-            </button>
-          </div>
 
-          <div className="card card-p" style={{ gridColumn:'1 / -1' }}>
-            <SectionTitle icon={<Gift size={15}/>} title="Grant Free Subscription Period" sub="Adds bonus months on top of their current subscription — 18 packages available" />
-            {subGroups.map(group => {
-              const pkgs = SUB_PACKAGES.filter(p => p.group === group)
-              return (
-                <div key={group} style={{ marginBottom:16 }}>
-                  <div style={{ fontSize:11, fontWeight:700, color:'var(--t4)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:8 }}>{group}</div>
-                  <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
-                    {pkgs.map(pkg => (
-                      <button key={pkg.id} onClick={() => setSelSubPkg(pkg.id === selSubPkg ? '' : pkg.id)}
+            {/* Subscription discount */}
+            <div className="card-premium" style={{ padding:'24px 28px' }}>
+              <SectionTitle icon={<Star size={15}/>} title="Subscription Discount" sub="% off their next billing cycle" />
+              <Field label="Quick presets">
+                <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+                  {DISCOUNT_PRESETS.map(p => {
+                    const on = discPct === String(p)
+                    return (
+                      <button key={p} onClick={() => setDiscPct(String(p))}
                         style={{
-                          padding:'7px 14px', borderRadius:8, border:'1.5px solid', cursor:'pointer', fontSize:12, fontWeight:600,
-                          background: selSubPkg === pkg.id ? pkg.color + '18' : 'var(--surface)',
-                          borderColor: selSubPkg === pkg.id ? pkg.color + '66' : 'var(--border)',
-                          color: selSubPkg === pkg.id ? pkg.color : 'var(--t3)',
-                          transition:'all 0.12s',
-                        }}>{pkg.label}</button>
-                    ))}
+                          padding:'8px 14px', borderRadius:999, border:'1px solid', cursor:'pointer', fontSize:12.5, fontWeight:600,
+                          background: on ? 'var(--amber-bg)' : 'var(--surface)',
+                          borderColor: on ? 'rgba(251,191,36,0.4)' : 'var(--border)',
+                          color: on ? 'var(--amber)' : 'var(--t3)',
+                          transition:'all 140ms',
+                        }}>{p}%</button>
+                    )
+                  })}
+                </div>
+              </Field>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginTop:14 }}>
+                <Field label="Custom %">
+                  <input className="input" type="number" value={discPct} onChange={e => setDiscPct(e.target.value)} placeholder="0-100" />
+                </Field>
+                <Field label="Expires (optional)">
+                  <input className="input" type="date" value={discExpiry} onChange={e => setDiscExpiry(e.target.value)} />
+                </Field>
+              </div>
+              <div style={{ marginTop:12 }}>
+                <Field label="Reason" hint="Audited — visible to other admins.">
+                  <input className="input" value={discReason} onChange={e => setDiscReason(e.target.value)} placeholder="Loyalty, support credit, promo…" />
+                </Field>
+              </div>
+              <button onClick={applyDiscount} disabled={discSaving} className="btn btn-primary" style={{ width:'100%', marginTop:18, minHeight:42 }}>
+                {discSaving ? 'Applying…' : 'Set discount'}
+              </button>
+            </div>
+          </div>
+
+          {/* Grant subscription period */}
+          <div className="card-premium" style={{ padding:'24px 28px' }}>
+            <SectionTitle icon={<Gift size={15}/>} title="Grant Free Subscription Period" sub={`${SUB_PACKAGES.length} packages available — adds bonus months on top of the current subscription`} />
+            <div style={{ display:'flex', flexDirection:'column', gap:18 }}>
+              {subGroups.map(group => {
+                const pkgs = SUB_PACKAGES.filter(p => p.group === group)
+                return (
+                  <div key={group}>
+                    <div style={{
+                      fontSize:10.5, fontWeight:800, color:'var(--t4)',
+                      textTransform:'uppercase', letterSpacing:'0.13em', marginBottom:10,
+                      display:'flex', alignItems:'center', gap:8,
+                    }}>
+                      <span>{group}</span>
+                      <span style={{ flex:1, height:1, background:'var(--border)', opacity:0.5 }} />
+                      <span style={{ color:'var(--t3)', letterSpacing:'0.08em' }}>{pkgs.length} {pkgs.length === 1 ? 'package' : 'packages'}</span>
+                    </div>
+                    <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+                      {pkgs.map(pkg => {
+                        const on = selSubPkg === pkg.id
+                        return (
+                          <button key={pkg.id} onClick={() => setSelSubPkg(pkg.id === selSubPkg ? '' : pkg.id)}
+                            style={{
+                              padding:'10px 16px', borderRadius:999, border:'1px solid', cursor:'pointer',
+                              fontSize:12.5, fontWeight:600,
+                              background: on ? pkg.color + '1A' : 'var(--surface)',
+                              borderColor: on ? pkg.color + '66' : 'var(--border)',
+                              color: on ? pkg.color : 'var(--t3)',
+                              boxShadow: on ? `0 0 0 3px ${pkg.color}22` : 'none',
+                              transition:'all 140ms',
+                            }}>{pkg.label}</button>
+                        )
+                      })}
+                    </div>
                   </div>
-                </div>
-              )
-            })}
+                )
+              })}
+            </div>
             {selSubPkg && (
-              <div style={{ marginTop:8, display:'flex', gap:10, alignItems:'flex-end' }}>
-                <div style={{ flex:1 }}>
-                  <label className="label">Note (optional)</label>
-                  <input className="input" value={subPkgNote} onChange={e => setSubPkgNote(e.target.value)} placeholder="e.g. 'Support gesture', 'Promo LAUNCH2026'" />
+              <div style={{
+                marginTop:20, padding:'18px 20px', borderRadius:14,
+                background:'var(--bg2)', border:'1px solid var(--border)',
+                display:'flex', gap:14, alignItems:'flex-end', flexWrap:'wrap',
+              }}>
+                <div style={{ flex:1, minWidth:240 }}>
+                  <Field label="Note (optional)" hint="Recorded in audit log + admin notes.">
+                    <input className="input" value={subPkgNote} onChange={e => setSubPkgNote(e.target.value)} placeholder="e.g. 'Support gesture', 'Promo LAUNCH2026'" />
+                  </Field>
                 </div>
-                <button onClick={grantSubPackage} disabled={subPkgSaving} className="btn btn-primary" style={{ flexShrink:0 }}>
-                  {subPkgSaving ? 'Granting…' : `✓ Grant ${SUB_PACKAGES.find(p => p.id === selSubPkg)?.label}`}
+                <button onClick={grantSubPackage} disabled={subPkgSaving} className="btn btn-primary" style={{ flexShrink:0, minHeight:42 }}>
+                  {subPkgSaving ? 'Granting…' : `Grant ${SUB_PACKAGES.find(p => p.id === selSubPkg)?.label}`}
                 </button>
               </div>
             )}
           </div>
 
-          <div className="card card-p" style={{ gridColumn:'1 / -1' }}>
-            <SectionTitle icon={<Receipt size={15}/>} title="Issue refund" sub="Refunds an invoice or charge directly through Stripe — also writes a billing_event entry to the user's timeline." />
-            <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr 1fr auto', gap:10, alignItems:'flex-end' }}>
-              <div>
-                <label className="label">Invoice ID (in_…) or Charge ID (ch_…)</label>
-                <input className="input" value={refundInvoiceOrCharge} onChange={e => setRefundInvoiceOrCharge(e.target.value)} placeholder="in_1Q… or ch_3Q…" style={{ fontFamily:'monospace', fontSize:12 }} />
-              </div>
-              <div>
-                <label className="label">Amount (USD, blank = full)</label>
-                <input className="input" type="number" step="0.01" min="0" value={refundAmount} onChange={e => setRefundAmount(e.target.value)} placeholder="49.00" />
-              </div>
-              <div>
-                <label className="label">Reason</label>
+          {/* Issue refund */}
+          <div className="card-premium" style={{ padding:'24px 28px' }}>
+            <SectionTitle icon={<Receipt size={15}/>} title="Issue refund" sub="Refunds an invoice or charge through Stripe — also writes a billing_event entry to the user's timeline." />
+            <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr 1fr', gap:12 }}>
+              <Field label="Invoice ID (in_…) or Charge ID (ch_…)">
+                <input className="input" value={refundInvoiceOrCharge} onChange={e => setRefundInvoiceOrCharge(e.target.value)} placeholder="in_1Q… or ch_3Q…" style={{ fontFamily:'ui-monospace,monospace', fontSize:12.5 }} />
+              </Field>
+              <Field label="Amount (€, blank = full)">
+                <input className="input" type="number" step="0.01" min="0" value={refundAmount} onChange={e => setRefundAmount(e.target.value)} placeholder="9.99" />
+              </Field>
+              <Field label="Reason">
                 <select className="input" value={refundReason} onChange={e => setRefundReason(e.target.value)}>
                   <option value="requested_by_customer">Requested by customer</option>
                   <option value="duplicate">Duplicate</option>
                   <option value="fraudulent">Fraudulent</option>
                 </select>
+              </Field>
+            </div>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:18, gap:12 }}>
+              <div style={{ fontSize:11.5, color:'var(--t4)' }}>
+                Tip: paste the invoice ID from the Payments tab — leaving amount blank refunds the remaining balance.
               </div>
-              <button onClick={issueRefund} disabled={refundSaving || !refundInvoiceOrCharge.trim()} className="btn btn-primary">
+              <button onClick={issueRefund} disabled={refundSaving || !refundInvoiceOrCharge.trim()} className="btn btn-primary" style={{ flexShrink:0, minHeight:42 }}>
                 {refundSaving ? 'Refunding…' : 'Issue refund'}
               </button>
             </div>
-            <div style={{ fontSize:11, color:'var(--t4)', marginTop:8 }}>
-              Tip: paste the invoice id from the Payments tab — leaving amount blank refunds the full remaining amount.
-            </div>
           </div>
 
-          <div className="card card-p" style={{ gridColumn:'1 / -1' }}>
-            <SectionTitle icon={<History size={15}/>} title="Override History" />
-            {overrides.length === 0 ? <EmptyState label="No overrides applied yet." /> : (
-              <div className="table-wrap">
-                <table className="table-root">
-                  <thead><tr><th>Type</th><th>Plan</th><th>Months</th><th>Discount</th><th>Reason</th><th>Applied</th></tr></thead>
-                  <tbody>
-                    {overrides.map((o:any) => (
-                      <tr key={o.id}>
-                        <td><span className="badge badge-acc">{o.type}</span></td>
-                        <td>{o.plan ? <span className={`badge ${PLAN_META[o.plan]?.badge || 'badge-muted'}`}>{o.plan}</span> : '—'}</td>
-                        <td style={{ color:'var(--t2)' }}>{o.months || '—'}</td>
-                        <td style={{ color:'var(--t2)' }}>{o.discount_pct ? `${o.discount_pct}%` : '—'}</td>
-                        <td style={{ color:'var(--t3)', fontSize:12 }}>{o.reason || '—'}</td>
-                        <td style={{ color:'var(--t4)', fontSize:12 }}>{new Date(o.created_at).toLocaleDateString()}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+          {/* Override history */}
+          <div className="card-premium" style={{ padding:'24px 28px' }}>
+            <SectionTitle icon={<History size={15}/>} title="Override History" sub={`${overrides.length} ${overrides.length === 1 ? 'override' : 'overrides'} applied`} />
+            {overrides.length === 0 ? (
+              <div style={{ padding:'24px 0', textAlign:'center', color:'var(--t4)', fontSize:13 }}>
+                No overrides applied yet.
               </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* PACKAGES */}
-      {activeTab === 'packages' && (
-        <div className="card card-p">
-          <SectionTitle icon={<Gift size={15}/>} title="Package Grant History" sub={`${packageHistory.length} packages granted to this user`} />
-          {packageHistory.length === 0 ? <EmptyState label="No packages granted yet. Use the Subscription tab to grant packages." /> : (
-            <div className="table-wrap">
-              <table className="table-root">
-                <thead><tr><th>Package</th><th>Plan</th><th>Duration</th><th>Credits</th><th>Note</th><th>Granted</th></tr></thead>
-                <tbody>
-                  {[...packageHistory].reverse().map((h:any, i:number) => (
-                    <tr key={i}>
-                      <td style={{ fontWeight:600, color:'var(--t1)' }}>{h.label || h.packageId}</td>
-                      <td>{h.plan ? <span className={`badge ${PLAN_META[h.plan]?.badge || 'badge-muted'}`}>{h.plan}</span> : '—'}</td>
-                      <td style={{ color:'var(--t2)' }}>{h.months ? `${h.months}mo` : h.days ? `${h.days}d` : '—'}</td>
-                      <td style={{ color:'var(--amber)' }}>{h.credits || '—'}</td>
-                      <td style={{ color:'var(--t4)', fontSize:12 }}>{h.note || '—'}</td>
-                      <td style={{ color:'var(--t4)', fontSize:12 }}>{new Date(h.granted_at).toLocaleDateString()}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* CREDITS */}
-      {activeTab === 'credits' && (
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
-          <div className="card card-p">
-            <SectionTitle icon={<Hash size={15}/>} title="Adjust Credits" sub="Positive to add, negative to deduct" />
-            <label className="label" style={{ marginBottom:8 }}>Quick grant</label>
-            <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginBottom:14 }}>
-              {CREDIT_PACKAGES.map(cp => (
-                <button key={cp.id} onClick={() => { setSelCreditPkg(cp.id); setCreditAmt(String(cp.credits)) }}
-                  style={{
-                    padding:'6px 12px', borderRadius:8, border:'1px solid', cursor:'pointer', fontSize:12, fontWeight:600,
-                    background: selCreditPkg === cp.id ? 'var(--amber-bg)' : 'var(--surface)',
-                    borderColor: selCreditPkg === cp.id ? 'rgba(251,191,36,0.35)' : 'var(--border)',
-                    color: selCreditPkg === cp.id ? 'var(--amber)' : 'var(--t3)',
-                    transition:'all 0.12s',
-                  }}>{cp.label}</button>
-              ))}
-            </div>
-            <label className="label" style={{ marginBottom:8 }}>Quick deduct</label>
-            <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginBottom:14 }}>
-              {[50,100,250,500].map(amt => (
-                <button key={amt} onClick={() => { setSelCreditPkg(`deduct_${amt}`); setCreditAmt(String(-amt)) }}
-                  style={{
-                    padding:'6px 12px', borderRadius:8, border:'1px solid', cursor:'pointer', fontSize:12, fontWeight:600,
-                    background: creditAmt === String(-amt) && selCreditPkg === `deduct_${amt}` ? 'var(--red-bg)' : 'var(--surface)',
-                    borderColor: creditAmt === String(-amt) && selCreditPkg === `deduct_${amt}` ? 'rgba(248,113,113,0.3)' : 'var(--border)',
-                    color: creditAmt === String(-amt) && selCreditPkg === `deduct_${amt}` ? 'var(--red)' : 'var(--t3)',
-                  }}>-{amt}</button>
-              ))}
-            </div>
-            <label className="label">Custom amount</label>
-            <input className="input" style={{ marginBottom:10 }} type="number" value={creditAmt} onChange={e => setCreditAmt(e.target.value)} placeholder="e.g. 200 or -50" />
-            <label className="label">Reason</label>
-            <input className="input" style={{ marginBottom:14 }} value={creditReason} onChange={e => setCreditReason(e.target.value)} placeholder="Refund, promo, support credit…" />
-            <button onClick={applyCredit} disabled={creditSaving} className="btn btn-primary" style={{ width:'100%' }}>
-              {creditSaving ? 'Applying…' : 'Apply Credit Adjustment'}
-            </button>
-          </div>
-          <div className="card card-p">
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:20, paddingBottom:14, borderBottom:'1px solid var(--border)' }}>
-              <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                <span style={{ color:'var(--acc)' }}><History size={15}/></span>
-                <span style={{ fontSize:14, fontWeight:700, color:'var(--t1)' }}>Credit History</span>
-              </div>
-              <div style={{ textAlign:'right' }}>
-                <div style={{ fontSize:22, fontWeight:800, color:'var(--amber)', fontVariantNumeric:'tabular-nums' }}>{admin?.credits ?? 0}</div>
-                <div style={{ fontSize:10, color:'var(--t4)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Balance</div>
-              </div>
-            </div>
-            {creditHistory.length === 0 ? <EmptyState label="No credit history yet." /> : (
-              <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-                {creditHistory.map((c:any) => (
-                  <div key={c.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', background:'var(--surface)', borderRadius:8, padding:'8px 12px', fontSize:13 }}>
-                    <span style={{ color:'var(--t3)', flex:1 }}>{c.reason || 'Adjustment'}</span>
-                    <span style={{ color: c.amount > 0 ? 'var(--green)' : 'var(--red)', fontWeight:700, marginLeft:12, fontVariantNumeric:'tabular-nums' }}>
-                      {c.amount > 0 ? '+' : ''}{c.amount}
-                    </span>
-                    <span style={{ color:'var(--t4)', fontSize:11, marginLeft:12 }}>{new Date(c.created_at).toLocaleDateString()}</span>
+            ) : (
+              <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                {overrides.map((o:any) => (
+                  <div key={o.id} style={{
+                    display:'grid',
+                    gridTemplateColumns:'auto auto auto auto 1fr auto',
+                    gap:14, alignItems:'center',
+                    padding:'12px 16px', borderRadius:12,
+                    background:'var(--surface)', border:'1px solid var(--border)',
+                    fontSize:13,
+                  }}>
+                    <span className="badge badge-acc">{o.type}</span>
+                    {o.plan ? <span className={`badge ${PLAN_META[o.plan]?.badge || 'badge-muted'}`}>{o.plan}</span> : <span style={{ color:'var(--t4)' }}>—</span>}
+                    <span style={{ color:'var(--t2)', fontVariantNumeric:'tabular-nums', minWidth:32 }}>{o.months ? `${o.months}mo` : '—'}</span>
+                    <span style={{ color:'var(--amber)', fontWeight:600, fontVariantNumeric:'tabular-nums', minWidth:42 }}>{o.discount_pct ? `${o.discount_pct}%` : '—'}</span>
+                    <span style={{ color:'var(--t3)', fontSize:12.5, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{o.reason || '—'}</span>
+                    <span style={{ color:'var(--t4)', fontSize:11.5, fontVariantNumeric:'tabular-nums' }}>{new Date(o.created_at).toLocaleDateString()}</span>
                   </div>
                 ))}
               </div>
@@ -1197,42 +1186,229 @@ export default function AdminUserDetailPage() {
         </div>
       )}
 
-      {/* TIMELINE */}
+      {/* PACKAGES — single big card with a tile grid + a slim history. */}
+      {activeTab === 'packages' && (
+        <div className="card-premium" style={{ padding:'24px 28px' }}>
+          <SectionTitle icon={<Gift size={15}/>} title="Package Grant History" sub={`${packageHistory.length} packages granted to this user`} />
+          {packageHistory.length === 0 ? (
+            <div style={{ padding:'32px 0', textAlign:'center', color:'var(--t4)', fontSize:13 }}>
+              No packages granted yet. Use the Subscription tab to grant a starter / pro / premium package.
+            </div>
+          ) : (
+            <div style={{
+              display:'grid',
+              gridTemplateColumns:'repeat(auto-fit, minmax(280px, 1fr))',
+              gap:12,
+            }}>
+              {[...packageHistory].reverse().map((h:any, i:number) => (
+                <div key={i} style={{
+                  padding:'16px 18px', borderRadius:14,
+                  background:'var(--surface)', border:'1px solid var(--border)',
+                  display:'flex', flexDirection:'column', gap:8,
+                }}>
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:10 }}>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontSize:14, fontWeight:700, color:'var(--t1)', letterSpacing:'-0.005em' }}>
+                        {h.label || h.packageId}
+                      </div>
+                      <div style={{ fontSize:11.5, color:'var(--t4)', marginTop:3 }}>
+                        {new Date(h.granted_at).toLocaleString()}
+                      </div>
+                    </div>
+                    {h.plan && <span className={`badge ${PLAN_META[h.plan]?.badge || 'badge-muted'}`}>{h.plan}</span>}
+                  </div>
+                  <div style={{ display:'flex', gap:14, fontSize:12, color:'var(--t3)', flexWrap:'wrap', fontVariantNumeric:'tabular-nums' }}>
+                    {(h.months || h.days) && (
+                      <span style={{ display:'inline-flex', alignItems:'center', gap:4 }}>
+                        <Calendar size={11}/> {h.months ? `${h.months} mo` : `${h.days} d`}
+                      </span>
+                    )}
+                    {h.credits > 0 && (
+                      <span style={{ display:'inline-flex', alignItems:'center', gap:4, color:'var(--amber)' }}>
+                        <Hash size={11}/> {h.credits} credits
+                      </span>
+                    )}
+                  </div>
+                  {h.note && (
+                    <div style={{ fontSize:12, color:'var(--t3)', lineHeight:1.5, paddingTop:8, borderTop:'1px solid var(--border)', marginTop:4 }}>
+                      {h.note}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* CREDITS — Adjust panel + Live balance + History list. */}
+      {activeTab === 'credits' && (
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(360px, 1fr))', gap:16 }}>
+
+          {/* Adjust */}
+          <div className="card-premium" style={{ padding:'24px 28px' }}>
+            <SectionTitle icon={<Hash size={15}/>} title="Adjust Credits" sub="Positive to add, negative to deduct" />
+
+            <Field label="Quick grant">
+              <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+                {CREDIT_PACKAGES.map(cp => {
+                  const on = selCreditPkg === cp.id
+                  return (
+                    <button key={cp.id} onClick={() => { setSelCreditPkg(cp.id); setCreditAmt(String(cp.credits)) }}
+                      style={{
+                        padding:'8px 14px', borderRadius:999, border:'1px solid', cursor:'pointer',
+                        fontSize:12.5, fontWeight:600,
+                        background: on ? 'var(--amber-bg)' : 'var(--surface)',
+                        borderColor: on ? 'rgba(251,191,36,0.4)' : 'var(--border)',
+                        color: on ? 'var(--amber)' : 'var(--t3)',
+                        transition:'all 140ms',
+                      }}>+ {cp.label}</button>
+                  )
+                })}
+              </div>
+            </Field>
+
+            <div style={{ marginTop:14 }}>
+              <Field label="Quick deduct">
+                <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+                  {[50,100,250,500].map(amt => {
+                    const on = creditAmt === String(-amt) && selCreditPkg === `deduct_${amt}`
+                    return (
+                      <button key={amt} onClick={() => { setSelCreditPkg(`deduct_${amt}`); setCreditAmt(String(-amt)) }}
+                        style={{
+                          padding:'8px 14px', borderRadius:999, border:'1px solid', cursor:'pointer',
+                          fontSize:12.5, fontWeight:600,
+                          background: on ? 'var(--red-bg)' : 'var(--surface)',
+                          borderColor: on ? 'rgba(248,113,113,0.4)' : 'var(--border)',
+                          color: on ? 'var(--red)' : 'var(--t3)',
+                          transition:'all 140ms',
+                        }}>− {amt}</button>
+                    )
+                  })}
+                </div>
+              </Field>
+            </div>
+
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginTop:14 }}>
+              <Field label="Custom amount">
+                <input className="input" type="number" value={creditAmt} onChange={e => setCreditAmt(e.target.value)} placeholder="e.g. 200 or -50" />
+              </Field>
+              <Field label="Reason">
+                <input className="input" value={creditReason} onChange={e => setCreditReason(e.target.value)} placeholder="Refund, promo, support…" />
+              </Field>
+            </div>
+            <button onClick={applyCredit} disabled={creditSaving} className="btn btn-primary" style={{ width:'100%', marginTop:18, minHeight:42 }}>
+              {creditSaving ? 'Applying…' : 'Apply credit adjustment'}
+            </button>
+          </div>
+
+          {/* Balance + history */}
+          <div className="card-premium" style={{ padding:'24px 28px' }}>
+            {/* big balance hero */}
+            <div style={{
+              display:'flex', alignItems:'center', justifyContent:'space-between',
+              padding:'18px 20px', borderRadius:14,
+              background:'var(--amber-bg)', border:'1px solid rgba(251,191,36,0.25)',
+              marginBottom:18,
+            }}>
+              <div>
+                <div style={{ fontSize:11, fontWeight:800, letterSpacing:'0.13em', textTransform:'uppercase', color:'var(--amber)', marginBottom:6 }}>Current Balance</div>
+                <div style={{ fontSize:36, fontWeight:800, color:'var(--t1)', letterSpacing:'-0.025em', lineHeight:1, fontVariantNumeric:'tabular-nums' }}>
+                  {admin?.credits ?? 0}
+                  <span style={{ fontSize:14, color:'var(--t4)', fontWeight:600, marginLeft:6 }}>credits</span>
+                </div>
+              </div>
+              <div style={{
+                width:48, height:48, borderRadius:14,
+                background:'rgba(251,191,36,0.16)', border:'1px solid rgba(251,191,36,0.4)',
+                color:'var(--amber)',
+                display:'inline-flex', alignItems:'center', justifyContent:'center',
+              }}>
+                <Hash size={22}/>
+              </div>
+            </div>
+
+            <SectionTitle icon={<History size={15}/>} title="Credit History" sub={`${creditHistory.length} ${creditHistory.length === 1 ? 'entry' : 'entries'}`} />
+            {creditHistory.length === 0 ? (
+              <div style={{ padding:'24px 0', textAlign:'center', color:'var(--t4)', fontSize:13 }}>
+                No credit history yet.
+              </div>
+            ) : (
+              <div style={{ display:'flex', flexDirection:'column', gap:8, maxHeight:380, overflow:'auto' }}>
+                {creditHistory.map((c:any) => (
+                  <div key={c.id} style={{
+                    display:'grid',
+                    gridTemplateColumns:'1fr auto auto',
+                    gap:14, alignItems:'center',
+                    padding:'12px 16px', borderRadius:12,
+                    background:'var(--surface)', border:'1px solid var(--border)',
+                    fontSize:13,
+                  }}>
+                    <span style={{ color:'var(--t2)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{c.reason || 'Adjustment'}</span>
+                    <span style={{
+                      color: c.amount > 0 ? 'var(--green)' : 'var(--red)',
+                      fontWeight:700, fontVariantNumeric:'tabular-nums',
+                    }}>
+                      {c.amount > 0 ? '+' : ''}{c.amount}
+                    </span>
+                    <span style={{ color:'var(--t4)', fontSize:11.5, fontVariantNumeric:'tabular-nums' }}>{new Date(c.created_at).toLocaleDateString()}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* TIMELINE — composer card on top, vertical entry feed below. */}
       {activeTab === 'timeline' && (
-        <div style={{ display:'grid', gridTemplateColumns:'1fr', gap:16 }}>
-          <div className="card card-p">
+        <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+          <div className="card-premium" style={{ padding:'24px 28px' }}>
             <SectionTitle icon={<MessageSquare size={15}/>} title="Add timeline entry" sub="Notes are internal-only. Pin to keep at the top of every admin's view." />
-            <div style={{ display:'grid', gridTemplateColumns:'1fr auto auto auto', gap:10, alignItems:'flex-end' }}>
-              <div>
-                <label className="label">Body</label>
-                <textarea
-                  rows={2}
-                  className="input"
-                  style={{ resize:'vertical', fontFamily:'inherit' }}
-                  value={newNoteBody}
-                  onChange={e => setNewNoteBody(e.target.value)}
-                  placeholder="Customer called about double-charge; refunded one invoice."
-                />
+            <Field label="Body">
+              <textarea
+                rows={3}
+                className="input"
+                style={{ resize:'vertical', fontFamily:'inherit', lineHeight:1.55 }}
+                value={newNoteBody}
+                onChange={e => setNewNoteBody(e.target.value)}
+                placeholder="Customer called about double-charge; refunded one invoice."
+              />
+            </Field>
+            <div style={{ marginTop:14, display:'flex', gap:14, flexWrap:'wrap', alignItems:'flex-end' }}>
+              <div style={{ flex:'0 0 220px', minWidth:200 }}>
+                <Field label="Kind">
+                  <select className="input" value={newNoteKind} onChange={e => setNewNoteKind(e.target.value)}>
+                    {NOTE_KINDS.map(k => <option key={k.value} value={k.value}>{k.label}</option>)}
+                  </select>
+                </Field>
               </div>
-              <div>
-                <label className="label">Kind</label>
-                <select className="input" value={newNoteKind} onChange={e => setNewNoteKind(e.target.value)}>
-                  {NOTE_KINDS.map(k => <option key={k.value} value={k.value}>{k.label}</option>)}
-                </select>
-              </div>
-              <label style={{ display:'flex', alignItems:'center', gap:6, fontSize:12, color:'var(--t3)', cursor:'pointer', paddingBottom:8 }}>
-                <input type="checkbox" checked={newNotePinned} onChange={e => setNewNotePinned(e.target.checked)} />
-                <Pin size={12}/> Pin
+              <label style={{
+                display:'inline-flex', alignItems:'center', gap:8,
+                padding:'10px 14px', borderRadius:999, cursor:'pointer',
+                background: newNotePinned ? 'var(--amber-bg)' : 'var(--surface)',
+                border: `1px solid ${newNotePinned ? 'rgba(251,191,36,0.4)' : 'var(--border)'}`,
+                color: newNotePinned ? 'var(--amber)' : 'var(--t3)',
+                fontSize:12.5, fontWeight:600,
+                transition:'all 140ms',
+              }}>
+                <input type="checkbox" checked={newNotePinned} onChange={e => setNewNotePinned(e.target.checked)} style={{ display:'none' }} />
+                <Pin size={12}/> {newNotePinned ? 'Will pin' : 'Pin to top'}
               </label>
-              <button onClick={addNote} disabled={noteSaving || !newNoteBody.trim()} className="btn btn-primary">
-                {noteSaving ? 'Saving…' : 'Add'}
+              <div style={{ flex:1 }} />
+              <button onClick={addNote} disabled={noteSaving || !newNoteBody.trim()} className="btn btn-primary" style={{ minHeight:42, padding:'0 22px' }}>
+                {noteSaving ? 'Saving…' : 'Add entry'}
               </button>
             </div>
           </div>
 
-          <div className="card card-p">
+          <div className="card-premium" style={{ padding:'24px 28px' }}>
             <SectionTitle icon={<History size={15}/>} title={`Timeline (${timeline.length})`} sub="Notes, billing events, support replies, admin actions — newest first." />
-            {timeline.length === 0 ? <EmptyState label="No timeline entries yet — add a note above or trigger a billing event." /> : (
+            {timeline.length === 0 ? (
+              <div style={{ padding:'32px 0', textAlign:'center', color:'var(--t4)', fontSize:13 }}>
+                No timeline entries yet — add a note above or trigger a billing event.
+              </div>
+            ) : (
               <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
                 {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                 {timeline.map((n: any) => {
@@ -1240,23 +1416,36 @@ export default function AdminUserDetailPage() {
                   return (
                     <div key={n.id} style={{
                       border:'1px solid var(--border)',
-                      borderLeft: `3px solid ${n.pinned ? 'var(--amber)' : meta.color}`,
-                      borderRadius: 8,
-                      padding: '10px 14px',
-                      background: n.pinned ? 'rgba(251,191,36,0.04)' : 'var(--surface)',
+                      borderLeft: `4px solid ${n.pinned ? 'var(--amber)' : meta.color}`,
+                      borderRadius: 14,
+                      padding: '14px 18px',
+                      background: n.pinned ? 'rgba(251,191,36,0.06)' : 'var(--surface)',
                     }}>
-                      <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6, fontSize:11, color:'var(--t4)' }}>
-                        <span style={{ color: meta.color, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.04em' }}>{meta.label}</span>
-                        {n.pinned && <span style={{ color:'var(--amber)', display:'inline-flex', alignItems:'center', gap:3 }}><Pin size={10}/> pinned</span>}
-                        <span style={{ marginLeft:'auto' }}>{new Date(n.created_at).toLocaleString()}</span>
-                        {n.author && <span>· {n.author.full_name || n.author.email}</span>}
+                      <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:8, fontSize:11, color:'var(--t4)', flexWrap:'wrap' }}>
+                        <span style={{
+                          padding:'3px 10px', borderRadius:999,
+                          background:'var(--bg2)', border:`1px solid ${meta.color}33`,
+                          color: meta.color, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', fontSize:9.5,
+                        }}>{meta.label}</span>
+                        {n.pinned && (
+                          <span style={{
+                            padding:'3px 10px', borderRadius:999,
+                            background:'var(--amber-bg)', border:'1px solid rgba(251,191,36,0.3)',
+                            color:'var(--amber)', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', fontSize:9.5,
+                            display:'inline-flex', alignItems:'center', gap:4,
+                          }}>
+                            <Pin size={9}/> pinned
+                          </span>
+                        )}
+                        <span style={{ marginLeft:'auto', color:'var(--t4)' }}>{new Date(n.created_at).toLocaleString()}</span>
+                        {n.author && <span style={{ color:'var(--t4)' }}>· {n.author.full_name || n.author.email}</span>}
                       </div>
-                      <div style={{ fontSize:13, color:'var(--t1)', whiteSpace:'pre-wrap', lineHeight:1.5 }}>{n.body}</div>
-                      <div style={{ display:'flex', gap:6, marginTop:8 }}>
-                        <button onClick={() => togglePinned(n.id, n.pinned)} className="btn btn-ghost btn-sm" style={{ fontSize:11 }}>
+                      <div style={{ fontSize:13.5, color:'var(--t1)', whiteSpace:'pre-wrap', lineHeight:1.6 }}>{n.body}</div>
+                      <div style={{ display:'flex', gap:6, marginTop:12 }}>
+                        <button onClick={() => togglePinned(n.id, n.pinned)} className="btn btn-secondary btn-sm" style={{ fontSize:11 }}>
                           <Pin size={11}/> {n.pinned ? 'Unpin' : 'Pin'}
                         </button>
-                        <button onClick={() => deleteNote(n.id)} className="btn btn-ghost btn-sm" style={{ fontSize:11, color:'var(--red)' }}>
+                        <button onClick={() => deleteNote(n.id)} className="btn btn-secondary btn-sm" style={{ fontSize:11, color:'var(--red)' }}>
                           <Trash2 size={11}/> Delete
                         </button>
                       </div>
@@ -1269,110 +1458,188 @@ export default function AdminUserDetailPage() {
         </div>
       )}
 
-      {/* ACTIVITY */}
+      {/* ACTIVITY — login history as a card list (not a tight table). */}
       {activeTab === 'activity' && (
-        <div className="card card-p">
-          <SectionTitle icon={<LogIn size={15}/>} title="Login History" sub="Last 50 sessions" />
+        <div className="card-premium" style={{ padding:'24px 28px' }}>
+          <SectionTitle icon={<LogIn size={15}/>} title="Login History" sub={`Last ${loginHistory.length || 0} sessions — newest first`} />
           {loginHistory.length === 0 ? (
-            <EmptyState label="No login history. Records appear here once the auth webhook is configured." />
+            <div style={{ padding:'32px 0', textAlign:'center', color:'var(--t4)', fontSize:13 }}>
+              No login history. Records appear here once the auth webhook is configured.
+            </div>
           ) : (
-            <div className="table-wrap">
-              <table className="table-root">
-                <thead><tr><th>Date & Time</th><th>IP Address</th><th>Device</th><th>Location</th><th>User Agent</th></tr></thead>
-                <tbody>
-                  {loginHistory.map((l:any) => (
-                    <tr key={l.id}>
-                      <td style={{ color:'var(--t2)', fontSize:12 }}>{new Date(l.signed_in_at).toLocaleString()}</td>
-                      <td style={{ fontFamily:'monospace', fontSize:12, color:'var(--t3)' }}>{l.ip_address || '—'}</td>
-                      <td style={{ color:'var(--t3)', fontSize:12 }}>{l.device_type || 'desktop'}</td>
-                      <td style={{ color:'var(--t4)', fontSize:12 }}>{[l.city, l.country].filter(Boolean).join(', ') || '—'}</td>
-                      <td style={{ color:'var(--t4)', fontSize:11, maxWidth:220, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{l.user_agent?.slice(0,70) || '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+              {loginHistory.map((l:any) => {
+                const dev = (l.device_type || 'desktop').toLowerCase()
+                const Icon = dev === 'mobile' ? Smartphone : dev === 'tablet' ? Tablet : Monitor
+                return (
+                  <div key={l.id} style={{
+                    display:'grid',
+                    gridTemplateColumns:'auto 1fr auto auto',
+                    gap:14, alignItems:'center',
+                    padding:'12px 16px', borderRadius:12,
+                    background:'var(--surface)', border:'1px solid var(--border)',
+                  }}>
+                    <div style={{
+                      width:36, height:36, borderRadius:11,
+                      background:'var(--bg2)', border:'1px solid var(--border)',
+                      color:'var(--t3)',
+                      display:'inline-flex', alignItems:'center', justifyContent:'center',
+                    }}>
+                      <Icon size={15}/>
+                    </div>
+                    <div style={{ minWidth:0 }}>
+                      <div style={{ fontSize:13, color:'var(--t1)', fontWeight:600, fontVariantNumeric:'tabular-nums' }}>
+                        {new Date(l.signed_in_at).toLocaleString()}
+                      </div>
+                      <div style={{ fontSize:11.5, color:'var(--t4)', marginTop:2, fontFamily:'ui-monospace,monospace' }}>
+                        {l.ip_address || '—'} · {[l.city, l.country].filter(Boolean).join(', ') || 'unknown'}
+                      </div>
+                    </div>
+                    <div style={{ fontSize:11.5, color:'var(--t4)', maxWidth:280, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                      {l.user_agent?.slice(0,80) || '—'}
+                    </div>
+                    <span className="badge badge-muted" style={{ fontSize:10, padding:'3px 9px', textTransform:'uppercase', letterSpacing:'0.06em' }}>
+                      {dev}
+                    </span>
+                  </div>
+                )
+              })}
             </div>
           )}
         </div>
       )}
 
-      {/* SETTINGS */}
+      {/* SETTINGS — User type + Account status + Danger zone. */}
       {activeTab === 'settings' && (
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
-          <div className="card card-p">
-            <SectionTitle icon={<Shield size={15}/>} title="User Type" sub="Controls feature flags, test data visibility, etc." />
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:4 }}>
-              {USER_TYPES.map(ut => (
-                <button key={ut.value} onClick={() => setUserType(ut.value)}
-                  style={{
-                    padding:'12px 14px', borderRadius:10, border:'1.5px solid', cursor:'pointer', textAlign:'left',
-                    background: userType === ut.value ? 'var(--acc-bg)' : 'var(--surface)',
-                    borderColor: userType === ut.value ? 'var(--acc-border)' : 'var(--border)',
-                    transition:'all 0.15s',
-                  }}>
-                  <div style={{ marginBottom:4, color: userType === ut.value ? 'var(--acc)' : 'var(--t4)' }}>{ut.icon}</div>
-                  <div style={{ fontSize:13, fontWeight:600, color: userType === ut.value ? 'var(--t1)' : 'var(--t3)' }}>{ut.label}</div>
-                </button>
-              ))}
+        <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(360px, 1fr))', gap:16 }}>
+            {/* User type */}
+            <div className="card-premium" style={{ padding:'24px 28px' }}>
+              <SectionTitle icon={<Shield size={15}/>} title="User Type" sub="Controls feature flags, test-data visibility, etc." />
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(2, minmax(0, 1fr))', gap:10 }}>
+                {USER_TYPES.map(ut => {
+                  const on = userType === ut.value
+                  return (
+                    <button key={ut.value} onClick={() => setUserType(ut.value)}
+                      style={{
+                        padding:'14px 16px', borderRadius:14, border:'1px solid', cursor:'pointer', textAlign:'left',
+                        display:'flex', alignItems:'center', gap:12,
+                        background: on ? 'var(--acc-bg)' : 'var(--surface)',
+                        borderColor: on ? 'var(--acc-border)' : 'var(--border)',
+                        boxShadow: on ? '0 0 0 3px var(--acc-bg)' : 'none',
+                        transition:'all 160ms',
+                      }}>
+                      <div style={{
+                        width:36, height:36, borderRadius:11, flexShrink:0,
+                        background: on ? 'var(--acc-bg)' : 'var(--surface2)',
+                        border: `1px solid ${on ? 'var(--acc-border)' : 'var(--border)'}`,
+                        color: on ? 'var(--acc)' : 'var(--t3)',
+                        display:'inline-flex', alignItems:'center', justifyContent:'center',
+                      }}>{ut.icon}</div>
+                      <div style={{ fontSize:14, fontWeight:700, color: on ? 'var(--acc)' : 'var(--t1)' }}>
+                        {ut.label}
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Account status */}
+            <div className="card-premium" style={{ padding:'24px 28px' }}>
+              <SectionTitle icon={<Ban size={15}/>} title="Account Status" sub="Suspended users can't log in; Closed is permanent." />
+              <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                {[
+                  { value:'active',    label:'Active',    desc:'Full access',                icon:<Unlock size={14}/>,         color:'var(--green)' },
+                  { value:'suspended', label:'Suspended', desc:'Login blocked temporarily',  icon:<AlertTriangle size={14}/>,  color:'var(--amber)' },
+                  { value:'closed',    label:'Closed',    desc:'Account permanently closed', icon:<Ban size={14}/>,            color:'var(--red)'   },
+                ].map(s => {
+                  const on = accountStatus === s.value
+                  return (
+                    <button key={s.value} onClick={() => setAccountStatus(s.value)}
+                      style={{
+                        padding:'14px 16px', borderRadius:14, border:'1px solid', cursor:'pointer', textAlign:'left',
+                        display:'flex', alignItems:'center', gap:12,
+                        background: on ? s.color + '14' : 'var(--surface)',
+                        borderColor: on ? s.color + '55' : 'var(--border)',
+                        boxShadow: on ? `0 0 0 3px ${s.color}22` : 'none',
+                        transition:'all 160ms',
+                      }}>
+                      <span style={{
+                        width:36, height:36, borderRadius:11, flexShrink:0,
+                        background: on ? s.color + '22' : 'var(--surface2)',
+                        border: `1px solid ${on ? s.color + '55' : 'var(--border)'}`,
+                        color: s.color,
+                        display:'inline-flex', alignItems:'center', justifyContent:'center',
+                      }}>{s.icon}</span>
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{ fontSize:14, fontWeight:700, color: on ? s.color : 'var(--t1)' }}>{s.label}</div>
+                        <div style={{ fontSize:11.5, color:'var(--t4)', marginTop:2 }}>{s.desc}</div>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
             </div>
           </div>
-          <div className="card card-p">
-            <SectionTitle icon={<Ban size={15}/>} title="Account Status" sub="Suspended users can't log in; Closed is permanent." />
-            <div style={{ display:'flex', flexDirection:'column', gap:8, marginBottom:4 }}>
-              {[
-                { value:'active',    label:'Active',    desc:'Full access',              icon:<Unlock size={14}/>,         color:'var(--green)' },
-                { value:'suspended', label:'Suspended', desc:'Login blocked temporarily', icon:<AlertTriangle size={14}/>,  color:'var(--amber)' },
-                { value:'closed',    label:'Closed',    desc:'Account permanently closed', icon:<Ban size={14}/>,            color:'var(--red)'   },
-              ].map(s => (
-                <button key={s.value} onClick={() => setAccountStatus(s.value)}
-                  style={{
-                    padding:'12px 14px', borderRadius:10, border:'1.5px solid', cursor:'pointer', textAlign:'left',
-                    display:'flex', alignItems:'center', gap:12,
-                    background: accountStatus === s.value ? s.color + '12' : 'var(--surface)',
-                    borderColor: accountStatus === s.value ? s.color + '44' : 'var(--border)',
-                    transition:'all 0.15s',
-                  }}>
-                  <span style={{ color:s.color }}>{s.icon}</span>
-                  <div>
-                    <div style={{ fontSize:13, fontWeight:600, color: accountStatus === s.value ? s.color : 'var(--t2)' }}>{s.label}</div>
-                    <div style={{ fontSize:11, color:'var(--t4)', marginTop:1 }}>{s.desc}</div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-          <div style={{ gridColumn:'1 / -1', display:'flex', justifyContent:'flex-end', gap:10 }}>
-            <button onClick={load} className="btn btn-secondary">Cancel</button>
-            <button onClick={saveSettings} disabled={settingsSaving} className="btn btn-primary">
-              {settingsSaving ? 'Saving…' : 'Save Settings'}
+
+          <div style={{ display:'flex', justifyContent:'flex-end', gap:10 }}>
+            <button onClick={load} className="btn btn-secondary" style={{ minHeight:42, padding:'0 22px' }}>Cancel</button>
+            <button onClick={saveSettings} disabled={settingsSaving} className="btn btn-primary" style={{ minHeight:42, padding:'0 22px' }}>
+              {settingsSaving ? 'Saving…' : 'Save settings'}
             </button>
           </div>
 
-          <div className="card card-p" style={{
-            gridColumn:'1 / -1',
-            border:'1px solid rgba(248,113,113,0.35)',
+          {/* Danger zone */}
+          <div className="card-premium" style={{
+            padding:'24px 28px',
+            border:'1px solid rgba(248,113,113,0.45)',
             background:'rgba(248,113,113,0.04)',
           }}>
-            <SectionTitle
-              icon={<Skull size={15}/>}
-              title="Danger zone — permanent account closure"
-              sub="GDPR right-to-erasure. Deletes auth user, profile, watchlists, alerts, paper positions, customer notes, and every cascading row. Cancels Stripe subscription. Cannot be undone. Super-admin only."
-            />
-            <label className="label">Reason (recorded in audit log)</label>
-            <input className="input" style={{ marginBottom:14 }} value={closeReason} onChange={e => setCloseReason(e.target.value)} placeholder="e.g. user requested deletion under GDPR Art. 17" />
-            <button
-              onClick={permanentlyClose}
-              disabled={closeSaving}
-              className="btn"
-              style={{
-                background:'rgba(248,113,113,0.12)',
+            <div style={{ display:'flex', alignItems:'flex-start', gap:14, marginBottom:18 }}>
+              <div style={{
+                width:44, height:44, borderRadius:14, flexShrink:0,
+                background:'var(--red-bg)', border:'1px solid rgba(248,113,113,0.4)',
                 color:'var(--red)',
-                border:'1px solid rgba(248,113,113,0.4)',
-                fontWeight:700,
-              }}
-            >
-              {closeSaving ? 'Closing…' : '🗑  Permanently close & delete account'}
-            </button>
+                display:'inline-flex', alignItems:'center', justifyContent:'center',
+                boxShadow:'0 0 24px -4px rgba(248,113,113,0.4)',
+              }}>
+                <Skull size={20}/>
+              </div>
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{
+                  fontSize:11, fontWeight:800, letterSpacing:'0.13em',
+                  textTransform:'uppercase', color:'var(--red)', marginBottom:6,
+                }}>Danger zone</div>
+                <div style={{ fontSize:18, fontWeight:800, color:'var(--t1)', letterSpacing:'-0.015em', marginBottom:8 }}>
+                  Permanent account closure
+                </div>
+                <div style={{ fontSize:13, color:'var(--t3)', lineHeight:1.6 }}>
+                  GDPR right-to-erasure. Deletes auth user, profile, watchlists, alerts, paper positions, customer notes, and every cascading row. Cancels Stripe subscription. Cannot be undone. Super-admin only.
+                </div>
+              </div>
+            </div>
+            <Field label="Reason (recorded in audit log)" required>
+              <input className="input" value={closeReason} onChange={e => setCloseReason(e.target.value)} placeholder="e.g. user requested deletion under GDPR Art. 17" />
+            </Field>
+            <div style={{ display:'flex', justifyContent:'flex-end', marginTop:18 }}>
+              <button
+                onClick={permanentlyClose}
+                disabled={closeSaving}
+                className="btn"
+                style={{
+                  background:'rgba(248,113,113,0.14)',
+                  color:'var(--red)',
+                  border:'1px solid rgba(248,113,113,0.5)',
+                  fontWeight:700,
+                  minHeight:42, padding:'0 22px',
+                  display:'inline-flex', alignItems:'center', gap:8,
+                }}
+              >
+                <Trash2 size={14}/>
+                {closeSaving ? 'Closing…' : 'Permanently close & delete account'}
+              </button>
+            </div>
           </div>
         </div>
       )}
