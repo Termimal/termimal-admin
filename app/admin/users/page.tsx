@@ -10,6 +10,15 @@ type UserRow = {
   id: string; email: string | null; created_at: string | null; last_sign_in_at: string | null
   fullname: string; plan: string; subscription_status: string; account_status: string
   credits: number; subscription_bonus_months: number; is_test_user?: boolean; user_type: string; discount_percent: number
+  country?: string; timezone?: string
+}
+
+/** ISO-3166 alpha-2 → emoji flag (regional-indicator pair). */
+function flag(code: string | null | undefined): string {
+  if (!code || code.length !== 2 || !/^[A-Za-z]{2}$/.test(code)) return ''
+  const A = 0x1F1E6
+  const upper = code.toUpperCase()
+  return String.fromCodePoint(A + upper.charCodeAt(0) - 65, A + upper.charCodeAt(1) - 65)
 }
 
 const PLAN_BADGE: Record<string,string> = { pro:'badge-acc', starter:'badge-blue', free:'badge-muted', premium:'badge-purple' }
@@ -167,7 +176,13 @@ export default function AdminUsersPage() {
                     <span style={{
                       fontSize: 15, fontWeight: 700, color: 'var(--t1)',
                       letterSpacing: '-0.005em',
+                      display: 'inline-flex', alignItems: 'center', gap: 8,
                     }}>
+                      {u.country && (
+                        <span title={u.country} style={{ fontSize: 16, lineHeight: 1 }}>
+                          {flag(u.country)}
+                        </span>
+                      )}
                       {u.fullname || '—'}
                     </span>
                     {typeLower !== 'normal' && (

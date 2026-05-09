@@ -206,6 +206,53 @@ export async function POST(request: Request) {
       return respondError(`could not establish session: ${setErr.message}`, 500)
     }
 
+    // Telemetry: write a login_events row for the admin sign-in.
+    // Same shape as the public site's /api/auth/log-event endpoint
+    // so the user-detail Activity tab can render both uniformly.
+    try {
+      const ua = request.headers.get('user-agent') || ''
+      const isMobile = /mobile|iphone|ipod|android|blackberry|webos|opera mini/i.test(ua)
+      const isTablet = /ipad|tablet|playbook|silk(?!.*mobile)/i.test(ua)
+      const isBot    = /bot|crawler|spider|crawl|slurp|fetch|curl|wget|python-requests/i.test(ua)
+      const browser = /edg\//i.test(ua) ? 'Edge'
+                    : /opr\/|opera/i.test(ua) ? 'Opera'
+                    : /firefox|fxios/i.test(ua) ? 'Firefox'
+                    : /chrome|crios/i.test(ua) ? 'Chrome'
+                    : /safari/i.test(ua) ? 'Safari'
+                    : 'unknown'
+      const os = /windows/i.test(ua) ? 'Windows'
+               : /iphone|ipad|ipod/i.test(ua) ? 'iOS'
+               : /android/i.test(ua) ? 'Android'
+               : /mac os x|macos/i.test(ua) ? 'macOS'
+               : /linux/i.test(ua) ? 'Linux'
+               : 'unknown'
+      const device = isBot ? 'bot' : isTablet ? 'tablet' : isMobile ? 'mobile' : 'desktop'
+      const cfAny = (request as unknown as { cf?: Record<string, unknown> }).cf
+      await fetch(`${supabaseUrl}/rest/v1/login_events`, {
+        method:  'POST',
+        headers: {
+          'apikey':         serviceKey,
+          'Authorization':  `Bearer ${serviceKey}`,
+          'Content-Type':   'application/json',
+          'Prefer':         'return=minimal',
+        },
+        body: JSON.stringify({
+          user_id:     userId,
+          ip:          request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null,
+          country:     request.headers.get('cf-ipcountry') || null,
+          city:        (cfAny?.city     as string) || null,
+          region:      (cfAny?.region   as string) || null,
+          timezone:    (cfAny?.timezone as string) || null,
+          user_agent:  ua.slice(0, 500),
+          device_type: device,
+          browser,
+          os,
+          method:      'admin_password',
+          success:     true,
+        }),
+      }).catch(() => null)
+    } catch { /* never block login on telemetry failure */ }
+
     if (formMode) {
       const url = new URL(request.url)
       url.pathname = '/admin'

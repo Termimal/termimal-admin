@@ -115,6 +115,24 @@ function EmptyState({ label }: { label: string }) {
 }
 
 /**
+ * Convert ISO-3166 alpha-2 country code (e.g. "DE") to its emoji flag.
+ * Works because regional-indicator code points map A-Z to 🇦-🇿 and the
+ * pair-rendering is built into every modern OS font. Returns the
+ * literal code as a fallback for two-letter strings the OS can't
+ * render (rare).
+ */
+function countryFlag(code: string | null | undefined): string {
+  if (!code || typeof code !== 'string' || code.length !== 2) return ''
+  const A = 0x1F1E6
+  const upper = code.toUpperCase()
+  if (!/^[A-Z]{2}$/.test(upper)) return ''
+  return String.fromCodePoint(
+    A + upper.charCodeAt(0) - 65,
+    A + upper.charCodeAt(1) - 65,
+  )
+}
+
+/**
  * Boxed key/value cell — replaces the cramped <InfoRow> rows. Used in
  * a CSS grid so identity / subscription data lays out as a tile-set
  * instead of a stack of thin rows.
@@ -865,7 +883,12 @@ export default function AdminUserDetailPage() {
                 />
                 <DataCell
                   label="Country" icon={<Globe size={11}/>}
-                  value={profile?.country}
+                  value={profile?.country ? (
+                    <span style={{ display:'inline-flex', alignItems:'center', gap:8 }}>
+                      <span style={{ fontSize:18, lineHeight:1 }}>{countryFlag(profile.country)}</span>
+                      <span>{profile.country}</span>
+                    </span>
+                  ) : null}
                 />
                 <DataCell
                   label="Timezone" icon={<Clock size={11}/>}
@@ -1458,56 +1481,162 @@ export default function AdminUserDetailPage() {
         </div>
       )}
 
-      {/* ACTIVITY — login history as a card list (not a tight table). */}
-      {activeTab === 'activity' && (
-        <div className="card-premium" style={{ padding:'24px 28px' }}>
-          <SectionTitle icon={<LogIn size={15}/>} title="Login History" sub={`Last ${loginHistory.length || 0} sessions — newest first`} />
-          {loginHistory.length === 0 ? (
-            <div style={{ padding:'32px 0', textAlign:'center', color:'var(--t4)', fontSize:13 }}>
-              No login history. Records appear here once the auth webhook is configured.
-            </div>
-          ) : (
-            <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-              {loginHistory.map((l:any) => {
-                const dev = (l.device_type || 'desktop').toLowerCase()
-                const Icon = dev === 'mobile' ? Smartphone : dev === 'tablet' ? Tablet : Monitor
-                return (
-                  <div key={l.id} style={{
-                    display:'grid',
-                    gridTemplateColumns:'auto 1fr auto auto',
-                    gap:14, alignItems:'center',
-                    padding:'12px 16px', borderRadius:12,
+      {/* ACTIVITY — rich session timeline with device / IP / geo. */}
+      {activeTab === 'activity' && (() => {
+        // Aggregate stats for the strip at the top.
+        const distinctCountries = new Set<string>()
+        const distinctIps       = new Set<string>()
+        const deviceTally: Record<string, number> = {}
+        for (const l of loginHistory) {
+          if (l.country) distinctCountries.add(l.country)
+          if (l.ip)      distinctIps.add(l.ip)
+          const d = (l.device_type || 'desktop')
+          deviceTally[d] = (deviceTally[d] || 0) + 1
+        }
+        const topDevice = Object.entries(deviceTally).sort((a, b) => b[1] - a[1])[0]?.[0] || '—'
+        const last = loginHistory[0]
+
+        return (
+          <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+            {/* Stats strip */}
+            <div className="card-premium" style={{ padding:'20px 24px' }}>
+              <div style={{
+                display:'grid',
+                gridTemplateColumns:'repeat(auto-fit, minmax(180px, 1fr))',
+                gap:14,
+              }}>
+                {[
+                  { label:'Sessions',           value: loginHistory.length.toString(),          color:'var(--acc)' },
+                  { label:'Countries',          value: distinctCountries.size.toString(),       color:'var(--blue)' },
+                  { label:'Unique IPs',         value: distinctIps.size.toString(),             color:'var(--amber)' },
+                  { label:'Primary device',     value: topDevice,                                color:'var(--purple)' },
+                  { label:'Last sign-in',       value: last ? new Date(last.signed_in_at).toLocaleDateString() : '—', color:'var(--green)' },
+                ].map(s => (
+                  <div key={s.label} style={{
+                    padding:'14px 16px', borderRadius:14,
                     background:'var(--surface)', border:'1px solid var(--border)',
                   }}>
+                    <div style={{ fontSize:10.5, fontWeight:800, letterSpacing:'0.13em', textTransform:'uppercase', color:'var(--t4)', marginBottom:6 }}>
+                      {s.label}
+                    </div>
                     <div style={{
-                      width:36, height:36, borderRadius:11,
-                      background:'var(--bg2)', border:'1px solid var(--border)',
-                      color:'var(--t3)',
-                      display:'inline-flex', alignItems:'center', justifyContent:'center',
+                      fontSize:20, fontWeight:800, color:'var(--t1)',
+                      letterSpacing:'-0.02em', fontVariantNumeric:'tabular-nums',
+                      lineHeight:1, textTransform:s.label === 'Primary device' ? 'capitalize' : undefined,
                     }}>
-                      <Icon size={15}/>
+                      {s.value}
                     </div>
-                    <div style={{ minWidth:0 }}>
-                      <div style={{ fontSize:13, color:'var(--t1)', fontWeight:600, fontVariantNumeric:'tabular-nums' }}>
-                        {new Date(l.signed_in_at).toLocaleString()}
-                      </div>
-                      <div style={{ fontSize:11.5, color:'var(--t4)', marginTop:2, fontFamily:'ui-monospace,monospace' }}>
-                        {l.ip_address || '—'} · {[l.city, l.country].filter(Boolean).join(', ') || 'unknown'}
-                      </div>
-                    </div>
-                    <div style={{ fontSize:11.5, color:'var(--t4)', maxWidth:280, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                      {l.user_agent?.slice(0,80) || '—'}
-                    </div>
-                    <span className="badge badge-muted" style={{ fontSize:10, padding:'3px 9px', textTransform:'uppercase', letterSpacing:'0.06em' }}>
-                      {dev}
-                    </span>
                   </div>
-                )
-              })}
+                ))}
+              </div>
             </div>
-          )}
-        </div>
-      )}
+
+            {/* Timeline */}
+            <div className="card-premium" style={{ padding:'24px 28px' }}>
+              <SectionTitle icon={<LogIn size={15}/>} title="Login History" sub={`Last ${loginHistory.length || 0} sessions — newest first · 90-day retention`} />
+              {loginHistory.length === 0 ? (
+                <div style={{ padding:'32px 0', textAlign:'center', color:'var(--t4)', fontSize:13 }}>
+                  No login history yet. Sessions appear here once the user signs in after the telemetry deploy (2026-05-10).
+                </div>
+              ) : (
+                <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+                  {loginHistory.map((l:any) => {
+                    const dev = (l.device_type || 'desktop').toLowerCase()
+                    const DeviceIcon = dev === 'mobile' ? Smartphone : dev === 'tablet' ? Tablet : dev === 'bot' ? AlertTriangle : Monitor
+                    const methodColor =
+                      l.method === 'google'         ? '#4285F4' :
+                      l.method === 'apple'          ? '#fff'    :
+                      l.method === 'magic_link'     ? 'var(--purple)' :
+                      l.method === 'admin_password' ? 'var(--red)'    :
+                      l.method === 'password'       ? 'var(--acc)'    :
+                                                       'var(--t3)'
+                    const methodLabel = l.method
+                      ? l.method.replace(/_/g, ' ')
+                      : 'unknown'
+                    const flag = l.country ? countryFlag(l.country) : null
+                    return (
+                      <div key={l.id} style={{
+                        display:'grid',
+                        gridTemplateColumns:'auto 1.4fr 1fr auto',
+                        gap:18, alignItems:'center',
+                        padding:'14px 18px', borderRadius:14,
+                        background:'var(--surface)', border:'1px solid var(--border)',
+                      }}>
+                        {/* Device tile */}
+                        <div style={{
+                          width:44, height:44, borderRadius:14,
+                          background:'var(--bg2)', border:'1px solid var(--border2)',
+                          color: l.success === false ? 'var(--red)' : 'var(--t2)',
+                          display:'inline-flex', alignItems:'center', justifyContent:'center',
+                          flexShrink:0,
+                        }}>
+                          <DeviceIcon size={18}/>
+                        </div>
+
+                        {/* Identity column — when + where */}
+                        <div style={{ minWidth:0 }}>
+                          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4, flexWrap:'wrap' }}>
+                            <span style={{
+                              fontSize:13.5, fontWeight:700, color:'var(--t1)',
+                              fontVariantNumeric:'tabular-nums',
+                            }}>{new Date(l.signed_in_at).toLocaleString()}</span>
+                            <span style={{
+                              fontSize:9.5, fontWeight:800, padding:'2px 8px',
+                              borderRadius:999, textTransform:'uppercase', letterSpacing:'0.08em',
+                              background:'var(--bg2)', border:`1px solid ${methodColor}33`, color: methodColor,
+                            }}>{methodLabel}</span>
+                            {l.success === false && (
+                              <span style={{
+                                fontSize:9.5, fontWeight:800, padding:'2px 8px',
+                                borderRadius:999, textTransform:'uppercase', letterSpacing:'0.08em',
+                                background:'var(--red-bg)', color:'var(--red)',
+                              }}>FAILED</span>
+                            )}
+                          </div>
+                          <div style={{ fontSize:12, color:'var(--t3)', display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
+                            {flag && <span style={{ fontSize:14, lineHeight:1 }}>{flag}</span>}
+                            <span>{[l.city, l.region, l.country].filter(Boolean).join(', ') || 'location unknown'}</span>
+                            {l.timezone && (
+                              <>
+                                <span style={{ color:'var(--t4)' }}>·</span>
+                                <span style={{ fontFamily:'ui-monospace,monospace', fontSize:11 }}>{l.timezone}</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Tech column — IP + browser + OS */}
+                        <div style={{ minWidth:0 }}>
+                          <div style={{
+                            fontSize:12, color:'var(--t2)', fontFamily:'ui-monospace,monospace',
+                            display:'flex', alignItems:'center', gap:6, marginBottom:4,
+                          }}>
+                            <Hash size={11}/>
+                            <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                              {l.ip || '—'}
+                            </span>
+                            {l.ip && <CopyBtn text={l.ip}/>}
+                          </div>
+                          <div style={{ fontSize:11.5, color:'var(--t4)' }}>
+                            {[l.browser, l.os].filter(Boolean).join(' · ') || 'unknown UA'}
+                          </div>
+                        </div>
+
+                        {/* Device-type pill */}
+                        <span className="badge badge-muted" style={{
+                          fontSize:10.5, padding:'4px 12px',
+                          textTransform:'uppercase', letterSpacing:'0.08em',
+                          fontWeight:700,
+                        }}>{dev}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        )
+      })()}
 
       {/* SETTINGS — User type + Account status + Danger zone. */}
       {activeTab === 'settings' && (
