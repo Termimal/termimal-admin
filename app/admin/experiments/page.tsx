@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { Beaker, Plus, Play, Pause, Square, Trash2 } from 'lucide-react'
-import { PageHeader, Section, EmptyState, Field } from '@/components/admin/PageChrome'
+import { HeroCard, Section, EmptyState, Field, ItemGrid, ItemCard } from '@/components/admin/PageChrome'
 
 interface Experiment {
   id: string
@@ -18,8 +18,8 @@ interface Experiment {
   created_at: string
 }
 
-const STATUS_COLOR: Record<Experiment['status'], string> = {
-  draft: 'chip', running: 'chip chip-green', paused: 'chip chip-amber', ended: 'chip chip-red',
+const STATUS_TONE: Record<Experiment['status'], 'green' | 'amber' | 'red' | 'muted'> = {
+  draft: 'muted', running: 'green', paused: 'amber', ended: 'red',
 }
 
 export default function ExperimentsPage() {
@@ -52,74 +52,93 @@ export default function ExperimentsPage() {
     load()
   }
 
+  const running = rows.filter(r => r.status === 'running').length
+
   return (
-    <div style={{ maxWidth: 1100 }}>
-      <PageHeader
-        icon={<Beaker size={14} />}
+    <div>
+      <HeroCard
+        accent="green"
+        icon={<Beaker size={28} />}
         eyebrow="Experiments"
         title="A/B testing"
-        description="Define experiments admins can read at request time to bucket users into variants. The weights are advisory — your assignment hash should respect them but the exact split lives in code."
-        accent="green"
+        subtitle="Define experiments admins can read at request time to bucket users into variants. Weights are advisory — assignment lives in code."
+        metric={{ label: 'Running', value: running.toString(), secondary: `${rows.length} total` }}
       />
 
-      <Section title="New experiment" accent="green">
-        <div className="form-grid">
-          <div className="form-grid form-grid-2">
-            <Field label="Key" hint="Snake_case identifier read in code.">
+      <Section title="New experiment" accent="green" description="Snake_case key plus a short metric helps anyone reading code understand what's being tested.">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 18 }}>
+            <Field label="Key" required hint="Snake_case identifier read in code.">
               <input className="input" value={draft.key} onChange={e => setDraft({ ...draft, key: e.target.value })} placeholder="pricing_layout_v2" />
             </Field>
-            <Field label="Name">
+            <Field label="Name" required>
               <input className="input" value={draft.name} onChange={e => setDraft({ ...draft, name: e.target.value })} placeholder="Pricing layout v2" />
             </Field>
           </div>
           <Field label="Description">
-            <textarea className="input" rows={2} value={draft.description} onChange={e => setDraft({ ...draft, description: e.target.value })} />
+            <textarea className="input" rows={3} value={draft.description} onChange={e => setDraft({ ...draft, description: e.target.value })}
+              style={{ resize: 'vertical', lineHeight: 1.55 }} />
           </Field>
           <Field label="Primary metric" hint="What you're optimising — e.g. signup_conversion, paid_conversion, churn">
             <input className="input" value={draft.metric} onChange={e => setDraft({ ...draft, metric: e.target.value })} />
           </Field>
-          <button className="btn-primary btn-sm" disabled={!draft.key || !draft.name || creating} onClick={create} style={{ alignSelf: 'flex-start' }}>
-            <Plus size={11} /> {creating ? 'Saving…' : 'Create'}
-          </button>
+          <div>
+            <button className="btn btn-primary btn-sm" disabled={!draft.key || !draft.name || creating} onClick={create}>
+              <Plus size={13} /> {creating ? 'Saving…' : 'Create experiment'}
+            </button>
+          </div>
         </div>
       </Section>
 
       {rows.length === 0 ? (
-        <EmptyState icon={<Beaker size={20}/>} title="No experiments" />
+        <EmptyState icon={<Beaker size={20}/>} title="No experiments" description="Create your first experiment above." />
       ) : (
-        <Section flush title={`${rows.length} experiment${rows.length === 1 ? '' : 's'}`}>
-          <ul style={{ margin: 0, padding: 0, listStyle: 'none' }}>
-            {rows.map(r => (
-              <li key={r.id} style={{ borderBottom: '1px solid var(--border)', padding: '14px 16px' }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                      <span className={STATUS_COLOR[r.status]}>{r.status}</span>
-                      <span style={{ fontSize: 13, fontWeight: 600 }}>{r.name}</span>
-                      <span style={{ fontSize: 11, color: 'var(--t4)', fontFamily: 'ui-monospace, Menlo, monospace' }}>{r.key}</span>
-                    </div>
-                    {r.description && <div style={{ fontSize: 12, color: 'var(--t3)', marginBottom: 6 }}>{r.description}</div>}
-                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                      {(r.variants || []).map(v => (
-                        <span key={v.key} className="chip">
-                          <span style={{ fontFamily: 'ui-monospace, Menlo, monospace' }}>{v.key}</span>
-                          <span style={{ color: 'var(--t1)', fontWeight: 600 }}>{v.weight}%</span>
-                        </span>
-                      ))}
-                      {r.metric && <span className="chip chip-blue">metric: {r.metric}</span>}
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', gap: 4 }}>
-                    {r.status !== 'running' && <button className="btn-ghost btn-sm" title="Start" onClick={() => setStatus(r.id, 'running')}><Play size={11}/></button>}
-                    {r.status === 'running' && <button className="btn-ghost btn-sm" title="Pause" onClick={() => setStatus(r.id, 'paused')}><Pause size={11}/></button>}
-                    {r.status !== 'ended' && <button className="btn-ghost btn-sm" title="End" onClick={() => setStatus(r.id, 'ended')}><Square size={11}/></button>}
-                    <button className="btn-ghost btn-sm" style={{ color: 'var(--red)' }} onClick={() => del(r.id)}><Trash2 size={11}/></button>
-                  </div>
+        <ItemGrid min={320}>
+          {rows.map(r => (
+            <ItemCard
+              key={r.id}
+              accent="green"
+              icon={<Beaker size={18}/>}
+              title={r.name}
+              subtitle={r.description || r.key}
+              status={{ label: r.status.toUpperCase(), tone: STATUS_TONE[r.status], pulse: r.status === 'running' }}
+              meta={
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  <span style={{ fontFamily: 'ui-monospace, Menlo, Consolas, monospace', color: 'var(--t4)', fontSize: 11 }}>{r.key}</span>
+                  {r.metric && <span className="badge badge-blue">{r.metric}</span>}
+                  {(r.variants || []).map(v => (
+                    <span key={v.key} className="badge badge-muted">
+                      <span style={{ fontFamily: 'ui-monospace, Menlo, Consolas, monospace' }}>{v.key}</span>
+                      <span style={{ marginLeft: 4, color: 'var(--t1)', fontWeight: 700 }}>{v.weight}%</span>
+                    </span>
+                  ))}
                 </div>
-              </li>
-            ))}
-          </ul>
-        </Section>
+              }
+              footer={
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {r.status !== 'running' && (
+                    <button className="btn btn-secondary btn-sm" onClick={() => setStatus(r.id, 'running')}>
+                      <Play size={12}/> Start
+                    </button>
+                  )}
+                  {r.status === 'running' && (
+                    <button className="btn btn-secondary btn-sm" onClick={() => setStatus(r.id, 'paused')}>
+                      <Pause size={12}/> Pause
+                    </button>
+                  )}
+                  {r.status !== 'ended' && (
+                    <button className="btn btn-secondary btn-sm" onClick={() => setStatus(r.id, 'ended')}>
+                      <Square size={12}/> End
+                    </button>
+                  )}
+                  <button className="btn btn-secondary btn-sm" onClick={() => del(r.id)} style={{ color: 'var(--red)' }}>
+                    <Trash2 size={12}/> Delete
+                  </button>
+                </div>
+              }
+            />
+          ))}
+        </ItemGrid>
       )}
     </div>
   )

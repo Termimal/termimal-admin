@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Mail, Code, Eye, Send } from 'lucide-react'
-import { PageHeader, Section, Tabs, EmptyState, Field, SaveBar } from '@/components/admin/PageChrome'
+import { HeroCard, Section, Tabs, EmptyState, Field, SaveBar } from '@/components/admin/PageChrome'
 
 interface Template {
   id: string
@@ -22,7 +22,6 @@ export default function EmailTemplatesPage() {
   const [saving, setSaving]   = useState(false)
   const [message, setMessage] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
 
-  // Render preview + test-send pane state.
   const [previewVars, setPreviewVars] = useState('{}')
   const [preview, setPreview]         = useState<{ subject: string; html: string; text: string; missing: string[]; unused: string[] } | null>(null)
   const [previewing, setPreviewing]   = useState(false)
@@ -48,9 +47,6 @@ export default function EmailTemplatesPage() {
     const r = rows.find(x => x.key === key)
     if (!r) return
     setActive(key); setDraft(r); setMessage(null); setPreview(null)
-    // Pre-fill the preview-variables JSON with the declared variable
-    // names mapped to placeholder strings — admins can edit before
-    // running the render.
     const seed = Object.fromEntries(Object.keys(r.variables || {}).map(k => [k, `<${k}>`]))
     setPreviewVars(JSON.stringify(seed, null, 2))
   }
@@ -114,13 +110,14 @@ export default function EmailTemplatesPage() {
   }
 
   return (
-    <div style={{ maxWidth: 1100, paddingBottom: 80 }}>
-      <PageHeader
-        icon={<Mail size={14} />}
-        eyebrow="Transactional Email"
-        title="Email templates"
-        description="Copy for the standard transactional emails (welcome, password reset, magic link, invoice receipts). Variables are substituted at send-time using {{double_brace}} syntax."
+    <div style={{ paddingBottom: 80 }}>
+      <HeroCard
         accent="amber"
+        icon={<Mail size={28} />}
+        eyebrow="Transactional email"
+        title="Email templates"
+        subtitle="Copy for the standard transactional emails (welcome, password reset, magic link, invoice receipts). Variables are substituted at send-time using {{double_brace}} syntax."
+        metric={{ label: 'Templates', value: rows.length.toString() }}
       />
 
       <Tabs
@@ -137,56 +134,61 @@ export default function EmailTemplatesPage() {
             description={draft.description || undefined}
             accent="amber"
           >
-            <div className="form-grid">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
               <Field label="Subject">
                 <input className="input" value={draft.subject} onChange={e => setDraft({ ...draft, subject: e.target.value })} />
               </Field>
               <Field label="HTML body" hint="Variables: {{name}} etc. Plain HTML — keep it simple.">
-                <textarea className="input" rows={8} value={draft.body_html || ''}
+                <textarea className="input" rows={10} value={draft.body_html || ''}
                   onChange={e => setDraft({ ...draft, body_html: e.target.value })}
-                  style={{ fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 12 }} />
+                  style={{ fontFamily: 'ui-monospace, Menlo, Consolas, monospace', fontSize: 12, resize: 'vertical', lineHeight: 1.55 }} />
               </Field>
               <Field label="Text fallback" hint="Plain-text body for clients that don't render HTML.">
-                <textarea className="input" rows={4} value={draft.body_text || ''}
-                  onChange={e => setDraft({ ...draft, body_text: e.target.value })} />
+                <textarea className="input" rows={5} value={draft.body_text || ''}
+                  onChange={e => setDraft({ ...draft, body_text: e.target.value })}
+                  style={{ resize: 'vertical', lineHeight: 1.55 }} />
               </Field>
               <Field label="Internal description" hint="Just for the admin panel — when this email is sent.">
                 <input className="input" value={draft.description || ''} onChange={e => setDraft({ ...draft, description: e.target.value })} />
               </Field>
               {Object.keys(draft.variables || {}).length > 0 && (
-                <div>
-                  <div className="label">Available variables</div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                <Field label="Available variables">
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                     {Object.entries(draft.variables).map(([k, v]) => (
-                      <span key={k} className="chip" title={v}>
-                        <Code size={9} />
-                        <span style={{ fontFamily: 'ui-monospace, Menlo, monospace' }}>{`{{${k}}}`}</span>
+                      <span key={k} title={v} style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 6,
+                        padding: '5px 10px', borderRadius: 999,
+                        background: 'var(--surface)', border: '1px solid var(--border)',
+                        fontSize: 11, color: 'var(--t2)',
+                      }}>
+                        <Code size={11} />
+                        <span style={{ fontFamily: 'ui-monospace, Menlo, Consolas, monospace' }}>{`{{${k}}}`}</span>
                       </span>
                     ))}
                   </div>
-                </div>
+                </Field>
               )}
             </div>
           </Section>
 
           <Section
             title="Preview & test send"
-            description="Render the template with sample variables, then optionally send a test email. Sender comes from the RESEND_API_KEY worker env var when set."
+            description="Render the template with sample variables, then optionally send a test email."
             accent="blue"
           >
-            <div className="form-grid">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
               <Field label="Variables (JSON)" hint="Edit values before rendering — keys not present in the template show as 'unused'.">
                 <textarea
                   className="input"
-                  rows={4}
+                  rows={5}
                   value={previewVars}
                   onChange={e => setPreviewVars(e.target.value)}
-                  style={{ fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 12 }}
+                  style={{ fontFamily: 'ui-monospace, Menlo, Consolas, monospace', fontSize: 12, resize: 'vertical', lineHeight: 1.55 }}
                 />
               </Field>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 <button type="button" onClick={runPreview} disabled={previewing} className="btn btn-secondary btn-sm">
-                  <Eye size={11} /> {previewing ? 'Rendering…' : 'Render preview'}
+                  <Eye size={13} /> {previewing ? 'Rendering…' : 'Render preview'}
                 </button>
                 <input
                   className="input"
@@ -197,37 +199,37 @@ export default function EmailTemplatesPage() {
                   style={{ flex: 1, minWidth: 240 }}
                 />
                 <button type="button" onClick={sendTest} disabled={sending || !testTo.trim()} className="btn btn-primary btn-sm">
-                  <Send size={11} /> {sending ? 'Sending…' : 'Send test'}
+                  <Send size={13} /> {sending ? 'Sending…' : 'Send test'}
                 </button>
               </div>
 
               {preview && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 8 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                   <div style={{ gridColumn: '1 / -1' }}>
-                    <div style={{ fontSize: 11, color: 'var(--t4)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Rendered subject</div>
-                    <div style={{ padding: '10px 14px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, fontWeight: 600 }}>{preview.subject}</div>
+                    <div style={{ fontSize: 11, color: 'var(--t4)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700 }}>Rendered subject</div>
+                    <div style={{ padding: '12px 16px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, fontWeight: 600, color: 'var(--t1)' }}>{preview.subject}</div>
                   </div>
                   <div>
-                    <div style={{ fontSize: 11, color: 'var(--t4)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>HTML preview</div>
+                    <div style={{ fontSize: 11, color: 'var(--t4)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700 }}>HTML preview</div>
                     <div
                       dangerouslySetInnerHTML={{ __html: preview.html }}
-                      style={{ padding: 14, background: '#fff', color: '#111', border: '1px solid var(--border)', borderRadius: 8, minHeight: 120, fontSize: 13, lineHeight: 1.5, overflow: 'auto' }}
+                      style={{ padding: 16, background: '#fff', color: '#111', border: '1px solid var(--border)', borderRadius: 12, minHeight: 140, fontSize: 13, lineHeight: 1.5, overflow: 'auto' }}
                     />
                   </div>
                   <div>
-                    <div style={{ fontSize: 11, color: 'var(--t4)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Text fallback</div>
-                    <pre style={{ padding: 14, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, minHeight: 120, fontSize: 12, lineHeight: 1.5, whiteSpace: 'pre-wrap', margin: 0, fontFamily: 'ui-monospace, Menlo, monospace' }}>{preview.text}</pre>
+                    <div style={{ fontSize: 11, color: 'var(--t4)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700 }}>Text fallback</div>
+                    <pre style={{ padding: 16, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, minHeight: 140, fontSize: 12, lineHeight: 1.55, whiteSpace: 'pre-wrap', margin: 0, fontFamily: 'ui-monospace, Menlo, Consolas, monospace' }}>{preview.text}</pre>
                   </div>
                   {(preview.missing.length > 0 || preview.unused.length > 0) && (
-                    <div style={{ gridColumn: '1 / -1', display: 'flex', gap: 16, fontSize: 11 }}>
+                    <div style={{ gridColumn: '1 / -1', display: 'flex', gap: 16, fontSize: 12, flexWrap: 'wrap' }}>
                       {preview.missing.length > 0 && (
                         <div style={{ color: 'var(--amber)' }}>
-                          <strong>Missing:</strong> {preview.missing.map(v => <code key={v} style={{ marginLeft: 4, padding: '0 4px', background: 'var(--amber-bg)', borderRadius: 4 }}>{`{{${v}}}`}</code>)}
+                          <strong>Missing:</strong> {preview.missing.map(v => <code key={v} style={{ marginLeft: 6, padding: '2px 6px', background: 'var(--amber-bg)', borderRadius: 4 }}>{`{{${v}}}`}</code>)}
                         </div>
                       )}
                       {preview.unused.length > 0 && (
                         <div style={{ color: 'var(--t4)' }}>
-                          <strong>Unused vars:</strong> {preview.unused.map(v => <code key={v} style={{ marginLeft: 4 }}>{v}</code>)}
+                          <strong>Unused vars:</strong> {preview.unused.map(v => <code key={v} style={{ marginLeft: 6 }}>{v}</code>)}
                         </div>
                       )}
                     </div>

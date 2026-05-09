@@ -42,6 +42,8 @@ import {
   TrendingUp,
   Handshake,
   Sparkles,
+  BarChart3,
+  Wallet,
 } from 'lucide-react'
 
 type NavItem = {
@@ -96,12 +98,24 @@ const NAV: { group: string; items: NavItem[] }[] = [
      */
     group: 'Marketing',
     items: [
-      { href: '/admin/marketing',        label: 'Marketing Planner', icon: Sparkles, exact: true },
-      { href: '/admin/marketing/social', label: 'Social Studio',     icon: Megaphone },
-      { href: '/admin/seo',              label: 'SEO & Meta',        icon: Search },
-      { href: '/admin/seo-pages',        label: 'Per-page SEO',      icon: Search },
-      { href: '/admin/referrals',        label: 'Referrals',         icon: TrendingUp },
-      { href: '/admin/affiliates',       label: 'Affiliates',        icon: Handshake },
+      { href: '/admin/marketing',          label: 'Marketing Planner', icon: Sparkles,  exact: true },
+      { href: '/admin/marketing/social',   label: 'Social Studio',     icon: Megaphone },
+      { href: '/admin/seo',                label: 'SEO & Meta',        icon: Search },
+      { href: '/admin/seo-pages',          label: 'Per-page SEO',      icon: Search },
+      { href: '/admin/referrals',          label: 'Referrals',         icon: TrendingUp },
+      { href: '/admin/affiliates',         label: 'Affiliates',        icon: Handshake, exact: true },
+      { href: '/admin/affiliates/payouts', label: 'Affiliate Payouts', icon: Wallet },
+    ],
+  },
+  {
+    /**
+     * Analytics — read-only Tableau-style dashboards on top of every
+     * mirrored Stripe / Supabase table we have. Lives separately from
+     * Health/Anomalies so it doesn't get hidden behind "Overview".
+     */
+    group: 'Analytics',
+    items: [
+      { href: '/admin/bi', label: 'Business Intelligence', icon: BarChart3 },
     ],
   },
   {

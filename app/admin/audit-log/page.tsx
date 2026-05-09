@@ -9,9 +9,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
-  History, Search, RefreshCw, Filter, X, ChevronDown, Globe,
+  History, Search, RefreshCw, X, ChevronDown, Globe,
 } from 'lucide-react'
-import { PageHeader, Section, EmptyState, Field } from '@/components/admin/PageChrome'
+import { HeroCard, Section, EmptyState } from '@/components/admin/PageChrome'
 
 interface AuditLog {
   id: string
@@ -40,6 +40,23 @@ function fmtAge(iso: string): string {
   if (s < 3600)  return `${Math.floor(s / 60)}m ago`
   if (s < 86400) return `${Math.floor(s / 3600)}h ago`
   return `${Math.floor(s / 86400)}d ago`
+}
+
+function PillBtn({ on, children, onClick }: { on: boolean; children: React.ReactNode; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        padding: '8px 14px', borderRadius: 999,
+        border: `1px solid ${on ? 'var(--purple-bg)' : 'var(--border)'}`,
+        background: on ? 'var(--purple-bg)' : 'transparent',
+        color: on ? 'var(--purple)' : 'var(--t3)',
+        fontSize: 12, fontWeight: 600, cursor: 'pointer',
+        whiteSpace: 'nowrap',
+      }}
+    >{children}</button>
+  )
 }
 
 export default function AuditLogPage() {
@@ -83,67 +100,61 @@ export default function AuditLogPage() {
   }, [logs])
 
   return (
-    <div style={{ maxWidth: 1100 }}>
-      <PageHeader
-        icon={<History size={14} />}
-        eyebrow="Audit Log"
+    <div>
+      <HeroCard
+        accent="red"
+        icon={<History size={28} />}
+        eyebrow="Audit log"
         title="Activity history"
-        description="Every admin action and security-relevant event in the system. Read-only — for incident response and compliance."
-        accent="purple"
-        actions={
-          <button type="button" className="btn-secondary btn-sm" onClick={load} disabled={loading}>
-            <RefreshCw size={11} /> Refresh
-          </button>
-        }
+        subtitle="Every admin action and security-relevant event in the system. Read-only — for incident response and compliance."
+        metric={{ label: 'Events', value: logs.length.toString(), secondary: sinceMs ? `last ${SINCE_PRESETS.find(p => p.ms === sinceMs)?.label.toLowerCase() || ''}` : 'all time' }}
       />
 
+      <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:20 }}>
+        <button type="button" className="btn btn-secondary btn-sm" style={{ minHeight:38 }} onClick={load} disabled={loading}>
+          <RefreshCw size={13}/> Refresh
+        </button>
+      </div>
+
       {/* Filter strip */}
-      <Section flush accent="purple">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', flexWrap: 'wrap' }}>
-          <Filter size={14} style={{ color: 'var(--t4)' }} />
-          <div style={{ position: 'relative', flex: 1, minWidth: 220 }}>
-            <Search size={12} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--t4)' }} />
+      <Section accent="red" title="Filters" description="Narrow the timeline by free-text search and time window.">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <div style={{ position: 'relative', flex: 1, minWidth: 240 }}>
+            <Search size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--t4)' }} />
             <input
               className="input"
-              style={{ paddingLeft: 30 }}
+              style={{ paddingLeft: 36 }}
               placeholder="Search action / entity / id"
               value={q}
               onChange={e => setQ(e.target.value)}
             />
             {q && (
-              <button onClick={() => setQ('')} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--t4)' }}>
-                <X size={11} />
+              <button onClick={() => setQ('')} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--t4)' }}>
+                <X size={13} />
               </button>
             )}
           </div>
-          <div style={{ display: 'flex', gap: 4 }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {SINCE_PRESETS.map(p => (
-              <button
-                key={p.label}
-                type="button"
-                onClick={() => setSinceMs(p.ms)}
-                className={sinceMs === p.ms ? 'chip chip-purple' : 'chip'}
-                style={{ cursor: 'pointer' }}
-              >{p.label}</button>
+              <PillBtn key={p.label} on={sinceMs === p.ms} onClick={() => setSinceMs(p.ms)}>{p.label}</PillBtn>
             ))}
-            <button
-              type="button"
-              onClick={() => setSinceMs(null)}
-              className={sinceMs === null ? 'chip chip-purple' : 'chip'}
-              style={{ cursor: 'pointer' }}
-            >All</button>
+            <PillBtn on={sinceMs === null} onClick={() => setSinceMs(null)}>All time</PillBtn>
           </div>
         </div>
       </Section>
 
-      {/* Top actions stat strip */}
       {actionStats.length > 0 && (
-        <Section flush>
-          <div style={{ display: 'flex', gap: 8, padding: 12, flexWrap: 'wrap' }}>
+        <Section title="Top actions" description="Most frequent action types in the current window.">
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {actionStats.map(([a, n]) => (
-              <span key={a} className="chip">
-                <span style={{ fontFamily: 'ui-monospace, Menlo, monospace' }}>{a}</span>
-                <span style={{ fontWeight: 700, color: 'var(--t1)' }}>×{n}</span>
+              <span key={a} style={{
+                display: 'inline-flex', alignItems: 'center', gap: 8,
+                padding: '6px 12px', borderRadius: 999,
+                background: 'var(--surface)', border: '1px solid var(--border)',
+                fontSize: 12,
+              }}>
+                <span style={{ fontFamily: 'ui-monospace, Menlo, Consolas, monospace', color: 'var(--purple)', fontWeight: 600 }}>{a}</span>
+                <span style={{ fontWeight: 700, color: 'var(--t1)', fontVariantNumeric:'tabular-nums' }}>×{n}</span>
               </span>
             ))}
           </div>
@@ -151,7 +162,13 @@ export default function AuditLogPage() {
       )}
 
       {error && (
-        <div className="msg-err" style={{ marginBottom: 12 }}>✗ {error}</div>
+        <div className="card-premium" style={{
+          padding: '14px 18px', marginBottom: 20,
+          borderColor: 'var(--red)44', color: 'var(--red)',
+          fontSize: 13, fontWeight: 600,
+        }}>
+          {error}
+        </div>
       )}
 
       {!loading && !error && logs.length === 0 && (
@@ -159,7 +176,7 @@ export default function AuditLogPage() {
       )}
 
       {logs.length > 0 && (
-        <Section flush>
+        <Section flush title={`Events (${logs.length})`} description="Click any row to expand the raw JSON metadata.">
           <ul style={{ margin: 0, padding: 0, listStyle: 'none' }}>
             {logs.map(log => {
               const isOpen = open[log.id]
@@ -169,38 +186,40 @@ export default function AuditLogPage() {
                     type="button"
                     onClick={() => setOpen(o => ({ ...o, [log.id]: !o[log.id] }))}
                     style={{
-                      display: 'flex', alignItems: 'center', gap: 12, width: '100%',
-                      padding: '10px 16px', textAlign: 'left',
+                      display: 'flex', alignItems: 'center', gap: 14, width: '100%',
+                      padding: '14px 24px', textAlign: 'left',
                       background: 'transparent', border: 'none', cursor: 'pointer',
                       color: 'var(--t1)',
                     }}
                   >
                     <span style={{
-                      fontSize: 12, fontFamily: 'ui-monospace, Menlo, monospace',
-                      color: 'var(--purple)', fontWeight: 600,
-                      minWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      fontSize: 12, fontFamily: 'ui-monospace, Menlo, Consolas, monospace',
+                      color: 'var(--purple)', fontWeight: 700,
+                      minWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     }}>{log.action}</span>
                     <span style={{ fontSize: 12, color: 'var(--t3)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {log.entity_type ? <><span style={{ color: 'var(--t4)' }}>{log.entity_type}</span>{log.entity_id ? <> · <span style={{ fontFamily: 'ui-monospace, Menlo, monospace' }}>{log.entity_id}</span></> : null}</> : '—'}
+                      {log.entity_type
+                        ? <><span style={{ color: 'var(--t4)' }}>{log.entity_type}</span>{log.entity_id ? <> · <span style={{ fontFamily: 'ui-monospace, Menlo, Consolas, monospace' }}>{log.entity_id}</span></> : null}</>
+                        : <span style={{ color: 'var(--t4)' }}>—</span>}
                     </span>
-                    <span style={{ fontSize: 11, color: 'var(--t4)', display: 'flex', alignItems: 'center', gap: 4, minWidth: 110 }}>
+                    <span style={{ fontSize: 12, color: 'var(--t3)', minWidth: 140, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                       {log.actor_email || <span style={{ color: 'var(--t4)' }}>system</span>}
                     </span>
                     {log.ip_address && (
-                      <span style={{ fontSize: 10, color: 'var(--t4)', fontFamily: 'ui-monospace, Menlo, monospace', display: 'flex', alignItems: 'center', gap: 3 }}>
-                        <Globe size={10} /> {log.ip_address}
+                      <span style={{ fontSize: 11, color: 'var(--t4)', fontFamily: 'ui-monospace, Menlo, Consolas, monospace', display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <Globe size={11} /> {log.ip_address}
                       </span>
                     )}
-                    <span style={{ fontSize: 11, color: 'var(--t4)', minWidth: 70, textAlign: 'right' }}>{fmtAge(log.created_at)}</span>
-                    <ChevronDown size={12} style={{ color: 'var(--t4)', transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 120ms' }} />
+                    <span style={{ fontSize: 11, color: 'var(--t4)', minWidth: 80, textAlign: 'right', fontVariantNumeric:'tabular-nums' }}>{fmtAge(log.created_at)}</span>
+                    <ChevronDown size={14} style={{ color: 'var(--t4)', transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 120ms' }} />
                   </button>
                   {isOpen && (
                     <pre style={{
-                      margin: 0, padding: 12,
+                      margin: 0, padding: 16,
                       fontSize: 11, color: 'var(--t2)',
-                      background: 'var(--bg)', borderTop: '1px solid var(--border)',
-                      fontFamily: 'ui-monospace, Menlo, monospace',
-                      overflow: 'auto', maxHeight: 280,
+                      background: 'var(--bg2)', borderTop: '1px solid var(--border)',
+                      fontFamily: 'ui-monospace, Menlo, Consolas, monospace',
+                      overflow: 'auto', maxHeight: 320, lineHeight: 1.55,
                     }}>{JSON.stringify({ ...log, metadata: log.metadata }, null, 2)}</pre>
                   )}
                 </li>

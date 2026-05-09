@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { Tag, Plus, Trash2, Copy, CheckCircle, AlertCircle } from 'lucide-react'
-import { PageHeader, Section, EmptyState, Field } from '@/components/admin/PageChrome'
+import { HeroCard, Section, EmptyState, Field, ItemGrid, ItemCard } from '@/components/admin/PageChrome'
 
 interface Coupon {
   id: string
@@ -85,55 +85,62 @@ export default function CouponsPage() {
     setTimeout(() => setCopied(null), 1500)
   }
 
+  const active = rows.filter(r => !r.archived_at)
+
   return (
-    <div style={{ maxWidth: 1100 }}>
-      <PageHeader
-        icon={<Tag size={14} />}
+    <div>
+      <HeroCard
+        accent="amber"
+        icon={<Tag size={28} />}
         eyebrow="Billing · Coupons"
         title="Discount codes"
-        description={
-          <>
-            Create promotion codes redeemable at Stripe Checkout. Codes are mirrored to Stripe automatically.
-            {!stripeReady && (
-              <span style={{ marginLeft: 6, color: 'var(--amber)' }}>
-                <AlertCircle size={11} style={{ display: 'inline', verticalAlign: 'middle' }} /> STRIPE_SECRET_KEY not configured — codes save locally only.
-              </span>
-            )}
-          </>
-        }
-        accent="amber"
+        subtitle="Create promotion codes redeemable at Stripe Checkout. Codes are mirrored to Stripe automatically."
+        metric={{ label: 'Active', value: active.length.toString(), secondary: stripeReady ? 'Stripe linked' : 'local-only' }}
       />
 
-      <Section title="Create a coupon" accent="amber">
-        <div className="form-grid">
-          <div className="form-grid form-grid-2">
-            <Field label="Code" hint="Uppercase, no spaces. Customer types this at checkout.">
+      {!stripeReady && (
+        <div className="card-premium" style={{
+          padding: '14px 18px', marginBottom: 20,
+          borderColor: 'var(--amber)44', color: 'var(--amber)',
+          fontSize: 13, fontWeight: 600,
+          display: 'flex', alignItems: 'center', gap: 8,
+        }}>
+          <AlertCircle size={14} /> STRIPE_SECRET_KEY not configured — codes save locally only.
+        </div>
+      )}
+
+      <Section title="Create a coupon" accent="amber" description="Configure the discount, duration, and redemption limits.">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 18 }}>
+            <Field label="Code" required hint="Uppercase, no spaces. Customer types this at checkout.">
               <input className="input" value={draft.code} onChange={e => setDraft({ ...draft, code: e.target.value.toUpperCase().replace(/\s+/g, '') })} placeholder="SUMMER25" />
             </Field>
             <Field label="Internal name (optional)">
               <input className="input" value={draft.name} onChange={e => setDraft({ ...draft, name: e.target.value })} placeholder="Summer 2026 launch" />
             </Field>
           </div>
-          <div className="form-grid form-grid-2">
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 18 }}>
             <Field label="Discount type">
-              <select className="select" value={draft.discount_type} onChange={e => setDraft({ ...draft, discount_type: e.target.value as 'percent' | 'amount' })}>
+              <select className="input" value={draft.discount_type} onChange={e => setDraft({ ...draft, discount_type: e.target.value as 'percent' | 'amount' })}>
                 <option value="percent">Percent off</option>
                 <option value="amount">Fixed amount off</option>
               </select>
             </Field>
             {draft.discount_type === 'percent' ? (
-              <Field label="Percent off (1-100)">
+              <Field label="Percent off (1-100)" required>
                 <input type="number" className="input" min={1} max={100} value={draft.percent_off} onChange={e => setDraft({ ...draft, percent_off: Number(e.target.value) })} />
               </Field>
             ) : (
-              <Field label="Amount off (cents)">
+              <Field label="Amount off (cents)" required>
                 <input type="number" className="input" min={1} value={draft.amount_off_cents} onChange={e => setDraft({ ...draft, amount_off_cents: Number(e.target.value) })} />
               </Field>
             )}
           </div>
-          <div className="form-grid form-grid-2">
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 18 }}>
             <Field label="Duration">
-              <select className="select" value={draft.duration} onChange={e => setDraft({ ...draft, duration: e.target.value as 'once' | 'repeating' | 'forever' })}>
+              <select className="input" value={draft.duration} onChange={e => setDraft({ ...draft, duration: e.target.value as 'once' | 'repeating' | 'forever' })}>
                 <option value="once">Once (single billing cycle)</option>
                 <option value="repeating">Repeating (X months)</option>
                 <option value="forever">Forever (every renewal)</option>
@@ -145,66 +152,73 @@ export default function CouponsPage() {
               </Field>
             )}
           </div>
-          <div className="form-grid form-grid-2">
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 18 }}>
             <Field label="Max redemptions (optional)">
-              <input type="number" className="input" value={draft.max_redemptions} onChange={e => setDraft({ ...draft, max_redemptions: e.target.value })} />
+              <input type="number" className="input" value={draft.max_redemptions} onChange={e => setDraft({ ...draft, max_redemptions: e.target.value })} placeholder="No limit"/>
             </Field>
             <Field label="Valid until (optional)">
               <input type="datetime-local" className="input" value={draft.valid_until} onChange={e => setDraft({ ...draft, valid_until: e.target.value })} />
             </Field>
           </div>
-          {error && <div className="msg-err">✗ {error}</div>}
-          <button className="btn-primary btn-sm" disabled={!draft.code || creating} onClick={create} style={{ alignSelf: 'flex-start' }}>
-            <Plus size={11} /> {creating ? 'Creating…' : 'Create coupon'}
-          </button>
+
+          {error && (
+            <div style={{
+              padding: '12px 16px', borderRadius: 12,
+              background: 'var(--red-bg)', border: '1px solid rgba(248,113,113,0.3)',
+              color: 'var(--red)', fontSize: 13, fontWeight: 600,
+            }}>{error}</div>
+          )}
+          <div>
+            <button className="btn btn-primary btn-sm" disabled={!draft.code || creating} onClick={create}>
+              <Plus size={13} /> {creating ? 'Creating…' : 'Create coupon'}
+            </button>
+          </div>
         </div>
       </Section>
 
-      {rows.length === 0 ? (
+      {active.length === 0 ? (
         <EmptyState icon={<Tag size={20} />} title="No coupons yet" description="Create your first discount above." />
       ) : (
-        <Section flush title={`Active coupons (${rows.filter(r => !r.archived_at).length})`}>
-          <div className="table-wrap" style={{ border: 'none', borderRadius: 0 }}>
-            <table className="table-root">
-              <thead><tr>
-                <th>Code</th><th>Discount</th><th>Duration</th><th>Redeemed</th><th>Stripe</th><th></th>
-              </tr></thead>
-              <tbody>
-                {rows.filter(r => !r.archived_at).map(r => (
-                  <tr key={r.id}>
-                    <td>
-                      <button onClick={() => copy(r.code)} className="chip chip-amber" style={{ fontFamily: 'ui-monospace, Menlo, monospace', cursor: 'pointer', border: 'none' }}>
-                        {r.code} {copied === r.code ? <CheckCircle size={9}/> : <Copy size={9}/>}
-                      </button>
-                      {r.name && <div style={{ fontSize: 10, color: 'var(--t4)', marginTop: 3 }}>{r.name}</div>}
-                    </td>
-                    <td>
-                      {r.percent_off ? <span style={{ color: 'var(--amber)', fontWeight: 700 }}>{r.percent_off}% off</span>
-                                     : <span style={{ color: 'var(--amber)', fontWeight: 700 }}>${((r.amount_off_cents || 0) / 100).toFixed(2)} off</span>}
-                    </td>
-                    <td style={{ fontSize: 12, color: 'var(--t3)' }}>
-                      {r.duration === 'once'      ? 'Once'
-                       : r.duration === 'forever' ? 'Forever'
-                       : `${r.duration_in_months} months`}
-                    </td>
-                    <td style={{ fontSize: 12, color: 'var(--t3)' }}>
-                      {r.redeemed_count}
-                      {r.max_redemptions ? ` / ${r.max_redemptions}` : ''}
-                    </td>
-                    <td>
-                      {r.stripe_coupon_id
-                        ? <span className="chip chip-green">live</span>
-                        : <span className="chip">local-only</span>}
-                    </td>
-                    <td>
-                      <button className="btn-ghost btn-sm" onClick={() => archive(r.id)} style={{ color: 'var(--red)' }}><Trash2 size={11}/></button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Section>
+        <ItemGrid min={300}>
+          {active.map(r => (
+            <ItemCard
+              key={r.id}
+              accent="amber"
+              icon={<Tag size={18}/>}
+              title={r.code}
+              subtitle={r.name || (r.percent_off ? `${r.percent_off}% off` : `$${((r.amount_off_cents || 0)/100).toFixed(2)} off`)}
+              status={{
+                label: r.stripe_coupon_id ? 'LIVE' : 'LOCAL',
+                tone:  r.stripe_coupon_id ? 'green' : 'muted',
+              }}
+              meta={
+                <>
+                  <span>
+                    {r.percent_off ? `${r.percent_off}% off` : `$${((r.amount_off_cents || 0)/100).toFixed(2)} off`}
+                  </span>
+                  <span>·</span>
+                  <span>
+                    {r.duration === 'once' ? 'once' : r.duration === 'forever' ? 'forever' : `${r.duration_in_months}m`}
+                  </span>
+                  <span>·</span>
+                  <span>{r.redeemed_count}{r.max_redemptions ? ` / ${r.max_redemptions}` : ''} redeemed</span>
+                </>
+              }
+              footer={
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  <button className="btn btn-secondary btn-sm" onClick={() => copy(r.code)}>
+                    {copied === r.code ? <CheckCircle size={12}/> : <Copy size={12}/>}
+                    {copied === r.code ? 'Copied' : 'Copy code'}
+                  </button>
+                  <button className="btn btn-secondary btn-sm" onClick={() => archive(r.id)} style={{ color: 'var(--red)' }}>
+                    <Trash2 size={12}/> Archive
+                  </button>
+                </div>
+              }
+            />
+          ))}
+        </ItemGrid>
       )}
     </div>
   )

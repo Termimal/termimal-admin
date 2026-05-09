@@ -5,7 +5,8 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Plus, Trash2, Edit2, X, Save, HelpCircle } from 'lucide-react'
 
-import { HeroCard } from '@/components/admin/PageChrome'
+import { HeroCard, Section, Field, EmptyState } from '@/components/admin/PageChrome'
+
 type FAQ = {
   id: string
   question: string
@@ -70,115 +71,120 @@ export default function FAQEditor() {
     setError('')
   }
 
-  if (loading) return <div className="p-8 text-sm animate-pulse" style={{ color: 'var(--t3)' }}>Loading FAQs...</div>
+  const activeCount = faqs.filter(f => f.is_active).length
 
   return (
-    <div className="max-w-6xl">
+    <div>
       <HeroCard
-        accent='blue'
+        accent="purple"
         icon={<HelpCircle size={28} />}
-        eyebrow='Support'
-        title='FAQs'
-        subtitle='Frequently asked questions surfaced on /help and the support widget.'
+        eyebrow="Support"
+        title="FAQs"
+        subtitle="Frequently asked questions surfaced on /help and the support widget."
+        metric={{ label: 'Visible', value: activeCount.toString(), secondary: `${faqs.length} total` }}
       />
 
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold tracking-tight mb-1">FAQ Management</h1>
-        <p className="text-sm" style={{ color: 'var(--t3)' }}>Add, update, or remove Frequently Asked Questions from your site.</p>
-      </div>
-
-      <div className="grid lg:grid-cols-3 gap-8">
-        
-        {/* LEFT COLUMN: The Form */}
-        <div className="lg:col-span-1">
-          <form onSubmit={handleSubmit} className="p-6 rounded-xl border sticky top-6" style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}>
-            <h2 className="font-bold text-lg mb-4 flex items-center justify-between">
-              {editingId ? 'Edit FAQ' : 'Add New FAQ'}
-              {editingId && (
-                <button type="button" onClick={resetForm} className="text-xs font-normal flex items-center gap-1 hover:underline" style={{ color: 'var(--t3)' }}>
-                  <X size={12} /> Cancel Edit
-                </button>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 24 }}>
+        <div>
+          <Section
+            accent="purple"
+            title={editingId ? 'Edit FAQ' : 'Add new FAQ'}
+            description="Questions appear in order of creation on the public help center."
+            actions={editingId && (
+              <button type="button" className="btn btn-secondary btn-sm" onClick={resetForm}>
+                <X size={12}/> Cancel
+              </button>
+            )}
+          >
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+              {error && (
+                <div style={{
+                  padding: '12px 16px', borderRadius: 12,
+                  background: 'var(--red-bg)', border: '1px solid rgba(248,113,113,0.3)',
+                  color: 'var(--red)', fontSize: 13, fontWeight: 600,
+                }}>{error}</div>
               )}
-            </h2>
 
-            {error && <div className="mb-4 p-3 rounded text-xs text-red-500 bg-red-500/10">{error}</div>}
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--t2)' }}>Question</label>
-                <input 
-                  type="text" required
+              <Field label="Question" required>
+                <input
+                  type="text"
+                  required
+                  className="input"
                   value={formData.question}
-                  onChange={(e: any) => setFormData({...formData, question: e.target.value})}
-                  className="w-full px-3 py-2 rounded-lg text-sm outline-none"
-                  style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--t1)' }}
+                  onChange={(e: any) => setFormData({ ...formData, question: e.target.value })}
                   placeholder="e.g. How much does it cost?"
                 />
-              </div>
+              </Field>
 
-              <div>
-                <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--t2)' }}>Answer</label>
-                <textarea 
-                  required rows={4}
+              <Field label="Answer" required>
+                <textarea
+                  required
+                  rows={5}
+                  className="input"
                   value={formData.answer}
-                  onChange={(e: any) => setFormData({...formData, answer: e.target.value})}
-                  className="w-full px-3 py-2 rounded-lg text-sm outline-none resize-none"
-                  style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--t1)' }}
-                  placeholder="Write the answer here..."
+                  onChange={(e: any) => setFormData({ ...formData, answer: e.target.value })}
+                  placeholder="Write the answer here…"
+                  style={{ resize: 'vertical', lineHeight: 1.55, fontFamily: 'inherit' }}
                 />
-              </div>
+              </Field>
 
-              <label className="flex items-center gap-2 text-sm cursor-pointer" style={{ color: 'var(--t2)' }}>
-                <input 
-                  type="checkbox"
-                  checked={formData.is_active}
-                  onChange={(e: any) => setFormData({...formData, is_active: e.target.checked})}
-                  className="rounded border-gray-300"
-                />
-                Visible on public site
-              </label>
+              <Field label="Visibility">
+                <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
+                  <input
+                    type="checkbox"
+                    checked={formData.is_active}
+                    onChange={(e: any) => setFormData({ ...formData, is_active: e.target.checked })}
+                    style={{ width: 16, height: 16, accentColor: 'var(--acc)' }}
+                  />
+                  Visible on public site
+                </label>
+              </Field>
 
-               <button 
-                type="submit" disabled={saving}
-                className="w-full py-2.5 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-opacity disabled:opacity-50 mt-2"
-                style={{ background: 'var(--acc)', color: 'white' }}
+              <button
+                type="submit"
+                disabled={saving}
+                className="btn btn-primary btn-sm"
+                style={{ minHeight: 38 }}
               >
-                {editingId ? <Save size={16} /> : <Plus size={16} />}
-                {saving ? 'Saving...' : editingId ? 'Update FAQ' : 'Create FAQ'}
+                {editingId ? <Save size={13}/> : <Plus size={13}/>}
+                {saving ? 'Saving…' : editingId ? 'Update FAQ' : 'Create FAQ'}
               </button>
-            </div>
-          </form>
+            </form>
+          </Section>
         </div>
 
-        {/* RIGHT COLUMN: The List */}
-        <div className="lg:col-span-2 space-y-4">
-          {faqs.length === 0 ? (
-            <div className="p-8 text-center rounded-xl border border-dashed" style={{ borderColor: 'var(--border)', color: 'var(--t3)' }}>
-              No FAQs created yet. Use the form to add your first one!
-            </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {loading ? (
+            <Section flush>
+              <div style={{ padding: 40, textAlign: 'center', color: 'var(--t3)', fontSize: 13 }}>Loading FAQs…</div>
+            </Section>
+          ) : faqs.length === 0 ? (
+            <EmptyState
+              icon={<HelpCircle size={20}/>}
+              title="No FAQs yet"
+              description="Use the form to add your first one."
+            />
           ) : (
             faqs.map((faq) => (
-              <div key={faq.id} className="p-5 rounded-xl border group transition-all" style={{ 
-                borderColor: editingId === faq.id ? 'var(--acc)' : 'var(--border)', 
-                background: 'var(--surface)',
-                opacity: faq.is_active ? 1 : 0.6
+              <div key={faq.id} className="card-premium" style={{
+                padding: '24px 28px',
+                borderColor: editingId === faq.id ? 'var(--purple)44' : 'var(--border)',
+                opacity: faq.is_active ? 1 : 0.65,
               }}>
-                <div className="flex justify-between items-start gap-4">
-                  <div>
-                    <h3 className="font-bold text-base mb-1" style={{ color: 'var(--t1)' }}>{faq.question}</h3>
-                    <p className="text-sm whitespace-pre-wrap" style={{ color: 'var(--t3)' }}>{faq.answer}</p>
-                    
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--t1)', marginBottom: 8, letterSpacing: '-0.005em' }}>{faq.question}</h3>
+                    <p style={{ fontSize: 13, color: 'var(--t3)', whiteSpace: 'pre-wrap', lineHeight: 1.6, margin: 0 }}>{faq.answer}</p>
                     {!faq.is_active && (
-                      <span className="inline-block mt-3 text-[0.65rem] font-bold px-2 py-0.5 rounded bg-gray-500/10 text-gray-500">HIDDEN</span>
+                      <span className="badge badge-muted" style={{ marginTop: 12 }}>Hidden</span>
                     )}
                   </div>
-                  
-                  <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button type="button" onClick={() => startEditing(faq)} className="p-1.5 rounded hover:bg-black/5 dark:hover:bg-white/5" style={{ color: 'var(--t2)' }}>
-                      <Edit2 size={16} />
+                  <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => startEditing(faq)}>
+                      <Edit2 size={12}/>
                     </button>
-                    <button type="button" onClick={() => handleDelete(faq.id)} className="p-1.5 rounded hover:bg-red-500/10 text-red-500">
-                      <Trash2 size={16} />
+                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => handleDelete(faq.id)} style={{ color: 'var(--red)' }}>
+                      <Trash2 size={12}/>
                     </button>
                   </div>
                 </div>

@@ -15,9 +15,10 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ListTodo, Plus, Search, Filter, X, Trash2, ChevronDown, AlertCircle, Calendar, User as UserIcon, Tag } from 'lucide-react'
+import { ListTodo, Plus, Search, X, Trash2, ChevronDown, Calendar, User as UserIcon, Tag } from 'lucide-react'
 
-import { HeroCard } from '@/components/admin/PageChrome'
+import { HeroCard, Section } from '@/components/admin/PageChrome'
+
 interface AdminItem {
   id: string
   title: string
@@ -49,19 +50,19 @@ const STATUS_LABEL: Record<AdminItem['status'], string> = {
 }
 
 const STATUS_COLOR: Record<AdminItem['status'], { bg: string; border: string; text: string }> = {
-  backlog:     { bg: 'rgba(148,163,184,0.10)', border: 'rgba(148,163,184,0.30)', text: '#94a3b8' },
-  todo:        { bg: 'rgba(96,165,250,0.10)',  border: 'rgba(96,165,250,0.30)',  text: '#60a5fa' },
-  in_progress: { bg: 'rgba(56,139,253,0.10)',  border: 'rgba(56,139,253,0.35)',  text: '#388bfd' },
-  review:      { bg: 'rgba(167,139,250,0.10)', border: 'rgba(167,139,250,0.30)', text: '#a78bfa' },
-  blocked:     { bg: 'rgba(248,113,113,0.10)', border: 'rgba(248,113,113,0.35)', text: '#f87171' },
-  done:        { bg: 'rgba(52,211,153,0.10)',  border: 'rgba(52,211,153,0.30)',  text: '#34d399' },
+  backlog:     { bg: 'var(--surface2)',   border: 'var(--border)',           text: 'var(--t3)'    },
+  todo:        { bg: 'var(--blue-bg)',    border: 'rgba(96,165,250,0.30)',   text: 'var(--blue)'  },
+  in_progress: { bg: 'var(--acc-bg)',     border: 'var(--acc-border)',       text: 'var(--acc)'   },
+  review:      { bg: 'var(--purple-bg)',  border: 'rgba(167,139,250,0.30)',  text: 'var(--purple)'},
+  blocked:     { bg: 'var(--red-bg)',     border: 'rgba(248,113,113,0.35)',  text: 'var(--red)'   },
+  done:        { bg: 'var(--green-bg)',   border: 'rgba(52,211,153,0.30)',   text: 'var(--green)' },
 }
 
 const PRIORITY_COLOR: Record<AdminItem['priority'], { bg: string; text: string; label: string }> = {
-  low:      { bg: 'rgba(148,163,184,0.15)', text: '#94a3b8', label: 'Low' },
-  medium:   { bg: 'rgba(96,165,250,0.15)',  text: '#60a5fa', label: 'Med' },
-  high:     { bg: 'rgba(251,191,36,0.15)',  text: '#fbbf24', label: 'High' },
-  critical: { bg: 'rgba(248,113,113,0.18)', text: '#f87171', label: 'Crit' },
+  low:      { bg: 'var(--surface2)',   text: 'var(--t3)',     label: 'Low' },
+  medium:   { bg: 'var(--blue-bg)',    text: 'var(--blue)',   label: 'Med' },
+  high:     { bg: 'var(--amber-bg)',   text: 'var(--amber)',  label: 'High' },
+  critical: { bg: 'var(--red-bg)',     text: 'var(--red)',    label: 'Crit' },
 }
 
 const CATEGORIES = [
@@ -88,12 +89,10 @@ export default function AdminItemsPage() {
   const [loading, setLoading]   = useState(true)
   const [error, setError]       = useState<string | null>(null)
 
-  // Filters.
   const [q, setQ]               = useState('')
   const [filterPriority, setFilterPriority] = useState<'all' | AdminItem['priority']>('all')
   const [filterAssignee, setFilterAssignee] = useState<string>('all')
 
-  // Quick-add form.
   const [newTitle, setNewTitle]       = useState('')
   const [newPriority, setNewPriority] = useState<AdminItem['priority']>('medium')
   const [newCategory, setNewCategory] = useState<string>('general')
@@ -122,7 +121,7 @@ export default function AdminItemsPage() {
   }, [q, filterPriority, filterAssignee])
 
   useEffect(() => {
-    const t = setTimeout(load, 200) // debounce search
+    const t = setTimeout(load, 200)
     return () => clearTimeout(t)
   }, [load])
 
@@ -139,8 +138,6 @@ export default function AdminItemsPage() {
     for (const it of items) buckets[it.status].push(it)
     return buckets
   }, [items])
-
-  // ── Mutations ────────────────────────────────────────────────────
 
   async function createItem() {
     if (!newTitle.trim()) return
@@ -169,7 +166,6 @@ export default function AdminItemsPage() {
   }
 
   async function patchItem(id: string, patch: Partial<AdminItem>) {
-    // Optimistic: apply the change locally immediately.
     setItems(prev => prev.map(it => it.id === id ? { ...it, ...patch } as AdminItem : it))
     try {
       const r = await fetch(`/api/admin/items/${id}`, {
@@ -182,7 +178,7 @@ export default function AdminItemsPage() {
         setItems(prev => prev.map(it => it.id === id ? j.item! : it))
       } else if (j.error) {
         setError(j.error)
-        await load() // refetch to undo the optimistic state
+        await load()
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
@@ -198,132 +194,109 @@ export default function AdminItemsPage() {
     } catch { /* swallow */ }
   }
 
-  // ── Render ───────────────────────────────────────────────────────
+  const inProgress = grouped.in_progress.length
 
   return (
-    <div style={{ maxWidth: 1400 }}>
+    <div>
       <HeroCard
-        accent='purple'
+        accent="purple"
         icon={<ListTodo size={28} />}
-        eyebrow='Workflow'
-        title='Open items'
-        subtitle='Tasks, tickets, and roadmap entries — kanban view of admin_items.'
+        eyebrow="Workflow"
+        title="Open items"
+        subtitle="Tasks, tickets, and roadmap entries — kanban view of admin_items."
+        metric={{ label: 'In progress', value: inProgress.toString(), secondary: `${items.length} total` }}
       />
 
-      <div style={{ marginBottom: 24 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-          <ListTodo size={16} style={{ color: 'var(--acc)' }} />
-          <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--acc)', letterSpacing: '1px', textTransform: 'uppercase' }}>Project Board</span>
-        </div>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--t1)', marginBottom: 4 }}>Open items</h1>
-        <p style={{ fontSize: 13, color: 'var(--t3)' }}>
-          Bugs, features, ops follow-ups. {items.length} item{items.length === 1 ? '' : 's'} on the board.
-        </p>
-      </div>
-
-      {/* Quick-add row */}
-      <div style={{
-        display: 'flex', gap: 8, alignItems: 'center',
-        padding: 12, marginBottom: 16,
-        background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10,
-      }}>
-        <input
-          type="text"
-          value={newTitle}
-          onChange={(e) => setNewTitle(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter' && newTitle.trim()) createItem() }}
-          placeholder="Add a new item — press Enter to create"
-          style={{
-            flex: 1, padding: '8px 12px', borderRadius: 8,
-            background: 'var(--bg, #0d1117)', border: '1px solid var(--border)',
-            color: 'var(--t1)', fontSize: 13,
-          }}
-        />
-        <select
-          value={newPriority}
-          onChange={(e) => setNewPriority(e.target.value as AdminItem['priority'])}
-          style={selectStyle}
-        >
-          {(['low','medium','high','critical'] as const).map(p => <option key={p} value={p}>{PRIORITY_COLOR[p].label}</option>)}
-        </select>
-        <select
-          value={newCategory}
-          onChange={(e) => setNewCategory(e.target.value)}
-          style={selectStyle}
-        >
-          {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-        </select>
-        <button
-          type="button"
-          disabled={creating || !newTitle.trim()}
-          onClick={createItem}
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: 6,
-            padding: '8px 14px', borderRadius: 8,
-            background: 'var(--acc, #388bfd)', border: 'none',
-            color: 'white', fontSize: 12, fontWeight: 600,
-            cursor: creating ? 'wait' : 'pointer',
-            opacity: !newTitle.trim() ? 0.5 : 1,
-          }}
-        >
-          <Plus size={12} /> Add
-        </button>
-      </div>
-
-      {/* Filter bar */}
-      <div style={{
-        display: 'flex', gap: 8, alignItems: 'center',
-        padding: '8px 12px', marginBottom: 18,
-        background: 'transparent', borderBottom: '1px solid var(--border)',
-      }}>
-        <Filter size={12} style={{ color: 'var(--t4)' }} />
-        <span style={{ fontSize: 11, color: 'var(--t4)', fontWeight: 600, letterSpacing: '0.4px', textTransform: 'uppercase' }}>Filter</span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1 }}>
-          <Search size={12} style={{ color: 'var(--t4)' }} />
+      <Section title="Quick add" accent="purple" description="Type a title, hit Enter to push to backlog.">
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
           <input
-            type="search"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Search title / description"
-            style={{
-              flex: 1, maxWidth: 280, padding: '4px 8px', borderRadius: 6,
-              background: 'transparent', border: '1px solid var(--border)',
-              color: 'var(--t1)', fontSize: 12,
-            }}
+            type="text"
+            className="input"
+            value={newTitle}
+            onChange={(e) => setNewTitle(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter' && newTitle.trim()) createItem() }}
+            placeholder="Add a new item — press Enter to create"
+            style={{ flex: 1, minWidth: 240 }}
           />
-          {q && (
-            <button onClick={() => setQ('')} style={iconBtn}><X size={11} /></button>
-          )}
+          <select
+            className="input"
+            value={newPriority}
+            onChange={(e) => setNewPriority(e.target.value as AdminItem['priority'])}
+            style={{ minWidth: 120 }}
+          >
+            {(['low','medium','high','critical'] as const).map(p => <option key={p} value={p}>{PRIORITY_COLOR[p].label}</option>)}
+          </select>
+          <select
+            className="input"
+            value={newCategory}
+            onChange={(e) => setNewCategory(e.target.value)}
+            style={{ minWidth: 140 }}
+          >
+            {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <button
+            type="button"
+            disabled={creating || !newTitle.trim()}
+            onClick={createItem}
+            className="btn btn-primary btn-sm"
+            style={{ minHeight: 38 }}
+          >
+            <Plus size={13}/> Add
+          </button>
         </div>
-        <select value={filterPriority} onChange={(e) => setFilterPriority(e.target.value as 'all' | AdminItem['priority'])} style={selectStyle}>
-          <option value="all">All priorities</option>
-          {(['critical','high','medium','low'] as const).map(p => <option key={p} value={p}>{PRIORITY_COLOR[p].label}</option>)}
-        </select>
-        <select value={filterAssignee} onChange={(e) => setFilterAssignee(e.target.value)} style={selectStyle}>
-          <option value="all">All assignees</option>
-          <option value="unassigned">Unassigned</option>
-          {profiles.map(p => <option key={p.id} value={p.id}>{p.full_name || p.email || p.id.slice(0, 8)}</option>)}
-        </select>
-      </div>
+      </Section>
+
+      <Section title="Filters">
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+          <div style={{ position: 'relative', flex: 1, minWidth: 240 }}>
+            <Search size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--t4)' }}/>
+            <input
+              type="search"
+              className="input"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search title / description"
+              style={{ paddingLeft: 36 }}
+            />
+            {q && (
+              <button
+                onClick={() => setQ('')}
+                style={{
+                  position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+                  background: 'none', border: 'none', cursor: 'pointer', color: 'var(--t4)',
+                }}
+              >
+                <X size={13}/>
+              </button>
+            )}
+          </div>
+          <select className="input" value={filterPriority} onChange={(e) => setFilterPriority(e.target.value as 'all' | AdminItem['priority'])} style={{ minWidth: 160 }}>
+            <option value="all">All priorities</option>
+            {(['critical','high','medium','low'] as const).map(p => <option key={p} value={p}>{PRIORITY_COLOR[p].label}</option>)}
+          </select>
+          <select className="input" value={filterAssignee} onChange={(e) => setFilterAssignee(e.target.value)} style={{ minWidth: 200 }}>
+            <option value="all">All assignees</option>
+            <option value="unassigned">Unassigned</option>
+            {profiles.map(p => <option key={p.id} value={p.id}>{p.full_name || p.email || p.id.slice(0, 8)}</option>)}
+          </select>
+        </div>
+      </Section>
 
       {error && (
-        <div style={{
-          padding: 10, marginBottom: 14, borderRadius: 8,
-          background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.3)',
-          color: '#f87171', fontSize: 12,
-        }}>
-          ✗ {error}
-        </div>
+        <div className="card-premium" style={{
+          padding: '14px 18px', marginBottom: 20,
+          borderColor: 'var(--red)44',
+          color: 'var(--red)', fontSize: 13, fontWeight: 600,
+        }}>{error}</div>
       )}
       {loading && (
-        <div style={{ fontSize: 12, color: 'var(--t4)', padding: 20 }}>Loading…</div>
+        <div style={{ fontSize: 13, color: 'var(--t4)', padding: 20 }}>Loading…</div>
       )}
 
-      {/* Kanban columns */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(6, minmax(220px, 1fr))',
-        gap: 12,
+        gridTemplateColumns: 'repeat(6, minmax(240px, 1fr))',
+        gap: 14,
         overflowX: 'auto',
         paddingBottom: 16,
       }}>
@@ -331,39 +304,40 @@ export default function AdminItemsPage() {
           const col   = grouped[s]
           const meta  = STATUS_COLOR[s]
           return (
-            <div key={s} style={{
-              display: 'flex', flexDirection: 'column', minWidth: 220,
-              background: 'var(--surface)', borderRadius: 10,
-              border: `1px solid ${meta.border}`,
+            <div key={s} className="card-premium" style={{
+              display: 'flex', flexDirection: 'column', minWidth: 240,
+              padding: 0, overflow: 'hidden',
+              borderColor: meta.border,
             }}>
               <div style={{
                 display: 'flex', alignItems: 'center', gap: 8,
-                padding: '10px 12px',
+                padding: '14px 16px',
                 borderBottom: `1px solid ${meta.border}`,
                 background: meta.bg,
               }}>
                 <span style={{
-                  fontSize: 11, fontWeight: 700, letterSpacing: '0.6px',
+                  fontSize: 11, fontWeight: 800, letterSpacing: '0.1em',
                   textTransform: 'uppercase', color: meta.text,
                 }}>{STATUS_LABEL[s]}</span>
                 <span style={{
-                  marginLeft: 'auto', fontSize: 10, color: meta.text,
-                  fontFamily: 'var(--font-mono, monospace)',
-                  background: meta.bg, border: `1px solid ${meta.border}`,
-                  padding: '1px 6px', borderRadius: 4,
+                  marginLeft: 'auto', fontSize: 11, color: meta.text,
+                  fontFamily: 'ui-monospace, Menlo, Consolas, monospace',
+                  background: 'var(--surface)', border: `1px solid ${meta.border}`,
+                  padding: '2px 8px', borderRadius: 999, fontWeight: 700,
+                  fontVariantNumeric: 'tabular-nums',
                 }}>{col.length}</span>
               </div>
               <div style={{
                 display: 'flex', flexDirection: 'column', gap: 8,
-                padding: 8, minHeight: 80, flex: 1,
+                padding: 10, minHeight: 100, flex: 1,
               }}>
                 {col.length === 0 && (
-                  <div style={{ fontSize: 11, color: 'var(--t4)', padding: 12, textAlign: 'center' }}>
+                  <div style={{ fontSize: 11, color: 'var(--t4)', padding: 14, textAlign: 'center' }}>
                     Empty
                   </div>
                 )}
                 {col.map(it => (
-                  <ItemCard
+                  <ItemCardLocal
                     key={it.id}
                     item={it}
                     profile={it.assignee_id ? profileMap.get(it.assignee_id) : undefined}
@@ -380,18 +354,7 @@ export default function AdminItemsPage() {
   )
 }
 
-const selectStyle: React.CSSProperties = {
-  padding: '4px 8px', borderRadius: 6,
-  background: 'transparent', border: '1px solid var(--border)',
-  color: 'var(--t1)', fontSize: 12, cursor: 'pointer',
-}
-const iconBtn: React.CSSProperties = {
-  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-  background: 'transparent', border: 'none',
-  color: 'var(--t4)', cursor: 'pointer', padding: 2,
-}
-
-function ItemCard({
+function ItemCardLocal({
   item, profile, onPatch, onArchive,
 }: {
   item: AdminItem
@@ -406,24 +369,24 @@ function ItemCard({
 
   return (
     <article style={{
-      background: 'var(--bg, #0d1117)',
-      border: '1px solid var(--border)', borderRadius: 8,
-      padding: 10, fontSize: 12, color: 'var(--t1)',
+      background: 'var(--surface)',
+      border: '1px solid var(--border)', borderRadius: 12,
+      padding: 12, fontSize: 12, color: 'var(--t1)',
     }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
         <span style={{
-          padding: '1px 6px', borderRadius: 4, fontSize: 9, fontWeight: 700,
+          padding: '2px 8px', borderRadius: 999, fontSize: 10, fontWeight: 800,
           background: pr.bg, color: pr.text,
-          letterSpacing: '0.4px', textTransform: 'uppercase', flexShrink: 0,
+          letterSpacing: '0.06em', textTransform: 'uppercase', flexShrink: 0,
         }}>{pr.label}</span>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 12, color: 'var(--t1)', lineHeight: 1.35, fontWeight: 500 }}>
+          <div style={{ fontSize: 13, color: 'var(--t1)', lineHeight: 1.4, fontWeight: 600 }}>
             {item.title}
           </div>
           {item.category && item.category !== 'general' && (
-            <div style={{ marginTop: 3 }}>
+            <div style={{ marginTop: 4 }}>
               <span style={{
-                fontSize: 9, fontWeight: 600, letterSpacing: '0.4px',
+                fontSize: 10, fontWeight: 700, letterSpacing: '0.06em',
                 color: 'var(--t4)', textTransform: 'uppercase',
               }}>{item.category}</span>
             </div>
@@ -431,36 +394,39 @@ function ItemCard({
         </div>
         <button
           onClick={() => setOpen(o => !o)}
-          style={iconBtn}
+          style={{
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            background: 'transparent', border: 'none',
+            color: 'var(--t4)', cursor: 'pointer', padding: 2,
+          }}
           aria-label="Expand"
         >
-          <ChevronDown size={12} style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 120ms' }} />
+          <ChevronDown size={13} style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 120ms' }}/>
         </button>
       </div>
 
-      {/* Meta row */}
       <div style={{
-        display: 'flex', alignItems: 'center', gap: 8,
-        marginTop: 6, fontSize: 10, color: 'var(--t4)',
+        display: 'flex', alignItems: 'center', gap: 10,
+        marginTop: 8, fontSize: 11, color: 'var(--t4)', flexWrap: 'wrap',
       }}>
         {profile && (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-            <UserIcon size={10} />
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <UserIcon size={11}/>
             {profile.full_name || profile.email?.split('@')[0] || 'user'}
           </span>
         )}
         {dueText && (
           <span style={{
-            display: 'inline-flex', alignItems: 'center', gap: 3,
-            color: dueOverdue ? '#f87171' : 'var(--t4)',
+            display: 'inline-flex', alignItems: 'center', gap: 4,
+            color: dueOverdue ? 'var(--red)' : 'var(--t4)',
           }}>
-            <Calendar size={10} />
+            <Calendar size={11}/>
             {dueText}
           </span>
         )}
         {item.tags && item.tags.length > 0 && (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-            <Tag size={10} />
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <Tag size={11}/>
             {item.tags.slice(0, 3).join(', ')}
           </span>
         )}
@@ -468,28 +434,29 @@ function ItemCard({
 
       {open && (
         <div style={{
-          marginTop: 10, paddingTop: 10,
+          marginTop: 12, paddingTop: 12,
           borderTop: '1px solid var(--border)',
-          display: 'flex', flexDirection: 'column', gap: 8,
+          display: 'flex', flexDirection: 'column', gap: 10,
         }}>
           {item.description && (
             <div style={{
-              fontSize: 11, color: 'var(--t3)', whiteSpace: 'pre-wrap',
-              lineHeight: 1.5,
+              fontSize: 12, color: 'var(--t3)', whiteSpace: 'pre-wrap', lineHeight: 1.55,
             }}>{item.description}</div>
           )}
-          <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <select
+              className="input"
               value={item.status}
               onChange={(e) => onPatch({ status: e.target.value as AdminItem['status'] })}
-              style={selectStyle}
+              style={{ flex: 1, minWidth: 120, padding: '8px 10px', fontSize: 12 }}
             >
               {STATUSES.map(s => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
             </select>
             <select
+              className="input"
               value={item.priority}
               onChange={(e) => onPatch({ priority: e.target.value as AdminItem['priority'] })}
-              style={selectStyle}
+              style={{ minWidth: 80, padding: '8px 10px', fontSize: 12 }}
             >
               {(['low','medium','high','critical'] as const).map(p => <option key={p} value={p}>{PRIORITY_COLOR[p].label}</option>)}
             </select>
@@ -497,11 +464,12 @@ function ItemCard({
               onClick={onArchive}
               title="Archive"
               style={{
-                ...iconBtn, marginLeft: 'auto',
-                color: '#f87171',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                background: 'transparent', border: '1px solid var(--border)', borderRadius: 999,
+                color: 'var(--red)', cursor: 'pointer', padding: '6px 10px',
               }}
             >
-              <Trash2 size={12} />
+              <Trash2 size={12}/>
             </button>
           </div>
         </div>

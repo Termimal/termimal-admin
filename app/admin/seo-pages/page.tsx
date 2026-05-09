@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { Search, Plus, Trash2, Save } from 'lucide-react'
-import { PageHeader, Section, EmptyState, Field } from '@/components/admin/PageChrome'
+import { HeroCard, Section, EmptyState, Field } from '@/components/admin/PageChrome'
 
 interface SeoPage {
   id?: string
@@ -47,20 +47,20 @@ export default function SeoPagesPage() {
   }
 
   return (
-    <div style={{ maxWidth: 1100 }}>
-      <PageHeader
-        icon={<Search size={14} />}
-        eyebrow="SEO · Per-page"
-        title="Per-route SEO overrides"
-        description="Override the global SEO defaults on specific routes (e.g. /pricing, /features). Anything left blank falls back to the global defaults from the SEO & Meta page."
+    <div>
+      <HeroCard
         accent="blue"
+        icon={<Search size={28}/>}
+        eyebrow="SEO · per page"
+        title="Per-route overrides"
+        subtitle="Override the global SEO defaults on specific routes (e.g. /pricing, /features). Anything left blank falls back to the global defaults."
+        metric={{ label: 'Overrides', value: rows.length.toString(), secondary: rows.filter(r => r.noindex).length ? `${rows.filter(r => r.noindex).length} noindex` : 'all indexable' }}
       />
 
-      {/* Add new */}
-      <Section title="Add override" accent="blue">
-        <div className="form-grid">
-          <div className="form-grid form-grid-2">
-            <Field label="Path" hint="e.g. /pricing">
+      <Section title="Add override" accent="blue" description="Each path can have its own title, description, OG image, canonical, and noindex setting.">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 18 }}>
+            <Field label="Path" required hint="e.g. /pricing">
               <input className="input" value={draft.path} onChange={e => setDraft({ ...draft, path: e.target.value })} placeholder="/pricing" />
             </Field>
             <Field label="Title">
@@ -68,9 +68,9 @@ export default function SeoPagesPage() {
             </Field>
           </div>
           <Field label="Description">
-            <textarea className="input" rows={2} value={draft.description || ''} onChange={e => setDraft({ ...draft, description: e.target.value })} />
+            <textarea className="input" rows={3} value={draft.description || ''} onChange={e => setDraft({ ...draft, description: e.target.value })} style={{ resize: 'vertical', lineHeight: 1.55 }}/>
           </Field>
-          <div className="form-grid form-grid-2">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 18 }}>
             <Field label="og:image">
               <input className="input" value={draft.og_image || ''} onChange={e => setDraft({ ...draft, og_image: e.target.value })} />
             </Field>
@@ -78,18 +78,24 @@ export default function SeoPagesPage() {
               <input className="input" value={draft.canonical || ''} onChange={e => setDraft({ ...draft, canonical: e.target.value })} />
             </Field>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <button className="toggle" data-checked={draft.noindex} onClick={() => setDraft({ ...draft, noindex: !draft.noindex })}>
-              <span className="toggle-thumb" />
-            </button>
-            <span style={{ fontSize: 12, color: 'var(--t3)' }}>Noindex this route</span>
+          <Field label="Noindex">
+            <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
+              <input
+                type="checkbox"
+                checked={draft.noindex}
+                onChange={e => setDraft({ ...draft, noindex: e.target.checked })}
+                style={{ width: 16, height: 16, accentColor: 'var(--red)' }}
+              />
+              Block this route from search engines
+            </label>
+          </Field>
+          <div>
             <button
-              className="btn-primary btn-sm"
-              style={{ marginLeft: 'auto' }}
+              className="btn btn-primary btn-sm"
               disabled={!draft.path.trim() || saving === draft.path}
               onClick={() => save(draft)}
             >
-              <Plus size={11} /> {saving === draft.path ? 'Saving…' : 'Add override'}
+              <Plus size={13}/> {saving === draft.path ? 'Saving…' : 'Add override'}
             </button>
           </div>
         </div>
@@ -103,28 +109,29 @@ export default function SeoPagesPage() {
         <Section flush title="Active overrides">
           <ul style={{ margin: 0, padding: 0, listStyle: 'none' }}>
             {rows.map(r => (
-              <li key={r.id} style={{ borderBottom: '1px solid var(--border)', padding: '12px 16px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                  <span className="chip chip-blue" style={{ fontFamily: 'ui-monospace, Menlo, monospace' }}>{r.path}</span>
-                  {r.noindex && <span className="chip chip-red">noindex</span>}
-                  <button className="btn-ghost btn-sm" style={{ marginLeft: 'auto', color: 'var(--red)' }} onClick={() => del(r.id!)}>
-                    <Trash2 size={11} />
+              <li key={r.id} style={{ borderBottom: '1px solid var(--border)', padding: '20px 24px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
+                  <span className="badge badge-blue" style={{ fontFamily: 'ui-monospace, Menlo, Consolas, monospace' }}>{r.path}</span>
+                  {r.noindex && <span className="badge badge-red">noindex</span>}
+                  <button className="btn btn-secondary btn-sm" style={{ marginLeft: 'auto', color: 'var(--red)' }} onClick={() => del(r.id!)}>
+                    <Trash2 size={12}/>
                   </button>
                 </div>
-                <div className="form-grid">
-                  <div className="form-grid form-grid-2">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12 }}>
                     <input className="input" value={r.title || ''} placeholder="Title"
                       onChange={e => setRows(rs => rs.map(x => x.id === r.id ? { ...x, title: e.target.value } : x))} />
                     <input className="input" value={r.canonical || ''} placeholder="Canonical"
                       onChange={e => setRows(rs => rs.map(x => x.id === r.id ? { ...x, canonical: e.target.value } : x))} />
                   </div>
                   <textarea className="input" rows={2} value={r.description || ''} placeholder="Description"
-                    onChange={e => setRows(rs => rs.map(x => x.id === r.id ? { ...x, description: e.target.value } : x))} />
-                  <div className="form-grid form-grid-2">
-                    <input className="input" value={r.og_image || ''} placeholder="og:image"
+                    onChange={e => setRows(rs => rs.map(x => x.id === r.id ? { ...x, description: e.target.value } : x))}
+                    style={{ resize: 'vertical', lineHeight: 1.55 }}/>
+                  <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <input className="input" value={r.og_image || ''} placeholder="og:image" style={{ flex: 1, minWidth: 240 }}
                       onChange={e => setRows(rs => rs.map(x => x.id === r.id ? { ...x, og_image: e.target.value } : x))} />
-                    <button className="btn-secondary btn-sm" onClick={() => save(r)} disabled={saving === r.id}>
-                      <Save size={11} /> {saving === r.id ? 'Saving…' : 'Save'}
+                    <button className="btn btn-primary btn-sm" onClick={() => save(r)} disabled={saving === r.id}>
+                      <Save size={12}/> {saving === r.id ? 'Saving…' : 'Save'}
                     </button>
                   </div>
                 </div>
