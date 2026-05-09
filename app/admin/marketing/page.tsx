@@ -548,28 +548,33 @@ function TacticCard({
             </p>
           )}
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
+            {/* Native <select> options inherit OS theming. The
+                global stylesheet sets color-scheme: dark + option
+                background/color so the dropdown stays readable on
+                Windows where the default would otherwise render
+                disabled-looking text on a white menu. */}
             <select
               value={item.status}
               onChange={e => onMove(e.target.value as Status)}
               style={{
-                fontSize: 11, padding: '4px 8px', borderRadius: 7,
-                background: 'var(--surface)', border: '1px solid var(--border)',
-                color: 'var(--t2)', cursor: 'pointer',
+                fontSize: 11, padding: '5px 9px', borderRadius: 7,
+                background: 'var(--bg2)', border: '1px solid var(--border)',
+                color: 'var(--t1)', cursor: 'pointer', fontWeight: 600,
               }}
             >
-              {COLUMNS.map(c => <option key={c.key} value={c.key}>Move → {c.label}</option>)}
+              {COLUMNS.map(c => <option key={c.key} value={c.key}>{`Move → ${c.label}`}</option>)}
             </select>
             <select
               value={item.priority}
               onChange={e => onPriority(e.target.value as Priority)}
               style={{
-                fontSize: 11, padding: '4px 8px', borderRadius: 7,
-                background: 'var(--surface)', border: '1px solid var(--border)',
-                color: 'var(--t2)', cursor: 'pointer',
+                fontSize: 11, padding: '5px 9px', borderRadius: 7,
+                background: 'var(--bg2)', border: '1px solid var(--border)',
+                color: 'var(--t1)', cursor: 'pointer', fontWeight: 600,
               }}
             >
               {Object.entries(PRIORITY_META).map(([k, m]) =>
-                <option key={k} value={k}>Priority: {m.label}</option>
+                <option key={k} value={k}>{`Priority: ${m.label}`}</option>
               )}
             </select>
             <button

@@ -142,12 +142,12 @@ export default function AdminSubscriptionsPage() {
                   <tr key={u.id} style={{ borderBottom: '1px solid var(--border)' }}>
                     <td style={{ padding: '14px 24px' }}>
                       <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--t1)' }}>{u.fullname || '—'}</div>
-                      <div style={{ fontSize: 12, color: 'var(--t4)' }}>{u.email}</div>
+                      <div style={{ fontSize: 12, color: 'var(--t3)' }}>{u.email}</div>
                     </td>
                     <td style={{ padding: '14px 24px' }}><span className={`badge ${PLAN_BADGE[u.plan] || 'badge-muted'}`}>{u.plan || 'free'}</span></td>
                     <td style={{ padding: '14px 24px' }}><span className={`badge ${STATUS_BADGE[u.subscription_status] || 'badge-muted'}`}>{u.subscription_status || 'inactive'}</span></td>
                     <td style={{ padding: '14px 24px', color: 'var(--t3)', fontSize: 13 }}>{u.billing_interval || '—'}</td>
-                    <td style={{ padding: '14px 24px', color: 'var(--t4)', fontSize: 12, fontVariantNumeric: 'tabular-nums' }}>{u.current_period_end ? new Date(u.current_period_end).toLocaleDateString() : '—'}</td>
+                    <td style={{ padding: '14px 24px', color: 'var(--t3)', fontSize: 12, fontVariantNumeric: 'tabular-nums' }}>{u.current_period_end ? new Date(u.current_period_end).toLocaleDateString() : '—'}</td>
                     <td style={{ padding: '14px 24px', color: 'var(--acc)', fontVariantNumeric: 'tabular-nums', fontSize: 13 }}>{u.subscription_bonus_months || 0}</td>
                     <td style={{ padding: '14px 24px', color: 'var(--amber)', fontVariantNumeric: 'tabular-nums', fontSize: 13 }}>{u.discount_percent ? `${u.discount_percent}%` : '—'}</td>
                     <td style={{ padding: '14px 24px', textAlign: 'right' }}>

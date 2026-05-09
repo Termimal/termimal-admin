@@ -984,6 +984,84 @@ img, picture, video, canvas, svg { display: block; max-width: 100%; }
   /* Number tickers — for animated KPI values. */
   .num-tabular { font-variant-numeric: tabular-nums; letter-spacing: -0.01em }
 
+  /* ─── Native widget readability ────────────────────────────
+     Browser <select> dropdowns and other native widgets use OS
+     theming by default — on Windows that means white background
+     + black text, which renders our greyed-out option text as
+     invisible-on-white. `color-scheme` tells Chromium / Firefox
+     / Safari to use the dark variant of every native widget. */
+  html, body { color-scheme: dark; }
+
+  /* Style the option list explicitly. Most browsers ignore most
+     CSS on <option> but background-color + color reliably stick
+     in Chrome and Firefox — together with color-scheme above this
+     gives us readable dropdowns everywhere. */
+  select.input,
+  select.select,
+  .input select,
+  .input,
+  select {
+    color-scheme: dark;
+  }
+  select option,
+  .input option {
+    background: #11111c;       /* matches --bg3 */
+    color: #f5f5f8;            /* matches --t1 */
+    padding: 8px 12px;
+  }
+  select option:hover,
+  select option:checked,
+  .input option:hover,
+  .input option:checked {
+    background: #2dd4a4;       /* --acc */
+    color: #000;
+  }
+  select option:disabled,
+  .input option:disabled {
+    color: rgba(245,245,248,0.32);
+  }
+
+  /* Selection / caret / placeholder polish — applies everywhere. */
+  ::selection {
+    background: rgba(45,212,164,0.28);
+    color: var(--t1);
+  }
+  ::placeholder { color: var(--t4); opacity: 1; }
+  input, textarea { caret-color: var(--acc); }
+
+  /* Stronger focus-visible ring on every focusable widget so
+     keyboard users see where they are. Falls back gracefully to
+     the existing `.input:focus` glow when applicable. */
+  :focus-visible {
+    outline: 2px solid var(--acc);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+  button:focus-visible,
+  .btn:focus-visible {
+    outline-offset: 3px;
+  }
+
+  /* Scrollbar — match the dark surface palette. */
+  *::-webkit-scrollbar         { width: 10px; height: 10px; }
+  *::-webkit-scrollbar-track   { background: transparent; }
+  *::-webkit-scrollbar-thumb   {
+    background: var(--surface2);
+    border-radius: 999px;
+    border: 2px solid var(--bg);
+  }
+  *::-webkit-scrollbar-thumb:hover { background: var(--surface3); }
+
+  /* Disabled state — readable across <button>, <input>, .btn. */
+  button:disabled,
+  .btn:disabled,
+  input:disabled,
+  textarea:disabled,
+  select:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
   /* User-detail Overview tab layout —
      Two-column grid with a 360-px right rail for Admin Notes.
      Collapses to a single column at < 1100px so the notes panel

@@ -85,8 +85,8 @@ const NOTE_KINDS: Array<{ value: string; label: string; color: string }> = [
 function InfoRow({ label, value, mono }: { label: string; value: any; mono?: boolean }) {
   return (
     <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:16, padding:'10px 0', borderBottom:'1px solid var(--border)' }}>
-      <span style={{ color:'var(--t4)', fontSize:12, whiteSpace:'nowrap', flexShrink:0 }}>{label}</span>
-      <span style={{ color:'var(--t2)', fontSize:12, textAlign:'right', fontFamily: mono ? 'monospace' : 'inherit', wordBreak:'break-all' }}>{value ?? '—'}</span>
+      <span style={{ color:'var(--t3)', fontSize:12, whiteSpace:'nowrap', flexShrink:0 }}>{label}</span>
+      <span style={{ color:'var(--t1)', fontSize:12, textAlign:'right', fontFamily: mono ? 'monospace' : 'inherit', wordBreak:'break-all' }}>{value ?? '—'}</span>
     </div>
   )
 }
@@ -111,7 +111,7 @@ function SectionTitle({ icon, title, sub }: { icon: React.ReactNode; title: stri
   )
 }
 function EmptyState({ label }: { label: string }) {
-  return <div style={{ padding:'32px 0', textAlign:'center', color:'var(--t4)', fontSize:13 }}>{label}</div>
+  return <div style={{ padding:'32px 0', textAlign:'center', color:'var(--t3)', fontSize:13 }}>{label}</div>
 }
 
 /**
@@ -1041,7 +1041,7 @@ export default function AdminUserDetailPage() {
                         }}>
                           {p.charAt(0).toUpperCase() + p.slice(1)}
                         </div>
-                        <div style={{ fontSize:11, color:'var(--t4)', marginTop:2 }}>
+                        <div style={{ fontSize:11, color:'var(--t3)', marginTop:2 }}>
                           {p === currentPlan ? 'Current plan' : `Switch to ${p}`}
                         </div>
                       </div>
@@ -1168,7 +1168,7 @@ export default function AdminUserDetailPage() {
               </Field>
             </div>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:18, gap:12 }}>
-              <div style={{ fontSize:11.5, color:'var(--t4)' }}>
+              <div style={{ fontSize:11.5, color:'var(--t3)' }}>
                 Tip: paste the invoice ID from the Payments tab — leaving amount blank refunds the remaining balance.
               </div>
               <button onClick={issueRefund} disabled={refundSaving || !refundInvoiceOrCharge.trim()} className="btn btn-primary" style={{ flexShrink:0, minHeight:42 }}>
@@ -1181,7 +1181,7 @@ export default function AdminUserDetailPage() {
           <div className="card-premium" style={{ padding:'24px 28px' }}>
             <SectionTitle icon={<History size={15}/>} title="Override History" sub={`${overrides.length} ${overrides.length === 1 ? 'override' : 'overrides'} applied`} />
             {overrides.length === 0 ? (
-              <div style={{ padding:'24px 0', textAlign:'center', color:'var(--t4)', fontSize:13 }}>
+              <div style={{ padding:'24px 0', textAlign:'center', color:'var(--t3)', fontSize:13 }}>
                 No overrides applied yet.
               </div>
             ) : (
@@ -1214,7 +1214,7 @@ export default function AdminUserDetailPage() {
         <div className="card-premium" style={{ padding:'24px 28px' }}>
           <SectionTitle icon={<Gift size={15}/>} title="Package Grant History" sub={`${packageHistory.length} packages granted to this user`} />
           {packageHistory.length === 0 ? (
-            <div style={{ padding:'32px 0', textAlign:'center', color:'var(--t4)', fontSize:13 }}>
+            <div style={{ padding:'32px 0', textAlign:'center', color:'var(--t3)', fontSize:13 }}>
               No packages granted yet. Use the Subscription tab to grant a starter / pro / premium package.
             </div>
           ) : (
@@ -1353,7 +1353,7 @@ export default function AdminUserDetailPage() {
 
             <SectionTitle icon={<History size={15}/>} title="Credit History" sub={`${creditHistory.length} ${creditHistory.length === 1 ? 'entry' : 'entries'}`} />
             {creditHistory.length === 0 ? (
-              <div style={{ padding:'24px 0', textAlign:'center', color:'var(--t4)', fontSize:13 }}>
+              <div style={{ padding:'24px 0', textAlign:'center', color:'var(--t3)', fontSize:13 }}>
                 No credit history yet.
               </div>
             ) : (
@@ -1428,7 +1428,7 @@ export default function AdminUserDetailPage() {
           <div className="card-premium" style={{ padding:'24px 28px' }}>
             <SectionTitle icon={<History size={15}/>} title={`Timeline (${timeline.length})`} sub="Notes, billing events, support replies, admin actions — newest first." />
             {timeline.length === 0 ? (
-              <div style={{ padding:'32px 0', textAlign:'center', color:'var(--t4)', fontSize:13 }}>
+              <div style={{ padding:'32px 0', textAlign:'center', color:'var(--t3)', fontSize:13 }}>
                 No timeline entries yet — add a note above or trigger a billing event.
               </div>
             ) : (
@@ -1535,7 +1535,7 @@ export default function AdminUserDetailPage() {
             <div className="card-premium" style={{ padding:'24px 28px' }}>
               <SectionTitle icon={<LogIn size={15}/>} title="Login History" sub={`Last ${loginHistory.length || 0} sessions — newest first · 90-day retention`} />
               {loginHistory.length === 0 ? (
-                <div style={{ padding:'32px 0', textAlign:'center', color:'var(--t4)', fontSize:13 }}>
+                <div style={{ padding:'32px 0', textAlign:'center', color:'var(--t3)', fontSize:13 }}>
                   No login history yet. Sessions appear here once the user signs in after the telemetry deploy (2026-05-10).
                 </div>
               ) : (

@@ -261,12 +261,17 @@ export default function AdminItemsPage() {
             {q && (
               <button
                 onClick={() => setQ('')}
+                aria-label="Clear search"
                 style={{
-                  position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
-                  background: 'none', border: 'none', cursor: 'pointer', color: 'var(--t4)',
+                  position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
+                  background: 'transparent', border: '1px solid transparent', cursor: 'pointer',
+                  color: 'var(--t3)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  width: 28, height: 28, borderRadius: 999, transition: 'all 160ms',
                 }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--surface2)'; e.currentTarget.style.color = 'var(--t1)' }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--t3)' }}
               >
-                <X size={13}/>
+                <X size={14}/>
               </button>
             )}
           </div>

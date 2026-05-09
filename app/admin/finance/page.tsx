@@ -271,7 +271,7 @@ export default function FinancePage() {
                       <div style={{ fontSize: 13, color: 'var(--t1)', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
                         Available {r.currency} {r.available_major.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </div>
-                      <div style={{ fontSize: 11.5, color: 'var(--t4)', marginTop: 2 }}>
+                      <div style={{ fontSize: 11.5, color: 'var(--t3)', marginTop: 2 }}>
                         Pending {r.currency} {r.pending_major.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </div>
                     </div>
