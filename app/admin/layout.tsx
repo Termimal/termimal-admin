@@ -43,6 +43,7 @@ import {
   Handshake,
   Sparkles,
   BarChart3,
+  Bug,
   Wallet,
 } from 'lucide-react'
 
@@ -115,7 +116,8 @@ const NAV: { group: string; items: NavItem[] }[] = [
      */
     group: 'Analytics',
     items: [
-      { href: '/admin/bi', label: 'Business Intelligence', icon: BarChart3 },
+      { href: '/admin/bi',     label: 'Business Intelligence', icon: BarChart3 },
+      { href: '/admin/errors', label: 'Error log',             icon: Bug },
     ],
   },
   {

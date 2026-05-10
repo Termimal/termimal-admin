@@ -647,6 +647,35 @@ export default function AdminUserDetailPage() {
     if (res.ok) { showToast(true, 'Deleted'); loadTimeline() }
   }
 
+  // Account-takeover playbook — one click "freeze + rotate password
+  // + sign out everywhere". Less destructive than permanentlyClose
+  // (no row deletion); used when a user reports compromise or our
+  // anomaly detector flags repeated very-high-risk sessions.
+  const [freezeSaving, setFreezeSaving] = useState(false)
+  async function freezeAccount() {
+    const reason = prompt('Reason for freeze (recorded in audit log):', 'reported compromise')
+    if (reason === null) return
+    setFreezeSaving(true)
+    try {
+      const res = await fetch(`/api/admin/users/${id}/freeze`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason }),
+      })
+      const j = await res.json()
+      if (res.ok) {
+        showToast(true,
+          `Account frozen · sign-out ${j.signed_out ? '✓' : '✗'} · password reset ${j.password_reset ? '✓ sent' : '✗'}`,
+        )
+        load()
+      } else {
+        showToast(false, j.error || 'Freeze failed')
+      }
+    } finally {
+      setFreezeSaving(false)
+    }
+  }
+
   async function permanentlyClose() {
     const userEmail = data?.user?.email
     const confirm1 = prompt(`Type the user's email (${userEmail || 'unknown'}) to confirm permanent account closure. This is irreversible — auth + profile + every cascading row will be deleted.`)
@@ -1748,6 +1777,43 @@ export default function AdminUserDetailPage() {
                 </div>
               </div>
             </div>
+            {/* Account-takeover response (less destructive than full
+                deletion) — freeze + global sign-out + password reset. */}
+            <div style={{
+              padding:'16px 18px', borderRadius:12, marginBottom:18,
+              background:'rgba(251,191,36,0.06)', border:'1px solid rgba(251,191,36,0.3)',
+            }}>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:14, flexWrap:'wrap' }}>
+                <div style={{ flex:1, minWidth:280 }}>
+                  <div style={{ fontSize:14, fontWeight:700, color:'var(--amber)', marginBottom:4 }}>
+                    Account-takeover response (reversible)
+                  </div>
+                  <div style={{ fontSize:12.5, color:'var(--t3)', lineHeight:1.55 }}>
+                    Suspends the account, signs the user out of every device, and emails them a password
+                    reset link. Use when the user reports compromise or anomaly detection has flagged
+                    repeated high-risk sessions. To unfreeze, set Account Status back to Active.
+                  </div>
+                </div>
+                <button
+                  onClick={freezeAccount}
+                  disabled={freezeSaving}
+                  className="btn"
+                  style={{
+                    background:'rgba(251,191,36,0.16)',
+                    color:'var(--amber)',
+                    border:'1px solid rgba(251,191,36,0.5)',
+                    fontWeight:700,
+                    minHeight:38, padding:'0 18px',
+                    display:'inline-flex', alignItems:'center', gap:8,
+                    flexShrink:0,
+                  }}
+                >
+                  <AlertTriangle size={14}/>
+                  {freezeSaving ? 'Freezing…' : 'Freeze account'}
+                </button>
+              </div>
+            </div>
+
             <Field label="Reason (recorded in audit log)" required>
               <input className="input" value={closeReason} onChange={e => setCloseReason(e.target.value)} placeholder="e.g. user requested deletion under GDPR Art. 17" />
             </Field>
