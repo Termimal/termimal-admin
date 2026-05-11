@@ -77,12 +77,13 @@ const NAV: { group: string; items: NavItem[] }[] = [
   {
     group: 'Users & Billing',
     items: [
-      { href: '/admin/users',         label: 'Users',         icon: Users },
-      { href: '/admin/subscriptions', label: 'Subscriptions', icon: CreditCard },
-      { href: '/admin/payments',      label: 'Payments',      icon: Package },
-      { href: '/admin/coupons',       label: 'Coupons',       icon: Tag },
-      { href: '/admin/cohorts',       label: 'Cohorts',       icon: Users2 },
-      { href: '/admin/finance',       label: 'Finance',       icon: DollarSign },
+      { href: '/admin/users',           label: 'Users',           icon: Users },
+      { href: '/admin/subscriptions',   label: 'Subscriptions',   icon: CreditCard },
+      { href: '/admin/payments',        label: 'Payments',        icon: Package },
+      { href: '/admin/payment-methods', label: 'Payment Methods', icon: CreditCard },
+      { href: '/admin/coupons',         label: 'Coupons',         icon: Tag },
+      { href: '/admin/cohorts',         label: 'Cohorts',         icon: Users2 },
+      { href: '/admin/finance',         label: 'Finance',         icon: DollarSign },
     ],
   },
   {
