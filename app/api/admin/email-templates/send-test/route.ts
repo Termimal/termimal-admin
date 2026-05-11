@@ -15,6 +15,7 @@ import { NextResponse } from 'next/server'
 import { renderEmailTemplate } from '@/lib/admin/email-template'
 import { requireAdmin } from '@/lib/admin/require-admin'
 import { serviceClient } from '@/lib/admin/service-client'
+import { sendAndLog } from '@/lib/admin/email-log'
 
 // Per-actor rate-limit: max 5 test sends per hour per admin. Resend
 // has spam thresholds and a single compromised admin shouldn't be
@@ -98,28 +99,29 @@ export async function POST(request: Request) {
     const htmlFooter = `<hr style="margin-top:24px;border:0;border-top:1px solid #eee"/><div style="font-size:11px;color:#888;margin-top:8px">${footer.trim()}</div>`
 
     const resendKey = process.env.RESEND_API_KEY
-    if (resendKey) {
-      const fromAddr = process.env.EMAIL_FROM || 'Termimal <onboarding@resend.dev>'
-      const res = await fetch('https://api.resend.com/emails', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${resendKey}` },
-        body:    JSON.stringify({
-          from:    fromAddr,
-          to:      [body.to],
-          subject: `[TEST] ${rendered.subject}`,
-          html:    rendered.html + htmlFooter,
-          text:    rendered.text + footer,
-        }),
-      })
-      const json = await res.json().catch(() => ({}))
-      if (!res.ok) return NextResponse.json({ error: 'resend rejected', detail: json }, { status: res.status })
-      return NextResponse.json({ ok: true, provider: 'resend', id: (json as { id?: string }).id })
+    if (!resendKey) {
+      return NextResponse.json({
+        error: 'no email provider configured — set RESEND_API_KEY in Worker env vars',
+        rendered,
+      }, { status: 503 })
     }
 
-    return NextResponse.json({
-      error: 'no email provider configured — set RESEND_API_KEY in Worker env vars',
-      rendered,
-    }, { status: 503 })
+    // Route through sendAndLog so the test send appears in
+    // /admin/email-log alongside production sends.
+    const result = await sendAndLog({
+      to:           body.to,
+      subject:      `[TEST] ${rendered.subject}`,
+      html:         rendered.html + htmlFooter,
+      text:         rendered.text + footer,
+      templateKey:  body.key,
+      trigger:      'admin_test',
+      actorId:      actor.id,
+      meta:         { actor_email: actor.email, target: targetEmail },
+    })
+    if (!result.ok) {
+      return NextResponse.json({ error: 'resend rejected', detail: result.error, log_id: result.log_id }, { status: 502 })
+    }
+    return NextResponse.json({ ok: true, provider: 'resend', id: result.provider_id, log_id: result.log_id })
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'unknown' }, { status: 500 })
   }

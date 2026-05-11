@@ -550,6 +550,27 @@ export default function AdminUserDetailPage() {
     if (j.ok) { showToast(true, `Granted: ${pkg.label}`); setSelSubPkg(''); setSubPkgNote(''); load() }
     else showToast(false, j.error || 'Failed')
   }
+  // Impersonation — opens the target user's session in a new tab.
+  // Super-admin only on the server. The new tab is the real user
+  // session; the admin can return to admin in this tab.
+  const [impersonating, setImpersonating] = useState(false)
+  async function impersonate() {
+    if (!confirm('Sign in AS this user in a new tab? Every action you take from there will be attributed to them. The user gets a security-feed notification. Logged in audit_log.')) return
+    setImpersonating(true)
+    try {
+      const res = await fetch(`/api/admin/users/${id}/impersonate`, { method: 'POST' })
+      const j = await res.json()
+      if (!res.ok) {
+        showToast(false, j.error || `HTTP ${res.status}`)
+        return
+      }
+      window.open(j.url, '_blank', 'noopener,noreferrer')
+      showToast(true, `Opened ${j.target_email} in a new tab`)
+    } finally {
+      setImpersonating(false)
+    }
+  }
+
   // Quick-action trial extension — common ops path during launch
   // weeks ("user says trial ended too fast, give them another 14
   // days"). Calls the same grant-package endpoint, no package
@@ -832,11 +853,18 @@ export default function AdminUserDetailPage() {
             </div>
           </div>
 
-          <button onClick={load} className="btn btn-secondary btn-sm" style={{
-            minHeight:38, flexShrink:0, padding:'8px 16px', fontSize:13,
-          }}>
-            <RefreshCw size={13}/> Refresh
-          </button>
+          <div style={{ display:'flex', gap:8, flexShrink:0, flexWrap:'wrap' }}>
+            <button onClick={impersonate} disabled={impersonating} className="btn btn-secondary btn-sm" style={{
+              minHeight:38, padding:'8px 16px', fontSize:13,
+            }}>
+              <LogIn size={13}/> {impersonating ? 'Opening…' : 'Sign in as user'}
+            </button>
+            <button onClick={load} className="btn btn-secondary btn-sm" style={{
+              minHeight:38, padding:'8px 16px', fontSize:13,
+            }}>
+              <RefreshCw size={13}/> Refresh
+            </button>
+          </div>
         </div>
 
         {/* Three big metric tiles below the identity row */}

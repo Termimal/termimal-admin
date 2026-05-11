@@ -66,6 +66,10 @@ export const PATH_PERMISSIONS: Array<{ prefix: string; perm: Permission }> = [
   { prefix: '/api/admin/seo-pages',               perm: 'seo.write' },
   { prefix: '/api/admin/translations',            perm: 'translations.write' },
   { prefix: '/api/admin/email-templates',         perm: 'email_templates.write' },
+  { prefix: '/api/admin/email-log',               perm: 'analytics.read' },
+  { prefix: '/api/admin/funnel',                  perm: 'analytics.read' },
+  { prefix: '/api/admin/plan-changes',            perm: 'analytics.read' },
+  { prefix: '/api/admin/win-back',                perm: 'analytics.read' },
   { prefix: '/api/admin/experiments',             perm: 'experiments.write' },
   { prefix: '/api/admin/cohorts',                 perm: 'cohorts.write' },
   { prefix: '/api/admin/maintenance',             perm: 'maintenance.write' },
@@ -73,8 +77,12 @@ export const PATH_PERMISSIONS: Array<{ prefix: string; perm: Permission }> = [
   { prefix: '/api/admin/health',                  perm: 'analytics.read' },
   { prefix: '/api/admin/export',                  perm: 'export.read' },
   { prefix: '/api/admin/system',                  perm: 'system.write' },
+  { prefix: '/api/admin/cron',                    perm: 'system.read' },
   { prefix: '/api/admin/roles',                   perm: 'roles.write' },
   { prefix: '/api/admin/referrals',               perm: 'referrals.write' }, // PATCH — covers reads too
+  { prefix: '/api/admin/site-content',            perm: 'content.write' },
+  { prefix: '/api/admin/testimonials',            perm: 'content.write' },
+  { prefix: '/api/admin/changelog',               perm: 'content.write' },
   { prefix: '/api/admin',                         perm: 'users.read' },      // catch-all minimal
 
   // Page routes.
@@ -99,6 +107,10 @@ export const PATH_PERMISSIONS: Array<{ prefix: string; perm: Permission }> = [
   { prefix: '/admin/seo',        perm: 'seo.read' },
   { prefix: '/admin/translations', perm: 'translations.read' },
   { prefix: '/admin/email-templates', perm: 'email_templates.read' },
+  { prefix: '/admin/email-log',  perm: 'analytics.read' },
+  { prefix: '/admin/funnel',     perm: 'analytics.read' },
+  { prefix: '/admin/plan-changes', perm: 'analytics.read' },
+  { prefix: '/admin/win-back',   perm: 'analytics.read' },
   { prefix: '/admin/flags',      perm: 'flags.read' },
   { prefix: '/admin/experiments', perm: 'experiments.read' },
   { prefix: '/admin/health',     perm: 'analytics.read' },
@@ -106,8 +118,12 @@ export const PATH_PERMISSIONS: Array<{ prefix: string; perm: Permission }> = [
   { prefix: '/admin/maintenance', perm: 'maintenance.read' },
   { prefix: '/admin/invites',    perm: 'invites.write' },
   { prefix: '/admin/system',     perm: 'system.read' },
+  { prefix: '/admin/cron',       perm: 'system.read' },
   { prefix: '/admin/roles',      perm: 'roles.write' },
   { prefix: '/admin/referrals',  perm: 'referrals.read' },
+  { prefix: '/admin/site-content',  perm: 'content.read' },
+  { prefix: '/admin/testimonials',  perm: 'content.read' },
+  { prefix: '/admin/changelog',     perm: 'content.read' },
   // Dashboard + settings — minimum admin perm covers it.
   { prefix: '/admin/settings',   perm: 'system.read' },
   { prefix: '/admin',            perm: 'users.read' },

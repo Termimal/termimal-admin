@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 
 // Build marker — bumped every deploy so you can verify in the browser
 // the new code is actually serving. Visible in the sidebar footer.
-const BUILD_MARKER = '2026-05-08 · 18:00 UTC'
+const BUILD_MARKER = '2026-05-11 · D+E+F ship'
 import {
   LayoutDashboard,
   Users,
@@ -46,7 +46,14 @@ import {
   Bug,
   MessageSquare,
   Newspaper,
+  Edit3,
+  Quote,
   Wallet,
+  MailCheck,
+  Clock,
+  Filter,
+  ArrowRightLeft,
+  Heart,
 } from 'lucide-react'
 
 type NavItem = {
@@ -120,14 +127,19 @@ const NAV: { group: string; items: NavItem[] }[] = [
      */
     group: 'Analytics',
     items: [
-      { href: '/admin/bi',     label: 'Business Intelligence', icon: BarChart3 },
-      { href: '/admin/errors', label: 'Error log',             icon: Bug },
+      { href: '/admin/bi',           label: 'Business Intelligence', icon: BarChart3 },
+      { href: '/admin/funnel',       label: 'Conversion Funnel',     icon: Filter },
+      { href: '/admin/plan-changes', label: 'Plan Changes',          icon: ArrowRightLeft },
+      { href: '/admin/win-back',     label: 'Win-back Queue',        icon: Heart },
+      { href: '/admin/errors',       label: 'Error log',             icon: Bug },
     ],
   },
   {
     group: 'Content',
     items: [
       { href: '/admin/content',         label: 'Content',         icon: FileText },
+      { href: '/admin/site-content',    label: 'Site Content',    icon: Edit3 },
+      { href: '/admin/testimonials',    label: 'Testimonials',    icon: Quote },
       { href: '/admin/banners',         label: 'Banners',         icon: ImageIcon },
       { href: '/admin/announcements',   label: 'Announcements',   icon: Megaphone },
       { href: '/admin/changelog',       label: 'Changelog',       icon: Newspaper },
@@ -142,6 +154,8 @@ const NAV: { group: string; items: NavItem[] }[] = [
     group: 'System',
     items: [
       { href: '/admin/system',      label: 'System',         icon: Settings },
+      { href: '/admin/email-log',   label: 'Email Log',      icon: MailCheck },
+      { href: '/admin/cron',        label: 'Cron Jobs',      icon: Clock },
       { href: '/admin/maintenance', label: 'Maintenance',    icon: Calendar },
       { href: '/admin/roles',       label: 'Roles & Perms',  icon: Shield },
       { href: '/admin/invites',     label: 'Admin Invites',  icon: UserPlus },
