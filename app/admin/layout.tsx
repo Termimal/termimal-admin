@@ -44,6 +44,7 @@ import {
   Sparkles,
   BarChart3,
   Bug,
+  MessageSquare,
   Wallet,
 } from 'lucide-react'
 
@@ -69,9 +70,10 @@ const NAV: { group: string; items: NavItem[] }[] = [
   {
     group: 'Workflow',
     items: [
-      { href: '/admin/items',   label: 'Open Items',    icon: ListTodo },
-      { href: '/admin/roadmap', label: 'Roadmap',       icon: Map },
-      { href: '/admin/support', label: 'Support Inbox', icon: Inbox },
+      { href: '/admin/items',    label: 'Open Items',    icon: ListTodo },
+      { href: '/admin/roadmap',  label: 'Roadmap',       icon: Map },
+      { href: '/admin/support',  label: 'Support Inbox', icon: Inbox },
+      { href: '/admin/feedback', label: 'Feedback',      icon: MessageSquare },
     ],
   },
   {
