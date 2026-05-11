@@ -550,6 +550,27 @@ export default function AdminUserDetailPage() {
     if (j.ok) { showToast(true, `Granted: ${pkg.label}`); setSelSubPkg(''); setSubPkgNote(''); load() }
     else showToast(false, j.error || 'Failed')
   }
+  // Quick-action trial extension — common ops path during launch
+  // weeks ("user says trial ended too fast, give them another 14
+  // days"). Calls the same grant-package endpoint, no package
+  // picker needed.
+  const [trialExtSaving, setTrialExtSaving] = useState(false)
+  async function extendTrial(days: number) {
+    const current = data?.profile?.plan || 'pro'
+    setTrialExtSaving(true)
+    const j = await post('/grant-package', {
+      packageId: `trial_ext_${days}d_${Date.now()}`,
+      label:     `Trial +${days}d`,
+      plan:      current,
+      months:    0,
+      days,
+      credits:   0,
+      note:      `Trial extension granted from user-detail quick-action (${days} days).`,
+    })
+    setTrialExtSaving(false)
+    if (j.ok) { showToast(true, `Trial extended by ${days} days`); load() }
+    else showToast(false, j.error || 'Failed')
+  }
   async function applyDiscount() {
     const pct = parseInt(discPct)
     if (isNaN(pct) || pct < 0 || pct > 100) return showToast(false, 'Enter 0–100')
@@ -1081,6 +1102,36 @@ export default function AdminUserDetailPage() {
               <button onClick={changePlan} disabled={planSaving} className="btn btn-primary" style={{ width:'100%', minHeight:42 }}>
                 {planSaving ? 'Applying…' : `Apply "${selPlan}" plan`}
               </button>
+
+              {/* Trial extension quick-actions — single click, no
+                  picker. Logs as a "Trial +Nd" package grant for
+                  audit trail. */}
+              <div style={{
+                marginTop:16, paddingTop:16, borderTop:'1px solid var(--border)',
+              }}>
+                <div style={{
+                  fontSize:10.5, fontWeight:800, color:'var(--t4)',
+                  textTransform:'uppercase', letterSpacing:'0.13em', marginBottom:8,
+                }}>Quick: extend trial</div>
+                <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+                  {[7, 14, 30].map(d => (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => extendTrial(d)}
+                      disabled={trialExtSaving}
+                      style={{
+                        padding:'8px 16px', borderRadius:999, border:'1px solid var(--border)', cursor:'pointer',
+                        background:'var(--surface)', color:'var(--t2)',
+                        fontSize:12.5, fontWeight:600,
+                        flex:'1 1 auto',
+                      }}>+{d} days</button>
+                  ))}
+                </div>
+                <div style={{ fontSize:11, color:'var(--t4)', marginTop:6 }}>
+                  Grants the user +N days on their current plan. Logged as a package grant for audit.
+                </div>
+              </div>
             </div>
 
             {/* Subscription discount */}
