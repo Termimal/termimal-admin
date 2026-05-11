@@ -79,6 +79,17 @@ export async function POST(
     payload:   { target_email: targetEmail, admin_email: gate.user.email },
   }).then(() => null, () => null)
 
+  // Open an impersonation_sessions row so the dashboard banner can
+  // append events to it (page navs, clicks). The session is closed
+  // when the admin clicks "Return to admin" → POST /api/auth/logout.
+  await sb.from('impersonation_sessions').insert({
+    admin_id:       gate.user.id,
+    target_user_id: userId,
+    ip:             null,
+    user_agent:     null,
+    events:         [{ ts: new Date().toISOString(), kind: 'start' }],
+  }).then(() => null, () => null)
+
   // Optional: drop a notification in the target user's feed so
   // they can see admin activity on their account (transparency).
   await sb.from('notifications').insert({

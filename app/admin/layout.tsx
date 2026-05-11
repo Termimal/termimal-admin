@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 
 // Build marker — bumped every deploy so you can verify in the browser
 // the new code is actually serving. Visible in the sidebar footer.
-const BUILD_MARKER = '2026-05-11 · D+E+F ship'
+const BUILD_MARKER = '2026-05-12 · Round G — A→G full ship'
 import {
   LayoutDashboard,
   Users,
@@ -54,6 +54,23 @@ import {
   Filter,
   ArrowRightLeft,
   Heart,
+  ShieldQuestion,
+  Users2 as ApproversIcon,
+  KeyRound,
+  KeySquare,
+  Siren,
+  AlertOctagon,
+  CreditCard as CreditCardIcon,
+  Calculator,
+  Megaphone as BroadcastIcon,
+  BookOpen,
+  Webhook as WebhookIcon,
+  HeartPulse,
+  BarChart3 as BarChart3Extras,
+  ShieldCheck,
+  Building2,
+  FilePlus2,
+  FileCheck2,
 } from 'lucide-react'
 
 type NavItem = {
@@ -82,6 +99,7 @@ const NAV: { group: string; items: NavItem[] }[] = [
       { href: '/admin/roadmap',  label: 'Roadmap',       icon: Map },
       { href: '/admin/support',  label: 'Support Inbox', icon: Inbox },
       { href: '/admin/feedback', label: 'Feedback',      icon: MessageSquare },
+      { href: '/admin/kb',       label: 'Knowledge base', icon: BookOpen },
     ],
   },
   {
@@ -94,6 +112,9 @@ const NAV: { group: string; items: NavItem[] }[] = [
       { href: '/admin/coupons',         label: 'Coupons',         icon: Tag },
       { href: '/admin/cohorts',         label: 'Cohorts',         icon: Users2 },
       { href: '/admin/finance',         label: 'Finance',         icon: DollarSign },
+      { href: '/admin/disputes',        label: 'Disputes',        icon: AlertOctagon },
+      { href: '/admin/dunning',         label: 'Dunning',         icon: CreditCardIcon },
+      { href: '/admin/tax',             label: 'Tax',             icon: Calculator },
     ],
   },
   {
@@ -127,11 +148,33 @@ const NAV: { group: string; items: NavItem[] }[] = [
      */
     group: 'Analytics',
     items: [
-      { href: '/admin/bi',           label: 'Business Intelligence', icon: BarChart3 },
-      { href: '/admin/funnel',       label: 'Conversion Funnel',     icon: Filter },
-      { href: '/admin/plan-changes', label: 'Plan Changes',          icon: ArrowRightLeft },
-      { href: '/admin/win-back',     label: 'Win-back Queue',        icon: Heart },
-      { href: '/admin/errors',       label: 'Error log',             icon: Bug },
+      { href: '/admin/bi',                label: 'Business Intelligence', icon: BarChart3 },
+      { href: '/admin/funnel',            label: 'Conversion Funnel',     icon: Filter },
+      { href: '/admin/plan-changes',      label: 'Plan Changes',          icon: ArrowRightLeft },
+      { href: '/admin/win-back',          label: 'Win-back Queue',        icon: Heart },
+      { href: '/admin/customer-health',   label: 'Customer Health',       icon: HeartPulse },
+      { href: '/admin/analytics-extras',  label: 'Cohorts · Geo · Channels', icon: BarChart3Extras },
+      { href: '/admin/errors',            label: 'Error log',             icon: Bug },
+    ],
+  },
+  {
+    group: 'Privacy & compliance',
+    items: [
+      { href: '/admin/dsar',           label: 'DSAR queue',       icon: ShieldQuestion },
+      { href: '/admin/consent',        label: 'Consent ledger',   icon: FileCheck2 },
+      { href: '/admin/ropa',           label: 'RoPA',             icon: FilePlus2 },
+      { href: '/admin/sub-processors', label: 'Sub-processors',   icon: Building2 },
+    ],
+  },
+  {
+    group: 'Security ops',
+    items: [
+      { href: '/admin/approvals',      label: 'Approvals (4-eyes)', icon: ApproversIcon },
+      { href: '/admin/jit',            label: 'JIT elevation',      icon: KeyRound },
+      { href: '/admin/secrets',        label: 'Secrets rotation',   icon: KeySquare },
+      { href: '/admin/csp-reports',    label: 'CSP reports',        icon: ShieldAlert },
+      { href: '/admin/audit-chain',    label: 'Audit integrity',    icon: ShieldCheck },
+      { href: '/admin/incident',       label: 'Incident console',   icon: Siren },
     ],
   },
   {
@@ -142,6 +185,7 @@ const NAV: { group: string; items: NavItem[] }[] = [
       { href: '/admin/testimonials',    label: 'Testimonials',    icon: Quote },
       { href: '/admin/banners',         label: 'Banners',         icon: ImageIcon },
       { href: '/admin/announcements',   label: 'Announcements',   icon: Megaphone },
+      { href: '/admin/broadcasts',      label: 'Broadcasts',      icon: BroadcastIcon },
       { href: '/admin/changelog',       label: 'Changelog',       icon: Newspaper },
       { href: '/admin/faqs',            label: 'FAQs',            icon: HelpCircle },
       { href: '/admin/translations',    label: 'Translations',    icon: Languages },
@@ -153,9 +197,10 @@ const NAV: { group: string; items: NavItem[] }[] = [
   {
     group: 'System',
     items: [
-      { href: '/admin/system',      label: 'System',         icon: Settings },
-      { href: '/admin/email-log',   label: 'Email Log',      icon: MailCheck },
-      { href: '/admin/cron',        label: 'Cron Jobs',      icon: Clock },
+      { href: '/admin/system',           label: 'System',          icon: Settings },
+      { href: '/admin/email-log',        label: 'Email Log',       icon: MailCheck },
+      { href: '/admin/cron',             label: 'Cron Jobs',       icon: Clock },
+      { href: '/admin/webhook-retries',  label: 'Webhook Retries', icon: WebhookIcon },
       { href: '/admin/maintenance', label: 'Maintenance',    icon: Calendar },
       { href: '/admin/roles',       label: 'Roles & Perms',  icon: Shield },
       { href: '/admin/invites',     label: 'Admin Invites',  icon: UserPlus },
