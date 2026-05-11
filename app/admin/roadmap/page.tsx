@@ -11,23 +11,29 @@
  * "Recently shipped" footer.
  */
 
-import { useEffect, useMemo, useState } from 'react'
-import { Map, CheckCircle2, Sparkles, TrendingUp, Calendar } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Map, CheckCircle2, Sparkles, TrendingUp, Calendar, Search, Filter as FilterIcon, X } from 'lucide-react'
 import { HeroCard } from '@/components/admin/PageChrome'
 
 interface AdminItem {
   id: string
+  item_key: string | null
   title: string
   description: string | null
   status: 'backlog' | 'todo' | 'in_progress' | 'review' | 'done' | 'blocked'
   priority: 'low' | 'medium' | 'high' | 'critical'
   category: string | null
   tags: string[]
+  labels: string[]
+  assignee_id: string | null
+  sprint: string | null
   due_date: string | null
   archived_at: string | null
   created_at: string
   updated_at: string
 }
+interface FacetRow { kind: 'label' | 'sprint'; value: string; hits: number }
+interface ProfileLite { id: string; full_name: string | null; email: string | null }
 
 const CATEGORY_COLOR: Record<string, string> = {
   bug:         '#f87171',
@@ -96,30 +102,60 @@ function itemQuarterIndex(it: AdminItem, qs: Quarter[]): number | null {
 
 export default function RoadmapPage() {
   const [items, setItems]     = useState<AdminItem[]>([])
+  const [facets, setFacets]   = useState<FacetRow[]>([])
+  const [admins, setAdmins]   = useState<ProfileLite[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState<string | null>(null)
 
+  // Jira-style filter state — search, multi-select chips.
+  const [q, setQ]                     = useState('')
+  const [priority, setPriority]       = useState<string[]>([])
+  const [labels, setLabels]           = useState<string[]>([])
+  const [assignee, setAssignee]       = useState<string[]>([])
+  const [sprint, setSprint]           = useState<string[]>([])
+
+  const buildParams = useCallback(() => {
+    const p = new URLSearchParams()
+    if (q.trim())          p.set('q', q.trim())
+    if (priority.length)   p.set('priority', priority.join(','))
+    if (labels.length)     p.set('labels',   labels.join(','))
+    if (assignee.length)   p.set('assignee', assignee.join(','))
+    if (sprint.length)     p.set('sprint',   sprint.join(','))
+    p.set('limit', '500')
+    return p
+  }, [q, priority, labels, assignee, sprint])
+
+  const load = useCallback(async () => {
+    setError(null)
+    try {
+      const r = await fetch(`/api/admin/items?${buildParams().toString()}`, { cache: 'no-store' })
+      const j = await r.json() as { items?: AdminItem[]; facets?: FacetRow[]; error?: string }
+      if (!r.ok || j.error) setError(j.error || `HTTP ${r.status}`)
+      else { setItems(j.items || []); setFacets(j.facets || []) }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+    } finally { setLoading(false) }
+  }, [buildParams])
+
   useEffect(() => {
-    let cancelled = false
-    async function load() {
-      try {
-        const r = await fetch('/api/admin/items', { cache: 'no-store' })
-        const j = await r.json() as { items?: AdminItem[]; error?: string }
-        if (cancelled) return
-        if (!r.ok || j.error) {
-          setError(j.error || `HTTP ${r.status}`)
-        } else {
-          setItems(j.items || [])
-        }
-      } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : String(e))
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    }
-    load()
-    return () => { cancelled = true }
+    const t = setTimeout(load, 200)
+    return () => clearTimeout(t)
+  }, [load])
+
+  // Admin list for assignee chips — fire once.
+  useEffect(() => {
+    fetch('/api/admin/items/admins', { cache: 'no-store' })
+      .then(r => r.json()).then(j => setAdmins(j.admins || []))
+      .catch(() => null)
   }, [])
+
+  const toggle = (setter: React.Dispatch<React.SetStateAction<string[]>>, value: string) => {
+    setter(prev => prev.includes(value) ? prev.filter(x => x !== value) : [...prev, value])
+  }
+  const clearAll = () => { setQ(''); setPriority([]); setLabels([]); setAssignee([]); setSprint([]) }
+  const filtersActive = !!(q.trim() || priority.length || labels.length || assignee.length || sprint.length)
+  const labelFacets  = facets.filter(f => f.kind === 'label')
+  const sprintFacets = facets.filter(f => f.kind === 'sprint')
 
   const grouped = useMemo(() => {
     const out: Record<'now' | 'next' | 'later' | 'done', AdminItem[]> = { now: [], next: [], later: [], done: [] }
@@ -169,6 +205,33 @@ export default function RoadmapPage() {
           secondary: <><TrendingUp size={11} /> next 24 months</>,
         }}
       />
+
+      {/* Search + filter chips */}
+      <section className="card-premium" style={{ padding:'14px 18px', marginBottom:18 }}>
+        <div style={{ display:'grid', gridTemplateColumns:'1fr auto', gap:10, alignItems:'center', marginBottom:10 }}>
+          <div style={{ position:'relative' }}>
+            <Search size={14} color="var(--t4)" style={{ position:'absolute', top:'50%', left:12, transform:'translateY(-50%)' }}/>
+            <input className="input" style={{ paddingLeft:34 }}
+              placeholder="Search by key, title, body, or label…"
+              value={q} onChange={e => setQ(e.target.value)}/>
+            {q && <button onClick={() => setQ('')} style={{ position:'absolute', top:'50%', right:8, transform:'translateY(-50%)', background:'none', border:'none', color:'var(--t4)', cursor:'pointer' }}><X size={14}/></button>}
+          </div>
+          {filtersActive && <button className="btn btn-secondary btn-sm" onClick={clearAll} style={{ color:'var(--red)' }}><X size={13}/> Clear</button>}
+        </div>
+        <RoadmapChips label="Priority" options={[
+          { value: 'critical', label: 'critical' }, { value: 'high', label: 'high' },
+          { value: 'medium',   label: 'medium' },   { value: 'low',  label: 'low' },
+        ]} selected={priority} onToggle={v => toggle(setPriority, v)}/>
+        {labelFacets.length > 0 && <RoadmapChips label="Labels"
+          options={labelFacets.map(f => ({ value: f.value, label: `${f.value} · ${f.hits}` }))}
+          selected={labels} onToggle={v => toggle(setLabels, v)}/>}
+        {admins.length > 0 && <RoadmapChips label="Assignee"
+          options={admins.map(a => ({ value: a.id, label: a.full_name || a.email || a.id.slice(0,8) }))}
+          selected={assignee} onToggle={v => toggle(setAssignee, v)}/>}
+        {sprintFacets.length > 0 && <RoadmapChips label="Sprint"
+          options={sprintFacets.map(f => ({ value: f.value, label: `${f.value} · ${f.hits}` }))}
+          selected={sprint} onToggle={v => toggle(setSprint, v)}/>}
+      </section>
 
       {/* Visual quarterly timeline (Gantt-ish) */}
       {dated.length > 0 && (
@@ -504,3 +567,36 @@ function Column({ title, subtitle, items, accent }: { title: string; subtitle: s
     </div>
   )
 }
+
+/**
+ * Multi-select chip row used by the roadmap filter bar.
+ */
+function RoadmapChips({ label, options, selected, onToggle }: {
+  label: string
+  options: Array<{ value: string; label: string }>
+  selected: string[]
+  onToggle: (v: string) => void
+}) {
+  return (
+    <div style={{ display:'flex', alignItems:'center', gap:6, flexWrap:'wrap', marginTop:8 }}>
+      <FilterIcon size={11} color="var(--t4)"/>
+      <span style={{ fontSize:10, color:'var(--t4)', textTransform:'uppercase', letterSpacing:'0.06em', fontWeight:700, minWidth:60 }}>{label}</span>
+      {options.map(o => {
+        const on = selected.includes(o.value)
+        return (
+          <button key={o.value} onClick={() => onToggle(o.value)} style={{
+            padding:'3px 9px', borderRadius:999, border:'1px solid', cursor:'pointer',
+            fontSize:10.5, fontWeight:600,
+            background: on ? 'var(--bg3)' : 'transparent',
+            borderColor: on ? 'var(--border2)' : 'var(--border)',
+            color: on ? 'var(--t1)' : 'var(--t3)',
+          }}>{o.label}</button>
+        )
+      })}
+    </div>
+  )
+}
+
+// Silence unused-import warnings since not every helper is referenced.
+void CheckCircle2; void Sparkles
+
