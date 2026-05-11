@@ -45,6 +45,7 @@ import {
   BarChart3,
   Bug,
   MessageSquare,
+  Newspaper,
   Wallet,
 } from 'lucide-react'
 
@@ -129,6 +130,7 @@ const NAV: { group: string; items: NavItem[] }[] = [
       { href: '/admin/content',         label: 'Content',         icon: FileText },
       { href: '/admin/banners',         label: 'Banners',         icon: ImageIcon },
       { href: '/admin/announcements',   label: 'Announcements',   icon: Megaphone },
+      { href: '/admin/changelog',       label: 'Changelog',       icon: Newspaper },
       { href: '/admin/faqs',            label: 'FAQs',            icon: HelpCircle },
       { href: '/admin/translations',    label: 'Translations',    icon: Languages },
       { href: '/admin/email-templates', label: 'Email Templates', icon: Mail },
