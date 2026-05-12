@@ -112,6 +112,41 @@ export default function SocialStudioPage() {
   const [qLoading, setQLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
+  // Real connection state — read from /api/admin/marketing/social/status
+  interface ConnState { connected: boolean; handle?: string | null; expires_at?: string | null; scope?: string | null; stale?: boolean; last_error?: string | null }
+  type StatusMap = Record<string, ConnState> & { _config?: { x?: { configured: boolean } } }
+  const [conns, setConns] = useState<StatusMap>({} as StatusMap)
+  const [connBanner, setBanner] = useState<{ ok: boolean; msg: string } | null>(null)
+
+  const loadStatus = async () => {
+    try {
+      const r = await fetch('/api/admin/marketing/social/status', { cache: 'no-store' })
+      const j = await r.json()
+      if (r.ok) setConns(j)
+    } catch { /* swallow */ }
+  }
+  useEffect(() => { loadStatus() }, [])
+
+  // Pick up ?x_connected=1 or ?x_error= from the OAuth callback redirect.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const u = new URL(window.location.href)
+    const xc = u.searchParams.get('x_connected')
+    const xe = u.searchParams.get('x_error')
+    if (xc) { setBanner({ ok: true,  msg: 'X connected successfully.' }); u.searchParams.delete('x_connected'); window.history.replaceState({}, '', u.toString()) }
+    if (xe) { setBanner({ ok: false, msg: `X connect failed: ${xe}` });  u.searchParams.delete('x_error');     window.history.replaceState({}, '', u.toString()) }
+  }, [])
+
+  const disconnect = async (platform: string) => {
+    if (!confirm(`Disconnect ${platform.toUpperCase()}? Pending scheduled posts to that channel will fail until you reconnect.`)) return
+    const r = await fetch('/api/admin/marketing/social/disconnect', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ platform }),
+    })
+    if (!r.ok) { setBanner({ ok: false, msg: (await r.json()).error || 'disconnect failed' }); return }
+    setBanner({ ok: true, msg: `${platform.toUpperCase()} disconnected.` })
+    await loadStatus()
+  }
+
   const togglePlatform = (k: Platform) =>
     setPicked(prev => prev.includes(k) ? prev.filter(p => p !== k) : [...prev, k])
 
@@ -214,17 +249,38 @@ export default function SocialStudioPage() {
         }}
       />
 
+      {/* Banner from OAuth callback */}
+      {connBanner && (
+        <div style={{
+          padding:'12px 16px', borderRadius:10, marginBottom:14,
+          background: connBanner.ok ? 'rgba(63,185,80,0.12)' : 'rgba(248,113,113,0.12)',
+          border: `1px solid ${connBanner.ok ? 'rgba(63,185,80,0.4)' : 'rgba(248,113,113,0.4)'}`,
+          color: connBanner.ok ? 'var(--green-val)' : 'var(--red)',
+          fontSize:13, fontWeight:600, display:'flex', alignItems:'center', gap:8,
+        }}>
+          {connBanner.ok ? <CheckCircle2 size={14}/> : <AlertCircle size={14}/>}
+          {connBanner.msg}
+        </div>
+      )}
+
       {/* ───── Connection status row ───────────────────────────── */}
       <Section
         accent="blue"
         title="Channels"
-        description="Click Connect on a channel to open its developer portal — completing OAuth wiring is a 2-3 day task per platform. The composer below works regardless; saved posts queue locally until the channel is live."
+        description="X is wired up via OAuth 2.0 PKCE — click Connect to start the flow. Other platforms still open their developer portal in a new tab; full OAuth for those is the next sprint."
       >
         <ItemGrid min={240}>
           {PLATFORMS.map(p => {
             const Icon = p.icon
+            const conn = conns[p.key]
+            const isX = p.key === 'x'
+            const xConfigured = isX ? !!conns._config?.x?.configured : false
+            const connected = !!conn?.connected
             return (
-              <div key={p.key} className="card-premium" style={{ padding: '18px 20px' }}>
+              <div key={p.key} className="card-premium" style={{
+                padding: '18px 20px',
+                borderColor: connected ? 'rgba(63,185,80,0.4)' : 'var(--border)',
+              }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
                   <div style={{
                     width: 44, height: 44, borderRadius: 12,
@@ -236,26 +292,72 @@ export default function SocialStudioPage() {
                     <Icon size={20} />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap:'wrap' }}>
                       <span style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--t1)' }}>{p.label}</span>
-                      <span style={{
-                        fontSize: 9.5, padding: '2px 8px', borderRadius: 999,
-                        background: 'var(--surface2)', color: 'var(--t4)',
-                        fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em',
-                      }}>Not connected</span>
+                      {connected ? (
+                        <span style={{
+                          fontSize: 9.5, padding: '2px 8px', borderRadius: 999,
+                          background: 'rgba(63,185,80,0.14)', color: 'var(--green-val)',
+                          border:'1px solid rgba(63,185,80,0.4)',
+                          fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em',
+                        }}>Connected</span>
+                      ) : (
+                        <span style={{
+                          fontSize: 9.5, padding: '2px 8px', borderRadius: 999,
+                          background: 'var(--surface2)', color: 'var(--t4)',
+                          fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em',
+                        }}>Not connected</span>
+                      )}
+                      {conn?.stale && (
+                        <span style={{
+                          fontSize: 9.5, padding: '2px 8px', borderRadius: 999,
+                          background: 'rgba(210,153,34,0.14)', color: 'var(--amber)',
+                          fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em',
+                        }}>Token expired</span>
+                      )}
                     </div>
-                    <div style={{ fontSize: 12, color: 'var(--t3)', lineHeight: 1.5, marginBottom: 10 }}>
-                      {p.setupNote}
+                    {connected ? (
+                      <div style={{ fontSize: 12, color: 'var(--t3)', lineHeight: 1.5, marginBottom: 10 }}>
+                        <strong style={{ color:'var(--t2)' }}>{conn?.handle}</strong>
+                        {conn?.expires_at && <> · token expires {new Date(conn.expires_at).toLocaleString()}</>}
+                        {conn?.last_error && <div style={{ color:'var(--red)', marginTop:4 }}>last error: {conn.last_error}</div>}
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: 12, color: 'var(--t3)', lineHeight: 1.5, marginBottom: 10 }}>
+                        {p.setupNote}
+                      </div>
+                    )}
+                    <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+                      {isX ? (
+                        connected ? (
+                          <>
+                            <button onClick={loadStatus} className="btn btn-secondary btn-sm" style={{ minHeight:30, padding:'4px 10px', fontSize:11.5 }}>
+                              <RefreshCw size={11}/> Refresh
+                            </button>
+                            <button onClick={() => disconnect('x')} className="btn btn-secondary btn-sm" style={{ minHeight:30, padding:'4px 10px', fontSize:11.5, color:'var(--red)' }}>
+                              <Trash2 size={11}/> Disconnect
+                            </button>
+                          </>
+                        ) : xConfigured ? (
+                          <a href="/api/admin/marketing/social/connect/x" className="btn btn-primary btn-sm" style={{ minHeight:30, padding:'4px 10px', fontSize:11.5 }}>
+                            <ExternalLink size={11}/> Connect
+                          </a>
+                        ) : (
+                          <>
+                            <a href={p.setupUrl} target="_blank" rel="noopener noreferrer" className="btn btn-secondary btn-sm" style={{ minHeight:30, padding:'4px 10px', fontSize:11.5 }}>
+                              <ExternalLink size={11}/> Open X dev portal
+                            </a>
+                            <span style={{ fontSize:11, color:'var(--amber)', alignSelf:'center' }}>
+                              ⚠ Set X_CLIENT_ID + X_REDIRECT_URI in Worker env, then this button becomes Connect.
+                            </span>
+                          </>
+                        )
+                      ) : (
+                        <a href={p.setupUrl} target="_blank" rel="noopener noreferrer" className="btn btn-secondary btn-sm" style={{ minHeight:30, padding:'4px 10px', fontSize:11.5 }}>
+                          <ExternalLink size={11}/> Open dev portal
+                        </a>
+                      )}
                     </div>
-                    <a
-                      href={p.setupUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn btn-secondary btn-sm"
-                      style={{ minHeight: 30, padding: '4px 10px', fontSize: 11.5 }}
-                    >
-                      <ExternalLink size={11} /> Connect
-                    </a>
                   </div>
                 </div>
               </div>

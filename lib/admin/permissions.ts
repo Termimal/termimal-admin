@@ -91,6 +91,8 @@ export const PATH_PERMISSIONS: Array<{ prefix: string; perm: Permission }> = [
   { prefix: '/api/admin/webhook-retries',         perm: 'system.read' },
   { prefix: '/api/admin/customer-health',         perm: 'analytics.read' },
   { prefix: '/api/admin/analytics-extras',        perm: 'analytics.read' },
+  // Social Studio OAuth
+  { prefix: '/api/admin/marketing/social',        perm: 'content.read' },
   { prefix: '/api/admin/experiments',             perm: 'experiments.write' },
   { prefix: '/api/admin/cohorts',                 perm: 'cohorts.write' },
   { prefix: '/api/admin/maintenance',             perm: 'maintenance.write' },
