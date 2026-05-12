@@ -328,34 +328,28 @@ export default function SocialStudioPage() {
                       </div>
                     )}
                     <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
-                      {isX ? (
-                        connected ? (
-                          <>
-                            <button onClick={loadStatus} className="btn btn-secondary btn-sm" style={{ minHeight:30, padding:'4px 10px', fontSize:11.5 }}>
-                              <RefreshCw size={11}/> Refresh
-                            </button>
-                            <button onClick={() => disconnect('x')} className="btn btn-secondary btn-sm" style={{ minHeight:30, padding:'4px 10px', fontSize:11.5, color:'var(--red)' }}>
-                              <Trash2 size={11}/> Disconnect
-                            </button>
-                          </>
-                        ) : xConfigured ? (
-                          <a href="/api/admin/marketing/social/connect/x" className="btn btn-primary btn-sm" style={{ minHeight:30, padding:'4px 10px', fontSize:11.5 }}>
+                      {connected ? (
+                        <>
+                          <button onClick={loadStatus} className="btn btn-secondary btn-sm" style={{ minHeight:30, padding:'4px 10px', fontSize:11.5 }}>
+                            <RefreshCw size={11}/> Refresh
+                          </button>
+                          <button onClick={() => disconnect(p.key)} className="btn btn-secondary btn-sm" style={{ minHeight:30, padding:'4px 10px', fontSize:11.5, color:'var(--red)' }}>
+                            <Trash2 size={11}/> Disconnect
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <a
+                            href={isX ? '/api/admin/marketing/social/connect/x' : `/api/admin/marketing/social/connect/${p.key}`}
+                            className="btn btn-primary btn-sm"
+                            style={{ minHeight:30, padding:'4px 10px', fontSize:11.5 }}
+                          >
                             <ExternalLink size={11}/> Connect
                           </a>
-                        ) : (
-                          <>
-                            <a href={p.setupUrl} target="_blank" rel="noopener noreferrer" className="btn btn-secondary btn-sm" style={{ minHeight:30, padding:'4px 10px', fontSize:11.5 }}>
-                              <ExternalLink size={11}/> Open X dev portal
-                            </a>
-                            <span style={{ fontSize:11, color:'var(--amber)', alignSelf:'center' }}>
-                              ⚠ Set X_CLIENT_ID + X_REDIRECT_URI in Worker env, then this button becomes Connect.
-                            </span>
-                          </>
-                        )
-                      ) : (
-                        <a href={p.setupUrl} target="_blank" rel="noopener noreferrer" className="btn btn-secondary btn-sm" style={{ minHeight:30, padding:'4px 10px', fontSize:11.5 }}>
-                          <ExternalLink size={11}/> Open dev portal
-                        </a>
+                          <a href={p.setupUrl} target="_blank" rel="noopener noreferrer" className="btn btn-secondary btn-sm" style={{ minHeight:30, padding:'4px 10px', fontSize:11.5 }}>
+                            <ExternalLink size={11}/> Dev portal
+                          </a>
+                        </>
                       )}
                     </div>
                   </div>

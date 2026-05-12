@@ -59,6 +59,8 @@ import {
   KeyRound,
   KeySquare,
   Siren,
+  Layers as LayersIcon,
+  Timer,
   AlertOctagon,
   CreditCard as CreditCardIcon,
   Calculator,
@@ -100,6 +102,8 @@ const NAV: { group: string; items: NavItem[] }[] = [
       { href: '/admin/support',  label: 'Support Inbox', icon: Inbox },
       { href: '/admin/feedback', label: 'Feedback',      icon: MessageSquare },
       { href: '/admin/kb',       label: 'Knowledge base', icon: BookOpen },
+      { href: '/admin/sla',      label: 'SLA',            icon: Timer },
+      { href: '/admin/bulk',     label: 'Bulk ops',       icon: LayersIcon },
     ],
   },
   {

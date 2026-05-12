@@ -93,6 +93,11 @@ export const PATH_PERMISSIONS: Array<{ prefix: string; perm: Permission }> = [
   { prefix: '/api/admin/analytics-extras',        perm: 'analytics.read' },
   // Social Studio OAuth
   { prefix: '/api/admin/marketing/social',        perm: 'content.read' },
+  // Round J additions
+  { prefix: '/api/admin/experiments/',            perm: 'experiments.write' },
+  { prefix: '/api/admin/bulk',                    perm: 'users.write' },
+  { prefix: '/api/admin/sla',                     perm: 'support.read' },
+  { prefix: '/api/admin/cron/tick',               perm: 'system.read' },
   { prefix: '/api/admin/experiments',             perm: 'experiments.write' },
   { prefix: '/api/admin/cohorts',                 perm: 'cohorts.write' },
   { prefix: '/api/admin/maintenance',             perm: 'maintenance.write' },
@@ -153,6 +158,8 @@ export const PATH_PERMISSIONS: Array<{ prefix: string; perm: Permission }> = [
   { prefix: '/admin/webhook-retries',   perm: 'system.read' },
   { prefix: '/admin/customer-health',   perm: 'analytics.read' },
   { prefix: '/admin/analytics-extras',  perm: 'analytics.read' },
+  { prefix: '/admin/bulk',              perm: 'users.write' },
+  { prefix: '/admin/sla',               perm: 'support.read' },
   { prefix: '/admin/flags',      perm: 'flags.read' },
   { prefix: '/admin/experiments', perm: 'experiments.read' },
   { prefix: '/admin/health',     perm: 'analytics.read' },
