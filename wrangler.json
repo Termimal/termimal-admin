@@ -20,7 +20,8 @@
     "LINKEDIN_REDIRECT_URI":      "https://bo.termimal.com/api/admin/marketing/social/callback/linkedin",
     "FACEBOOK_REDIRECT_URI":      "https://bo.termimal.com/api/admin/marketing/social/callback/facebook",
     "INSTAGRAM_REDIRECT_URI":     "https://bo.termimal.com/api/admin/marketing/social/callback/instagram",
-    "THREADS_REDIRECT_URI":       "https://bo.termimal.com/api/admin/marketing/social/callback/threads"
+    "THREADS_REDIRECT_URI":       "https://bo.termimal.com/api/admin/marketing/social/callback/threads",
+    "EMAIL_FROM":                 "Termimal <noreply@termimal.com>"
   },
   "observability": {
     "enabled": true
