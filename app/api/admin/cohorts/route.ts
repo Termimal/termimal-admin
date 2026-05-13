@@ -16,7 +16,6 @@
  */
 import { NextResponse } from 'next/server'
 import { serviceClient } from '@/lib/admin/service-client'
-import { requireAdmin } from '@/lib/admin/require-admin'
 
 interface Definition {
   plan?: string[]
@@ -42,8 +41,6 @@ async function countCohortMembers(sb: any, def: Definition): Promise<number> {
 }
 
 export async function GET(request: Request) {
-  const gate = await requireAdmin('cohorts.write')
-  if (gate.ok === false) return gate.response
   try {
     const sb = serviceClient()
     const u  = new URL(request.url)
@@ -68,8 +65,6 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const gate = await requireAdmin('cohorts.write')
-  if (gate.ok === false) return gate.response
   try {
     const sb   = serviceClient()
     const body = await request.json().catch(() => null) as { name?: string; description?: string; definition?: Definition } | null
@@ -88,8 +83,6 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const gate = await requireAdmin('cohorts.write')
-  if (gate.ok === false) return gate.response
   try {
     const sb = serviceClient()
     const body = await request.json().catch(() => null) as { id?: string; patch?: Record<string, unknown> } | null
@@ -108,8 +101,6 @@ export async function PATCH(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const gate = await requireAdmin('cohorts.write')
-  if (gate.ok === false) return gate.response
   try {
     const sb = serviceClient()
     const id = new URL(request.url).searchParams.get('id')

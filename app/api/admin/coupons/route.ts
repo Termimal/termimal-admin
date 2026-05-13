@@ -11,7 +11,6 @@
  */
 import { NextResponse } from 'next/server'
 import { serviceClient } from '@/lib/admin/service-client'
-import { requireAdmin } from '@/lib/admin/require-admin'
 import Stripe from 'stripe'
 
 function maybeStripe(): Stripe | null {
@@ -21,8 +20,6 @@ function maybeStripe(): Stripe | null {
 }
 
 export async function GET() {
-  const gate = await requireAdmin('coupons.write')
-  if (gate.ok === false) return gate.response
   try {
     const sb = serviceClient()
     const { data, error } = await sb.from('coupons').select('*').order('created_at', { ascending: false })
@@ -32,8 +29,6 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const gate = await requireAdmin('coupons.write')
-  if (gate.ok === false) return gate.response
   try {
     const sb     = serviceClient()
     const body   = await request.json().catch(() => null) as Record<string, unknown> | null
@@ -83,8 +78,6 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const gate = await requireAdmin('coupons.write')
-  if (gate.ok === false) return gate.response
   try {
     const sb = serviceClient()
     const id = new URL(request.url).searchParams.get('id')

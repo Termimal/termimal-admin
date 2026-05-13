@@ -29,7 +29,7 @@
  */
 import { NextResponse } from 'next/server'
 import { serviceClient } from '@/lib/admin/service-client'
-import { requireAdmin }  from '@/lib/admin/require-admin'
+import { createClient as createSsrClient } from '@/lib/supabase/server'
 import { sendAndLog }    from '@/lib/admin/email-log'
 
 function genToken(): string {
@@ -131,8 +131,6 @@ function buildInviteEmail(opts: {
 }
 
 export async function GET() {
-  const gate = await requireAdmin('invites.write')
-  if (gate.ok === false) return gate.response
   try {
     const sb = serviceClient()
     const { data, error } = await sb
@@ -145,10 +143,10 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const gate = await requireAdmin('invites.write')
-  if (gate.ok === false) return gate.response
   try {
-    const actor = gate.user
+    const cookieSb = await createSsrClient()
+    const { data: { user: actor } } = await cookieSb.auth.getUser()
+    if (!actor) return NextResponse.json({ error: 'unauthenticated' }, { status: 401 })
 
     const sb   = serviceClient()
     const body = await request.json().catch(() => null) as { email?: string; role?: 'admin' | 'super_admin' } | null
@@ -247,8 +245,6 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const gate = await requireAdmin('invites.write')
-  if (gate.ok === false) return gate.response
   try {
     const sb = serviceClient()
     const id = new URL(request.url).searchParams.get('id')

@@ -12,13 +12,11 @@
  */
 import { NextResponse } from 'next/server'
 import { serviceClient } from '@/lib/admin/service-client'
-import { requireAdmin } from '@/lib/admin/require-admin'
+import { createClient as createSsrClient } from '@/lib/supabase/server'
 
 const ALLOWED = ['starts_at', 'ends_at', 'message', 'status'] as const
 
 export async function GET() {
-  const gate = await requireAdmin('maintenance.write')
-  if (gate.ok === false) return gate.response
   try {
     const sb = serviceClient()
     const { data, error } = await sb.from('scheduled_maintenance').select('*').order('starts_at', { ascending: false })
@@ -28,10 +26,10 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const gate = await requireAdmin('maintenance.write')
-  if (gate.ok === false) return gate.response
   try {
-    const user = gate.user
+    const cookieSb = await createSsrClient()
+    const { data: { user } } = await cookieSb.auth.getUser()
+    if (!user) return NextResponse.json({ error: 'unauthenticated' }, { status: 401 })
 
     const sb   = serviceClient()
     const body = await request.json().catch(() => null) as { starts_at?: string; ends_at?: string; message?: string } | null
@@ -54,8 +52,6 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const gate = await requireAdmin('maintenance.write')
-  if (gate.ok === false) return gate.response
   try {
     const sb = serviceClient()
     const body = await request.json().catch(() => null) as { id?: string; patch?: Record<string, unknown> } | null
@@ -69,8 +65,6 @@ export async function PATCH(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const gate = await requireAdmin('maintenance.write')
-  if (gate.ok === false) return gate.response
   try {
     const sb = serviceClient()
     const id = new URL(request.url).searchParams.get('id')

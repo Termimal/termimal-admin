@@ -1,8 +1,8 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Users2, Plus, Trash2, RefreshCw } from 'lucide-react'
-import { HeroCard, Section, EmptyState, Field, ItemGrid, ItemCard } from '@/components/admin/PageChrome'
+import { PageHeader, Section, EmptyState, Field } from '@/components/admin/PageChrome'
 
 interface Cohort {
   id: string
@@ -23,22 +23,6 @@ interface Definition {
 }
 
 const PLANS = ['free','starter','pro','premium']
-
-function PillBtn({ on, children, onClick, accent = 'purple' }: { on: boolean; children: React.ReactNode; onClick: () => void; accent?: 'purple' }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      style={{
-        padding: '8px 14px', borderRadius: 999,
-        border: `1px solid ${on ? `var(--${accent}-bg)` : 'var(--border)'}`,
-        background: on ? `var(--${accent}-bg)` : 'transparent',
-        color: on ? `var(--${accent})` : 'var(--t3)',
-        fontSize: 12, fontWeight: 600, cursor: 'pointer',
-      }}
-    >{children}</button>
-  )
-}
 
 export default function CohortsPage() {
   const [rows, setRows] = useState<Cohort[]>([])
@@ -80,49 +64,36 @@ export default function CohortsPage() {
     setDraft({ ...draft, definition: { ...draft.definition, plan: cur.includes(p) ? cur.filter(x => x !== p) : [...cur, p] } })
   }
 
-  const totalMembers = rows.reduce((s, r) => s + (r.member_count_cached || 0), 0)
-
   return (
-    <div>
-      <HeroCard
-        accent="purple"
-        icon={<Users2 size={28} />}
+    <div style={{ maxWidth: 1100 }}>
+      <PageHeader
+        icon={<Users2 size={14} />}
         eyebrow="Segmentation"
         title="Cohorts"
-        subtitle="Save user-segment definitions you can target with announcements, banners, or email blasts later."
-        metric={{ label: 'Cohorts', value: rows.length.toString(), secondary: `${totalMembers.toLocaleString()} cached members` }}
+        description="Save user-segment definitions you can target with announcements, banners, or email blasts later. Member counts cache in the row; refresh to recompute."
+        accent="purple"
       />
 
-      <Section
-        title="Define a cohort"
-        description="Member counts cache in the row; refresh to recompute."
-        accent="purple"
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 18 }}>
-            <Field label="Name" required>
-              <input className="input" value={draft.name} onChange={e => setDraft({ ...draft, name: e.target.value })} placeholder="Pro & Premium · US" />
-            </Field>
-            <Field label="Description">
-              <input className="input" value={draft.description} onChange={e => setDraft({ ...draft, description: e.target.value })} placeholder="Optional"/>
-            </Field>
+      <Section title="Define a cohort" accent="purple">
+        <div className="form-grid">
+          <div className="form-grid form-grid-2">
+            <Field label="Name"><input className="input" value={draft.name} onChange={e => setDraft({ ...draft, name: e.target.value })} placeholder="Pro & Premium · US" /></Field>
+            <Field label="Description"><input className="input" value={draft.description} onChange={e => setDraft({ ...draft, description: e.target.value })} /></Field>
           </div>
-
           <Field label="Plans" hint="Pick one or more plans. Leave empty to include all plans.">
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {PLANS.map(p => (
-                <PillBtn key={p} on={(draft.definition.plan || []).includes(p)} onClick={() => togglePlan(p)}>{p}</PillBtn>
+                <button key={p} type="button" className={(draft.definition.plan || []).includes(p) ? 'chip chip-purple' : 'chip'} onClick={() => togglePlan(p)} style={{ cursor: 'pointer' }}>{p}</button>
               ))}
             </div>
           </Field>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 18 }}>
+          <div className="form-grid form-grid-2">
             <Field label="Country codes" hint="ISO codes, comma-separated. e.g. US, DE, TR">
               <input className="input" value={(draft.definition.country || []).join(', ')}
                 onChange={e => setDraft({ ...draft, definition: { ...draft.definition, country: e.target.value.split(',').map(s => s.trim().toUpperCase()).filter(Boolean) } })} />
             </Field>
             <Field label="Has Stripe customer">
-              <select className="input" value={draft.definition.has_stripe === undefined ? 'any' : (draft.definition.has_stripe ? 'yes' : 'no')}
+              <select className="select" value={draft.definition.has_stripe === undefined ? 'any' : (draft.definition.has_stripe ? 'yes' : 'no')}
                 onChange={e => setDraft({ ...draft, definition: { ...draft.definition, has_stripe: e.target.value === 'any' ? undefined : e.target.value === 'yes' } })}>
                 <option value="any">Any</option>
                 <option value="yes">Yes — paying customer</option>
@@ -130,8 +101,7 @@ export default function CohortsPage() {
               </select>
             </Field>
           </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 18 }}>
+          <div className="form-grid form-grid-2">
             <Field label="Created after">
               <input type="date" className="input" value={draft.definition.created_after || ''}
                 onChange={e => setDraft({ ...draft, definition: { ...draft.definition, created_after: e.target.value || undefined } })} />
@@ -141,56 +111,50 @@ export default function CohortsPage() {
                 onChange={e => setDraft({ ...draft, definition: { ...draft.definition, created_before: e.target.value || undefined } })} />
             </Field>
           </div>
-
-          <div>
-            <button className="btn btn-primary btn-sm" disabled={!draft.name || creating} onClick={create}>
-              <Plus size={13} /> {creating ? 'Saving…' : 'Save cohort'}
-            </button>
-          </div>
+          <button className="btn-primary btn-sm" disabled={!draft.name || creating} onClick={create} style={{ alignSelf: 'flex-start' }}>
+            <Plus size={11} /> {creating ? 'Saving…' : 'Save cohort'}
+          </button>
         </div>
       </Section>
 
       {rows.length === 0 ? (
-        <EmptyState icon={<Users2 size={20}/>} title="No cohorts yet" description="Define one above to get started." />
+        <EmptyState icon={<Users2 size={20}/>} title="No cohorts yet" />
       ) : (
-        <ItemGrid min={320}>
-          {rows.map(r => (
-            <ItemCard
-              key={r.id}
-              accent="purple"
-              icon={<Users2 size={18}/>}
-              title={r.name}
-              subtitle={r.description || 'No description'}
-              status={{
-                label: `${r.member_count_cached ?? '—'} MEMBERS`,
-                tone: 'purple',
-              }}
-              meta={
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {(r.definition.plan || []).map(p => <span key={p} className="badge badge-acc">{p}</span>)}
-                  {(r.definition.country || []).map(c => <span key={c} className="badge badge-blue">{c}</span>)}
-                  {r.definition.has_stripe === true && <span className="badge badge-green">paying</span>}
-                  {r.definition.has_stripe === false && <span className="badge badge-muted">free</span>}
-                  {!r.definition.plan?.length && !r.definition.country?.length && r.definition.has_stripe === undefined && (
-                    <span className="badge badge-muted">all users</span>
-                  )}
-                </div>
-              }
-              footer={
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  <button className="btn btn-secondary btn-sm" onClick={() => refreshCount(r.id)} disabled={refreshing === r.id}>
-                    <RefreshCw size={12} className={refreshing === r.id ? 'spin' : ''}/> Refresh count
-                  </button>
-                  <button className="btn btn-secondary btn-sm" onClick={() => del(r.id)} style={{ color: 'var(--red)' }}>
-                    <Trash2 size={12} /> Delete
-                  </button>
-                </div>
-              }
-            />
-          ))}
-        </ItemGrid>
+        <Section flush title={`${rows.length} cohort${rows.length === 1 ? '' : 's'}`}>
+          <div className="table-wrap" style={{ border: 'none', borderRadius: 0 }}>
+            <table className="table-root">
+              <thead><tr><th>Name</th><th>Definition</th><th style={{ textAlign: 'right' }}>Members</th><th></th></tr></thead>
+              <tbody>
+                {rows.map(r => (
+                  <tr key={r.id}>
+                    <td>
+                      <div style={{ fontWeight: 600 }}>{r.name}</div>
+                      {r.description && <div style={{ fontSize: 11, color: 'var(--t4)' }}>{r.description}</div>}
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                        {(r.definition.plan || []).map(p => <span key={p} className="chip chip-acc">{p}</span>)}
+                        {(r.definition.country || []).map(c => <span key={c} className="chip chip-blue">{c}</span>)}
+                        {r.definition.has_stripe === true && <span className="chip chip-green">paying</span>}
+                        {r.definition.has_stripe === false && <span className="chip">free</span>}
+                      </div>
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <span className="chip chip-purple" style={{ fontFamily: 'ui-monospace, Menlo, monospace' }}>
+                        {r.member_count_cached ?? '—'}
+                      </span>
+                      <button className="btn-ghost btn-sm" onClick={() => refreshCount(r.id)} disabled={refreshing === r.id} style={{ marginLeft: 4 }}>
+                        <RefreshCw size={10} className={refreshing === r.id ? 'spin' : ''} />
+                      </button>
+                    </td>
+                    <td><button className="btn-ghost btn-sm" style={{ color: 'var(--red)' }} onClick={() => del(r.id)}><Trash2 size={11} /></button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Section>
       )}
-
       <style jsx global>{`@keyframes spin{to{transform:rotate(360deg)}}.spin{animation:spin 1s linear infinite}`}</style>
     </div>
   )

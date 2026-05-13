@@ -1,8 +1,8 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Calendar, Plus, Pause } from 'lucide-react'
-import { HeroCard, Section, EmptyState, Field } from '@/components/admin/PageChrome'
+import { Calendar, Plus, Trash2, Pause } from 'lucide-react'
+import { PageHeader, Section, EmptyState, Field } from '@/components/admin/PageChrome'
 
 interface Window {
   id: string
@@ -13,11 +13,11 @@ interface Window {
   created_at: string
 }
 
-const STATUS_BADGE: Record<Window['status'], string> = {
-  scheduled: 'badge-blue',
-  active:    'badge-amber',
-  completed: 'badge-green',
-  cancelled: 'badge-muted',
+const STATUS_CHIP: Record<Window['status'], string> = {
+  scheduled: 'chip chip-blue',
+  active:    'chip chip-amber',
+  completed: 'chip chip-green',
+  cancelled: 'chip',
 }
 
 export default function MaintenancePage() {
@@ -55,89 +55,54 @@ export default function MaintenancePage() {
     load()
   }
 
-  const upcoming = rows.filter(r => r.status === 'scheduled' || r.status === 'active').length
-
   return (
-    <div>
-      <HeroCard
-        accent="amber"
-        icon={<Calendar size={28}/>}
+    <div style={{ maxWidth: 1100 }}>
+      <PageHeader
+        icon={<Calendar size={14} />}
         eyebrow="Operations"
         title="Scheduled maintenance"
-        subtitle="Schedule advance-notice maintenance windows. For ad-hoc downtime use the Maintenance Mode toggle on the System page instead."
-        metric={{ label: 'Upcoming', value: upcoming.toString(), secondary: `${rows.length} total` }}
+        description="Schedule advance-notice maintenance windows. The site can show banners + a status page during the window. For ad-hoc downtime use the Maintenance Mode toggle on the System page instead."
+        accent="amber"
       />
-      <Section title="Schedule a window" accent="amber" description="Show banners + a status page automatically during the window.">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 18 }}>
-            <Field label="Starts at" required>
-              <input type="datetime-local" className="input" value={draft.starts_at} onChange={e => setDraft({ ...draft, starts_at: e.target.value })}/>
-            </Field>
-            <Field label="Ends at" required>
-              <input type="datetime-local" className="input" value={draft.ends_at} onChange={e => setDraft({ ...draft, ends_at: e.target.value })}/>
-            </Field>
+      <Section title="Schedule a window" accent="amber">
+        <div className="form-grid">
+          <div className="form-grid form-grid-2">
+            <Field label="Starts at"><input type="datetime-local" className="input" value={draft.starts_at} onChange={e => setDraft({ ...draft, starts_at: e.target.value })} /></Field>
+            <Field label="Ends at"><input type="datetime-local" className="input" value={draft.ends_at} onChange={e => setDraft({ ...draft, ends_at: e.target.value })} /></Field>
           </div>
-          <Field label="User-facing message" required>
-            <textarea className="input" rows={3} value={draft.message} onChange={e => setDraft({ ...draft, message: e.target.value })}
-              placeholder="Database upgrade — site briefly read-only."
-              style={{ resize: 'vertical', lineHeight: 1.55 }}/>
-          </Field>
-          {error && (
-            <div style={{
-              padding: '12px 16px', borderRadius: 12,
-              background: 'var(--red-bg)', border: '1px solid rgba(248,113,113,0.3)',
-              color: 'var(--red)', fontSize: 13, fontWeight: 600,
-            }}>{error}</div>
-          )}
-          <div>
-            <button className="btn btn-primary btn-sm" onClick={create} disabled={!draft.starts_at || !draft.ends_at || !draft.message || creating}>
-              <Plus size={13}/> {creating ? 'Saving…' : 'Schedule window'}
-            </button>
-          </div>
+          <Field label="User-facing message"><textarea className="input" rows={2} value={draft.message} onChange={e => setDraft({ ...draft, message: e.target.value })} placeholder="Database upgrade — site briefly read-only." /></Field>
+          {error && <div className="msg-err">✗ {error}</div>}
+          <button className="btn-primary btn-sm" onClick={create} disabled={!draft.starts_at || !draft.ends_at || !draft.message || creating} style={{ alignSelf: 'flex-start' }}>
+            <Plus size={11}/> {creating ? 'Saving…' : 'Schedule window'}
+          </button>
         </div>
       </Section>
-
-      {rows.length === 0 ? (
-        <EmptyState icon={<Calendar size={20}/>} title="No scheduled windows" description="Schedule one above to give users advance notice." />
-      ) : (
-        <Section flush title={`${rows.length} window${rows.length === 1 ? '' : 's'}`}>
-          <div style={{ overflowX: 'auto' }}>
-            <table className="table-root" style={{ width: '100%' }}>
-              <thead>
-                <tr>
-                  {['Status','Starts','Ends','Message',''].map(h => (
-                    <th key={h} style={{
-                      textAlign: 'left', padding: '14px 24px',
-                      fontSize: 11, fontWeight: 700, letterSpacing: '0.08em',
-                      textTransform: 'uppercase', color: 'var(--t4)',
-                      borderBottom: '1px solid var(--border)',
-                    }}>{h}</th>
+      {rows.length === 0
+        ? <EmptyState icon={<Calendar size={20}/>} title="No scheduled windows" />
+        : (
+          <Section flush title={`${rows.length} window${rows.length === 1 ? '' : 's'}`}>
+            <div className="table-wrap" style={{ border: 'none', borderRadius: 0 }}>
+              <table className="table-root">
+                <thead><tr><th>Status</th><th>Starts</th><th>Ends</th><th>Message</th><th></th></tr></thead>
+                <tbody>
+                  {rows.map(r => (
+                    <tr key={r.id}>
+                      <td><span className={STATUS_CHIP[r.status]}>{r.status}</span></td>
+                      <td style={{ fontSize: 12, color: 'var(--t3)' }}>{new Date(r.starts_at).toLocaleString()}</td>
+                      <td style={{ fontSize: 12, color: 'var(--t3)' }}>{new Date(r.ends_at).toLocaleString()}</td>
+                      <td style={{ fontSize: 12 }}>{r.message}</td>
+                      <td>
+                        {r.status === 'scheduled' && (
+                          <button className="btn-ghost btn-sm" style={{ color: 'var(--red)' }} onClick={() => cancel(r.id)}><Pause size={11}/> Cancel</button>
+                        )}
+                      </td>
+                    </tr>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map(r => (
-                  <tr key={r.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                    <td style={{ padding: '14px 24px' }}>
-                      <span className={`badge ${STATUS_BADGE[r.status]}`}>{r.status}</span>
-                    </td>
-                    <td style={{ padding: '14px 24px', fontSize: 13, color: 'var(--t3)', fontVariantNumeric: 'tabular-nums' }}>{new Date(r.starts_at).toLocaleString()}</td>
-                    <td style={{ padding: '14px 24px', fontSize: 13, color: 'var(--t3)', fontVariantNumeric: 'tabular-nums' }}>{new Date(r.ends_at).toLocaleString()}</td>
-                    <td style={{ padding: '14px 24px', fontSize: 13, color: 'var(--t1)' }}>{r.message}</td>
-                    <td style={{ padding: '14px 24px', textAlign: 'right' }}>
-                      {r.status === 'scheduled' && (
-                        <button className="btn btn-secondary btn-sm" style={{ color: 'var(--red)' }} onClick={() => cancel(r.id)}>
-                          <Pause size={12}/> Cancel
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Section>
-      )}
+                </tbody>
+              </table>
+            </div>
+          </Section>
+        )}
     </div>
   )
 }
