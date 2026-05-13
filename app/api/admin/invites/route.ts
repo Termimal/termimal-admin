@@ -149,10 +149,25 @@ export async function POST(request: Request) {
     if (!actor) return NextResponse.json({ error: 'unauthenticated' }, { status: 401 })
 
     const sb   = serviceClient()
-    const body = await request.json().catch(() => null) as { email?: string; role?: 'admin' | 'super_admin' } | null
+    const body = await request.json().catch(() => null) as {
+      email?: string;
+      role?: 'admin' | 'super_admin';
+      /** Optional admin-chosen password. ≥10 chars or the request 400s. */
+      password?: string;
+    } | null
     if (!body?.email) return NextResponse.json({ error: 'email required' }, { status: 400 })
     const email = body.email.trim().toLowerCase()
     const role  = body.role === 'super_admin' ? 'super_admin' : 'admin'
+
+    // Custom password support. The admin can specify a password they
+    // want to give to the new admin — useful when you're standing
+    // next to them or onboarding via a secure channel that isn't
+    // email. Empty/missing → we auto-generate one. ≥10 chars is a
+    // light sanity check on top of Supabase's default ≥6.
+    const customPassword = (body.password || '').trim()
+    if (customPassword && customPassword.length < 10) {
+      return NextResponse.json({ error: 'custom password must be at least 10 characters' }, { status: 400 })
+    }
 
     // Only super_admins can mint super_admin invites.
     if (role === 'super_admin') {
@@ -165,35 +180,68 @@ export async function POST(request: Request) {
     const token     = genToken()
     const expiresAt = new Date(Date.now() + 7 * 86400 * 1000).toISOString()
 
-    // ── Provision the auth user (or detect existing) ───────────────
+    // ── Provision the auth user (or update existing) ───────────────
     //
-    // We try to create. If Supabase returns "user already registered",
-    // we fall through with tempPassword = null and the email tells the
-    // recipient to use their existing password. We do NOT reset an
-    // existing user's password from here — that would be a hostile
-    // surprise for someone who's already a customer.
-    let tempPassword: string | null = genTempPassword()
+    // Behavior matrix:
+    //   custom pw  +  user new      → create user with custom pw, email it
+    //   custom pw  +  user exists   → updateUserById to overwrite pw, email it
+    //   auto pw    +  user new      → create user with auto pw, email it
+    //   auto pw    +  user exists   → do NOT change pw (could be a real
+    //                                  customer); email says "use existing"
+    //
+    // The "auto + exists → don't reset" rule prevents an admin from
+    // silently bricking a customer's account by inviting their email.
+    // If you explicitly type a password in the form, you've opted in.
+    let tempPassword: string | null = customPassword || genTempPassword()
+    let passwordReset = false   // true when we overwrote an existing user's pw
+
+    // First, look up whether the user already exists (paginate first
+    // page — admin invites are rare so this is fine).
+    let existingUserId: string | null = null
     try {
-      const { error: createErr } = await sb.auth.admin.createUser({
-        email,
-        password:      tempPassword,
-        email_confirm: true,
-        user_metadata: { source: 'admin_invite', invited_role: role },
-      })
-      if (createErr) {
-        // Common case: 422 user_already_exists. Anything else is
-        // surfaced to the caller — we don't want a silent failure
-        // here (e.g. wrong service-role key) to leave us with a row
-        // in admin_invites that the user can never accept.
-        const msg = createErr.message || ''
-        if (/already (registered|exists)/i.test(msg) || createErr.status === 422) {
-          tempPassword = null
-        } else {
-          return NextResponse.json({ error: `auth.admin.createUser failed: ${msg}` }, { status: 500 })
+      const { data: listed } = await sb.auth.admin.listUsers({ page: 1, perPage: 200 })
+      const found = listed?.users?.find((u: { email?: string | null }) => (u.email || '').toLowerCase() === email)
+      existingUserId = found?.id ?? null
+    } catch { /* fall through — createUser will tell us */ }
+
+    if (existingUserId) {
+      if (customPassword) {
+        // Admin explicitly chose a password — overwrite.
+        const { error: updErr } = await sb.auth.admin.updateUserById(existingUserId, {
+          password:      customPassword,
+          email_confirm: true,
+        })
+        if (updErr) {
+          return NextResponse.json({ error: `auth.admin.updateUserById failed: ${updErr.message}` }, { status: 500 })
         }
+        passwordReset = true
+      } else {
+        // Auto-gen + existing user → don't touch their password.
+        tempPassword = null
       }
-    } catch (e) {
-      return NextResponse.json({ error: `auth.admin.createUser threw: ${e instanceof Error ? e.message : 'unknown'}` }, { status: 500 })
+    } else {
+      // Create fresh user.
+      try {
+        const { error: createErr } = await sb.auth.admin.createUser({
+          email,
+          password:      tempPassword!,
+          email_confirm: true,
+          user_metadata: { source: 'admin_invite', invited_role: role },
+        })
+        if (createErr) {
+          // Race: listUsers said "no", createUser said "yes" — handle it
+          // gracefully by falling back to update-or-null based on whether
+          // a custom pw was given.
+          const msg = createErr.message || ''
+          if (/already (registered|exists)/i.test(msg) || createErr.status === 422) {
+            if (!customPassword) tempPassword = null
+          } else {
+            return NextResponse.json({ error: `auth.admin.createUser failed: ${msg}` }, { status: 500 })
+          }
+        }
+      } catch (e) {
+        return NextResponse.json({ error: `auth.admin.createUser threw: ${e instanceof Error ? e.message : 'unknown'}` }, { status: 500 })
+      }
     }
 
     // ── Insert the invite row ──────────────────────────────────────
@@ -236,10 +284,11 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       row: data,
-      invite_url:   inviteUrl,                  // fallback for the admin UI
-      email_sent:   result.ok,
-      email_error:  result.ok ? null : (result.error || 'email send failed'),
-      user_created: tempPassword !== null,
+      invite_url:    inviteUrl,                 // fallback for the admin UI
+      email_sent:    result.ok,
+      email_error:   result.ok ? null : (result.error || 'email send failed'),
+      user_created:  tempPassword !== null && !passwordReset,
+      password_reset: passwordReset,
     })
   } catch (e) { return NextResponse.json({ error: String(e) }, { status: 500 }) }
 }
