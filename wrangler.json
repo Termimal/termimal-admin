@@ -14,7 +14,13 @@
   },
   "vars": {
     "NEXT_PUBLIC_SUPABASE_URL": "https://kqmgxnxvmahnvrmizfzr.supabase.co",
-    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtxbWd4bnh2bWFobnZybWl6ZnpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxOTM0NTcsImV4cCI6MjA5MTc2OTQ1N30.B5g1rrpBTR9J1iLzd5Xzatqa3iGSFPxISDIou3DxwHA"
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtxbWd4bnh2bWFobnZybWl6ZnpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxOTM0NTcsImV4cCI6MjA5MTc2OTQ1N30.B5g1rrpBTR9J1iLzd5Xzatqa3iGSFPxISDIou3DxwHA",
+    "NEXT_PUBLIC_ADMIN_URL":      "https://bo.termimal.com",
+    "X_REDIRECT_URI":             "https://bo.termimal.com/api/admin/marketing/social/callback/x",
+    "LINKEDIN_REDIRECT_URI":      "https://bo.termimal.com/api/admin/marketing/social/callback/linkedin",
+    "FACEBOOK_REDIRECT_URI":      "https://bo.termimal.com/api/admin/marketing/social/callback/facebook",
+    "INSTAGRAM_REDIRECT_URI":     "https://bo.termimal.com/api/admin/marketing/social/callback/instagram",
+    "THREADS_REDIRECT_URI":       "https://bo.termimal.com/api/admin/marketing/social/callback/threads"
   },
   "observability": {
     "enabled": true
