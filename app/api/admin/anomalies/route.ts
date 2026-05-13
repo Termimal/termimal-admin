@@ -36,6 +36,7 @@
 
 import { NextResponse } from 'next/server'
 import { createClient as createSbClient } from '@supabase/supabase-js'
+import { requireAdmin } from '@/lib/admin/require-admin'
 
 interface Anomaly {
   id:        string
@@ -47,6 +48,7 @@ interface Anomaly {
     | 'FAILED_PAYMENT_SURGE'
     | 'IP_DENSITY'
     | 'CROSS_COUNTRY_LOGIN'
+    | 'HIGH_RISK_LOGIN'
   severity:  'info' | 'warn' | 'critical'
   title:     string
   detail:    string
@@ -287,9 +289,93 @@ async function detectCrossCountryLogin(sb: ReturnType<typeof adminClient>): Prom
   return out
 }
 
+/**
+ * Surfaces every login_events row whose `anomaly_score >= 40` from
+ * the last 24h. The DB-side scorer already did the heavy lifting
+ * (impossible travel, new country/device/IP, failed-login burst,
+ * many-devices), so this detector is essentially a SELECT.
+ *
+ * Each high-risk login becomes one Anomaly row. We attach the user's
+ * email from auth.users so the admin doesn't have to click through
+ * to identify them, and we render the reasons as a comma-list in the
+ * detail string.
+ */
+async function detectHighRiskLogin(sb: ReturnType<typeof adminClient>): Promise<Anomaly[]> {
+  const since = new Date(Date.now() - DAY_MS).toISOString()
+  const { data: events, error } = await sb
+    .from('login_events')
+    .select('id, user_id, signed_in_at, ip, country, city, region, browser, os, device_type, method, anomaly_score, anomaly_reasons, marked_safe_by_user, marked_compromised_by_user, notified_at')
+    .gte('signed_in_at', since)
+    .gte('anomaly_score', 40)
+    .order('anomaly_score', { ascending: false })
+    .limit(50)
+  if (error || !events || events.length === 0) return []
+
+  // Pull the user email + full_name in one batch so we can render
+  // identity in the alert title without leaking the whole row.
+  const ids = Array.from(new Set(events.map((e: { user_id: string }) => e.user_id)))
+  const { data: profiles } = ids.length
+    ? await sb.from('profiles').select('id, email, full_name').in('id', ids)
+    : { data: [] }
+  const profMap = new Map<string, { email?: string; full_name?: string }>(
+    (profiles || []).map((p: { id: string }) => [p.id, p as { email?: string; full_name?: string }]),
+  )
+
+  return events.map((e: {
+    id: string; user_id: string; signed_in_at: string; ip: string | null
+    country: string | null; city: string | null; region: string | null
+    browser: string | null; os: string | null; device_type: string | null
+    method: string | null; anomaly_score: number; anomaly_reasons: string[] | null
+    marked_safe_by_user: boolean; marked_compromised_by_user: boolean
+    notified_at: string | null
+  }): Anomaly => {
+    const prof = profMap.get(e.user_id)
+    const who  = prof?.email || prof?.full_name || `user-${e.user_id.slice(0, 8)}`
+    const where = [e.city, e.region, e.country].filter(Boolean).join(', ') || 'unknown location'
+    const dev   = `${e.browser || '?'} on ${e.os || '?'}`
+    const reasons = (e.anomaly_reasons || []).join(', ') || '(no reasons recorded)'
+    const sev: Anomaly['severity'] =
+      e.marked_compromised_by_user ? 'critical' :
+      e.anomaly_score >= 70        ? 'critical' :
+      e.anomaly_score >= 50        ? 'warn'     :
+                                     'info'
+    const titlePrefix = e.marked_compromised_by_user ? '🚨 USER REPORTED COMPROMISED — ' : ''
+    return {
+      id:       `hrlogin_${e.id}`,
+      type:     'HIGH_RISK_LOGIN',
+      severity: sev,
+      title:    `${titlePrefix}High-risk sign-in for ${who} (score ${e.anomaly_score})`,
+      detail:   `${dev} · ${where} · IP ${e.ip || '—'} · via ${e.method || '?'}\nReasons: ${reasons}` +
+                (e.marked_safe_by_user ? '\n✓ User confirmed this was them.' : '') +
+                (e.notified_at ? `\n📧 Email alert sent ${new Date(e.notified_at).toLocaleString()}.` : ''),
+      observed_at: e.signed_in_at,
+      context: {
+        event_id:                   e.id,
+        user_id:                    e.user_id,
+        user_email:                 prof?.email,
+        score:                      e.anomaly_score,
+        reasons:                    e.anomaly_reasons || [],
+        ip:                         e.ip,
+        country:                    e.country,
+        city:                       e.city,
+        region:                     e.region,
+        browser:                    e.browser,
+        os:                         e.os,
+        device_type:                e.device_type,
+        method:                     e.method,
+        marked_safe_by_user:        e.marked_safe_by_user,
+        marked_compromised_by_user: e.marked_compromised_by_user,
+        notified_at:                e.notified_at,
+      },
+    }
+  })
+}
+
 // ── Entrypoint ─────────────────────────────────────────────────────
 
 export async function GET() {
+  const gate = await requireAdmin('anomalies.read')
+  if (gate.ok === false) return gate.response
   let sb: ReturnType<typeof adminClient>
   try {
     sb = adminClient()
@@ -311,6 +397,7 @@ export async function GET() {
     detectFailedPaymentSurge(sb),
     detectIpDensity(sb),
     detectCrossCountryLogin(sb),
+    detectHighRiskLogin(sb),
   ])
 
   const anomalies: Anomaly[] = []

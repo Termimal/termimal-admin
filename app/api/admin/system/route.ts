@@ -6,6 +6,7 @@
  */
 import { NextResponse } from 'next/server'
 import { createClient as createSb } from '@supabase/supabase-js'
+import { requireAdmin } from '@/lib/admin/require-admin'
 
 function adminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -15,6 +16,8 @@ function adminClient() {
 }
 
 export async function GET() {
+  const gate = await requireAdmin('system.write')
+  if (gate.ok === false) return gate.response
   try {
     const sb = adminClient()
     const { data, error } = await sb.from('system_settings').select('*')
@@ -28,6 +31,8 @@ export async function GET() {
 }
 
 export async function PATCH(request: Request) {
+  const gate = await requireAdmin('system.write')
+  if (gate.ok === false) return gate.response
   try {
     const sb = adminClient()
     const body = await request.json().catch(() => null) as { key?: string; value?: unknown } | null

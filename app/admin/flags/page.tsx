@@ -2,8 +2,8 @@
 export const dynamic = 'force-dynamic'
 
 import { useEffect, useState } from 'react'
-import { Flag } from 'lucide-react'
-import { PageHeader, Section, EmptyState } from '@/components/admin/PageChrome'
+import { Flag, Power } from 'lucide-react'
+import { HeroCard, Section, EmptyState, ItemGrid, ItemCard } from '@/components/admin/PageChrome'
 import { createClient } from '@/lib/supabase/client'
 
 interface FlagRow {
@@ -36,68 +36,70 @@ export default function FlagsPage() {
   }, [])
 
   async function toggle(id: string, next: boolean) {
-    // Optimistic.
     setFlags(prev => prev.map(f => f.id === id ? { ...f, enabled: next } : f))
     const { error } = await sb.from('feature_flags').update({ enabled: next }).eq('id', id)
     if (error) {
-      // Revert on failure.
       setFlags(prev => prev.map(f => f.id === id ? { ...f, enabled: !next } : f))
     }
   }
 
+  const enabled = flags.filter(f => f.enabled).length
+
   return (
-    <div style={{ maxWidth: 1100 }}>
-      <PageHeader
-        icon={<Flag size={14} />}
-        eyebrow="Feature Flags"
-        title="Module toggles"
-        description="Switch product modules on or off. Changes take effect on the next request — no redeploy required."
+    <div>
+      <HeroCard
         accent="amber"
+        icon={<Flag size={28}/>}
+        eyebrow="Feature flags"
+        title="Module toggles"
+        subtitle="Switch product modules on or off. Changes take effect on the next request — no redeploy required."
+        metric={{ label: 'Enabled', value: `${enabled}/${flags.length}`, secondary: 'live flags' }}
       />
 
-      <Section flush accent="amber">
-        {loading ? (
-          <div style={{ padding: 24, fontSize: 13, color: 'var(--t3)' }}>Loading flags…</div>
-        ) : flags.length === 0 ? (
-          <EmptyState icon={<Flag size={20} />} title="No feature flags defined" description="Add rows to public.feature_flags to manage them here." />
-        ) : (
-          <div className="table-wrap" style={{ border: 'none', borderRadius: 0 }}>
-            <table className="table-root">
-              <thead>
-                <tr>
-                  <th>Flag</th>
-                  <th>Description</th>
-                  <th style={{ textAlign: 'right' }}>Created</th>
-                  <th style={{ textAlign: 'right' }}>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {flags.map(f => (
-                  <tr key={f.id}>
-                    <td style={{ fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 12, color: 'var(--t1)' }}>{f.key}</td>
-                    <td style={{ color: 'var(--t3)' }}>{f.description || '—'}</td>
-                    <td style={{ textAlign: 'right', color: 'var(--t4)', fontSize: 12 }}>
-                      {f.created_at ? new Date(f.created_at).toLocaleDateString() : '—'}
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      <button
-                        type="button"
-                        className="toggle"
-                        data-checked={f.enabled}
-                        onClick={() => toggle(f.id, !f.enabled)}
-                        aria-pressed={f.enabled}
-                        title={f.enabled ? 'Disable' : 'Enable'}
-                      >
-                        <span className="toggle-thumb" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Section>
+      {loading ? (
+        <Section flush>
+          <div style={{ padding: 40, fontSize: 13, color: 'var(--t3)', textAlign:'center' }}>Loading flags…</div>
+        </Section>
+      ) : flags.length === 0 ? (
+        <EmptyState icon={<Flag size={20}/>} title="No feature flags defined" description="Add rows to public.feature_flags to manage them here." />
+      ) : (
+        <ItemGrid min={300}>
+          {flags.map(f => (
+            <ItemCard
+              key={f.id}
+              accent="amber"
+              icon={<Flag size={18}/>}
+              title={f.key}
+              subtitle={f.description || 'No description'}
+              status={{
+                label: f.enabled ? 'ENABLED' : 'DISABLED',
+                tone: f.enabled ? 'green' : 'muted',
+                pulse: f.enabled,
+              }}
+              meta={
+                <>
+                  <span style={{ fontFamily: 'ui-monospace, Menlo, Consolas, monospace', fontSize: 11 }}>{f.key}</span>
+                  {f.created_at && (
+                    <>
+                      <span>·</span>
+                      <span>created {new Date(f.created_at).toLocaleDateString()}</span>
+                    </>
+                  )}
+                </>
+              }
+              footer={
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => toggle(f.id, !f.enabled)}
+                >
+                  <Power size={12}/> {f.enabled ? 'Disable' : 'Enable'}
+                </button>
+              }
+            />
+          ))}
+        </ItemGrid>
+      )}
     </div>
   )
 }

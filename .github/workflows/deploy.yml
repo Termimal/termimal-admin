@@ -1,0 +1,68 @@
+# Cloudflare Workers deploy via GitHub Actions.
+#
+# Replaces the legacy Cloudflare Pages auto-deploy (which broke after
+# the OpenNext migration: the dashboard's deploy command was
+# `wrangler pages deploy …` but our build emits a Workers bundle, not
+# a Pages-compatible static dir).
+#
+# Required repository secrets:
+#   CLOUDFLARE_API_TOKEN   — token with "Edit Cloudflare Workers" scope.
+#                            Create at https://dash.cloudflare.com/profile/api-tokens
+#                            (use the "Edit Cloudflare Workers" template).
+#   CLOUDFLARE_ACCOUNT_ID  — Account ID, visible in any zone's overview.
+#
+# Worker env vars (NEXT_PUBLIC_SUPABASE_URL etc.) live in the dashboard
+# under Worker → Settings → Variables. The deploy uses --keep-vars so
+# they survive each release.
+#
+# Trigger: pushes to feat/admin-v2-everything (main work branch) and main.
+
+name: Deploy admin worker
+
+on:
+  push:
+    branches:
+      - main
+      - feat/admin-v2-everything
+      - feat/post-launch-bundle
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Build (Next + OpenNext)
+        run: npx opennextjs-cloudflare build
+        env:
+          # Inline NEXT_PUBLIC_* values so the static bundle has them.
+          # Server-only vars (SUPABASE_SERVICE_ROLE_KEY, STRIPE_SECRET_KEY,
+          # RESEND_API_KEY) are injected at runtime via Worker env vars
+          # and do NOT belong here.
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+
+      - name: Deploy with Wrangler
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # --keep-vars preserves dashboard-managed env vars + secret
+          # bindings between deploys.
+          command: deploy --keep-vars

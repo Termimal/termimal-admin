@@ -2,6 +2,10 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+
+// Build marker — bumped every deploy so you can verify in the browser
+// the new code is actually serving. Visible in the sidebar footer.
+const BUILD_MARKER = '2026-05-12 · Round G — A→G full ship'
 import {
   LayoutDashboard,
   Users,
@@ -35,6 +39,40 @@ import {
   Download,
   DollarSign,
   Shield,
+  TrendingUp,
+  Handshake,
+  Sparkles,
+  BarChart3,
+  Bug,
+  MessageSquare,
+  Newspaper,
+  Edit3,
+  Quote,
+  Wallet,
+  MailCheck,
+  Clock,
+  Filter,
+  ArrowRightLeft,
+  Heart,
+  ShieldQuestion,
+  Users2 as ApproversIcon,
+  KeyRound,
+  KeySquare,
+  Siren,
+  Layers as LayersIcon,
+  Timer,
+  AlertOctagon,
+  CreditCard as CreditCardIcon,
+  Calculator,
+  Megaphone as BroadcastIcon,
+  BookOpen,
+  Webhook as WebhookIcon,
+  HeartPulse,
+  BarChart3 as BarChart3Extras,
+  ShieldCheck,
+  Building2,
+  FilePlus2,
+  FileCheck2,
 } from 'lucide-react'
 
 type NavItem = {
@@ -59,31 +97,101 @@ const NAV: { group: string; items: NavItem[] }[] = [
   {
     group: 'Workflow',
     items: [
-      { href: '/admin/items',   label: 'Open Items',    icon: ListTodo },
-      { href: '/admin/roadmap', label: 'Roadmap',       icon: Map },
-      { href: '/admin/support', label: 'Support Inbox', icon: Inbox },
+      { href: '/admin/items',    label: 'Open Items',    icon: ListTodo },
+      { href: '/admin/roadmap',  label: 'Roadmap',       icon: Map },
+      { href: '/admin/support',  label: 'Support Inbox', icon: Inbox },
+      { href: '/admin/feedback', label: 'Feedback',      icon: MessageSquare },
+      { href: '/admin/kb',       label: 'Knowledge base', icon: BookOpen },
+      { href: '/admin/sla',      label: 'SLA',            icon: Timer },
+      { href: '/admin/bulk',     label: 'Bulk ops',       icon: LayersIcon },
     ],
   },
   {
     group: 'Users & Billing',
     items: [
-      { href: '/admin/users',         label: 'Users',         icon: Users },
-      { href: '/admin/subscriptions', label: 'Subscriptions', icon: CreditCard },
-      { href: '/admin/payments',      label: 'Payments',      icon: Package },
-      { href: '/admin/coupons',       label: 'Coupons',       icon: Tag },
-      { href: '/admin/cohorts',       label: 'Cohorts',       icon: Users2 },
-      { href: '/admin/finance',       label: 'Finance',       icon: DollarSign },
+      { href: '/admin/users',           label: 'Users',           icon: Users },
+      { href: '/admin/subscriptions',   label: 'Subscriptions',   icon: CreditCard },
+      { href: '/admin/payments',        label: 'Payments',        icon: Package },
+      { href: '/admin/payment-methods', label: 'Payment Methods', icon: CreditCard },
+      { href: '/admin/coupons',         label: 'Coupons',         icon: Tag },
+      { href: '/admin/cohorts',         label: 'Cohorts',         icon: Users2 },
+      { href: '/admin/finance',         label: 'Finance',         icon: DollarSign },
+      { href: '/admin/disputes',        label: 'Disputes',        icon: AlertOctagon },
+      { href: '/admin/dunning',         label: 'Dunning',         icon: CreditCardIcon },
+      { href: '/admin/tax',             label: 'Tax',             icon: Calculator },
+    ],
+  },
+  {
+    /**
+     * Marketing — every growth lever. Referrals + Affiliates +
+     * SEO live here together because they all answer the same
+     * question ("how do we get more users?") — splitting them
+     * across Users / Content was confusing.
+     *
+     * Marketing Planner is a dedicated kanban with seeded
+     * acquisition tactics so anyone in the company can see what's
+     * being worked on without poking through the generic Open
+     * Items board.
+     */
+    group: 'Marketing',
+    items: [
+      { href: '/admin/marketing',          label: 'Marketing Planner', icon: Sparkles,  exact: true },
+      { href: '/admin/marketing/social',   label: 'Social Studio',     icon: Megaphone },
+      { href: '/admin/seo',                label: 'SEO & Meta',        icon: Search },
+      { href: '/admin/seo-pages',          label: 'Per-page SEO',      icon: Search },
+      { href: '/admin/referrals',          label: 'Referrals',         icon: TrendingUp },
+      { href: '/admin/affiliates',         label: 'Affiliates',        icon: Handshake, exact: true },
+      { href: '/admin/affiliates/payouts', label: 'Affiliate Payouts', icon: Wallet },
+    ],
+  },
+  {
+    /**
+     * Analytics — read-only Tableau-style dashboards on top of every
+     * mirrored Stripe / Supabase table we have. Lives separately from
+     * Health/Anomalies so it doesn't get hidden behind "Overview".
+     */
+    group: 'Analytics',
+    items: [
+      { href: '/admin/bi',                label: 'Business Intelligence', icon: BarChart3 },
+      { href: '/admin/funnel',            label: 'Conversion Funnel',     icon: Filter },
+      { href: '/admin/plan-changes',      label: 'Plan Changes',          icon: ArrowRightLeft },
+      { href: '/admin/win-back',          label: 'Win-back Queue',        icon: Heart },
+      { href: '/admin/customer-health',   label: 'Customer Health',       icon: HeartPulse },
+      { href: '/admin/analytics-extras',  label: 'Cohorts · Geo · Channels', icon: BarChart3Extras },
+      { href: '/admin/errors',            label: 'Error log',             icon: Bug },
+    ],
+  },
+  {
+    group: 'Privacy & compliance',
+    items: [
+      { href: '/admin/dsar',           label: 'DSAR queue',       icon: ShieldQuestion },
+      { href: '/admin/consent',        label: 'Consent ledger',   icon: FileCheck2 },
+      { href: '/admin/ropa',           label: 'RoPA',             icon: FilePlus2 },
+      { href: '/admin/sub-processors', label: 'Sub-processors',   icon: Building2 },
+    ],
+  },
+  {
+    group: 'Security ops',
+    items: [
+      { href: '/admin/approvals',      label: 'Approvals (4-eyes)', icon: ApproversIcon },
+      { href: '/admin/jit',            label: 'JIT elevation',      icon: KeyRound },
+      { href: '/admin/secrets',        label: 'Secrets rotation',   icon: KeySquare },
+      { href: '/admin/csp-reports',    label: 'CSP reports',        icon: ShieldAlert },
+      { href: '/admin/audit-chain',    label: 'Audit integrity',    icon: ShieldCheck },
+      { href: '/admin/incident',       label: 'Incident console',   icon: Siren },
     ],
   },
   {
     group: 'Content',
     items: [
       { href: '/admin/content',         label: 'Content',         icon: FileText },
+      { href: '/admin/site-content',    label: 'Site Content',    icon: Edit3 },
+      { href: '/admin/testimonials',    label: 'Testimonials',    icon: Quote },
       { href: '/admin/banners',         label: 'Banners',         icon: ImageIcon },
       { href: '/admin/announcements',   label: 'Announcements',   icon: Megaphone },
+      { href: '/admin/broadcasts',      label: 'Broadcasts',      icon: BroadcastIcon },
+      { href: '/admin/changelog',       label: 'Changelog',       icon: Newspaper },
       { href: '/admin/faqs',            label: 'FAQs',            icon: HelpCircle },
-      { href: '/admin/seo',             label: 'SEO & Meta',      icon: Search },
-      { href: '/admin/seo-pages',       label: 'Per-page SEO',    icon: Search },
       { href: '/admin/translations',    label: 'Translations',    icon: Languages },
       { href: '/admin/email-templates', label: 'Email Templates', icon: Mail },
       { href: '/admin/flags',           label: 'Feature Flags',   icon: Zap },
@@ -93,7 +201,10 @@ const NAV: { group: string; items: NavItem[] }[] = [
   {
     group: 'System',
     items: [
-      { href: '/admin/system',      label: 'System',         icon: Settings },
+      { href: '/admin/system',           label: 'System',          icon: Settings },
+      { href: '/admin/email-log',        label: 'Email Log',       icon: MailCheck },
+      { href: '/admin/cron',             label: 'Cron Jobs',       icon: Clock },
+      { href: '/admin/webhook-retries',  label: 'Webhook Retries', icon: WebhookIcon },
       { href: '/admin/maintenance', label: 'Maintenance',    icon: Calendar },
       { href: '/admin/roles',       label: 'Roles & Perms',  icon: Shield },
       { href: '/admin/invites',     label: 'Admin Invites',  icon: UserPlus },
@@ -123,29 +234,62 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           zIndex: 40,
         }}
       >
-        {/* Logo */}
+        {/* Brand bar */}
         <div
-          className="flex items-center gap-2.5 px-4 py-4"
+          className="flex items-center gap-3 px-5 py-4"
           style={{ borderBottom: '1px solid var(--border)', minHeight: 'var(--header-h)' }}
         >
           <div
-            className="flex items-center justify-center rounded-lg"
-            style={{ width: 28, height: 28, background: 'var(--acc-bg)', border: '1px solid var(--acc-border)' }}
+            className="flex items-center justify-center"
+            style={{
+              width: 34, height: 34,
+              borderRadius: 11,
+              background: 'linear-gradient(135deg, rgba(45,212,164,0.20) 0%, rgba(167,139,250,0.20) 100%)',
+              border: '1px solid var(--border2)',
+              boxShadow: '0 0 18px -4px rgba(45,212,164,0.4), inset 0 1px 0 rgba(255,255,255,0.06)',
+            }}
           >
-            <Terminal size={14} style={{ color: 'var(--acc)' }} />
+            <Terminal size={15} style={{ color: 'var(--acc)' }} />
           </div>
-          <div>
-            <div className="text-sm font-bold tracking-tight" style={{ color: 'var(--t1)' }}>Termimal</div>
-            <div className="text-xs" style={{ color: 'var(--t4)' }}>Admin Panel</div>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{
+              fontSize: 14,
+              fontWeight: 700,
+              letterSpacing: '-0.012em',
+              color: 'var(--t1)',
+            }}>Termimal</div>
+            <div style={{
+              fontSize: 10,
+              fontWeight: 600,
+              letterSpacing: '0.14em',
+              textTransform: 'uppercase',
+              color: 'var(--t4)',
+            }}>Admin · v3</div>
           </div>
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-5">
-          {NAV.map((group) => (
-            <div key={group.group}>
-              <div className="section-title px-1">{group.group}</div>
-              <div className="space-y-0.5">
+        <nav className="flex-1 overflow-y-auto" style={{ padding: '14px 12px 24px' }}>
+          {NAV.map((group, gIdx) => (
+            <div key={group.group} style={{ marginTop: gIdx === 0 ? 0 : 18 }}>
+              <div
+                style={{
+                  fontSize: 10,
+                  fontWeight: 800,
+                  letterSpacing: '0.14em',
+                  textTransform: 'uppercase',
+                  color: 'var(--t4)',
+                  padding: '0 10px',
+                  marginBottom: 8,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                }}
+              >
+                <span>{group.group}</span>
+                <span style={{ flex: 1, height: 1, background: 'var(--border)', opacity: 0.6 }} />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 {group.items.map((item) => (
                   <Link
                     key={item.href}
@@ -155,7 +299,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     <item.icon className="nav-icon" />
                     <span>{item.label}</span>
                     {isActive(item.href, item.exact) && (
-                      <ChevronRight size={12} className="ml-auto" style={{ color: 'var(--t4)' }} />
+                      <ChevronRight size={12} className="ml-auto" style={{ color: 'var(--acc)', opacity: 0.7 }} />
                     )}
                   </Link>
                 ))}
@@ -165,11 +309,26 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </nav>
 
         {/* Footer */}
-        <div className="px-3 py-3" style={{ borderTop: '1px solid var(--border)' }}>
+        <div style={{
+          padding: '14px 12px 12px',
+          borderTop: '1px solid var(--border)',
+          background: 'linear-gradient(180deg, transparent 0%, var(--surface) 100%)',
+        }}>
           <a href="/api/auth/logout" className="nav-item">
             <LogOut className="nav-icon" />
             <span>Sign out</span>
           </a>
+          <div style={{
+            marginTop: 8,
+            padding: '6px 12px',
+            fontSize: 9,
+            color: 'var(--t4)',
+            fontFamily: 'ui-monospace, Menlo, monospace',
+            opacity: 0.55,
+            letterSpacing: '0.02em',
+          }}>
+            build {BUILD_MARKER}
+          </div>
         </div>
       </aside>
 
@@ -177,31 +336,43 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div className="flex flex-col flex-1" style={{ marginLeft: 'var(--sidebar-w)' }}>
         {/* Top bar */}
         <header
-          className="sticky top-0 flex items-center justify-between px-6"
+          className="sticky top-0 flex items-center justify-between"
           style={{
             height: 'var(--header-h)',
-            background: 'rgba(8,8,15,0.85)',
-            backdropFilter: 'blur(12px)',
+            padding: '0 var(--content-pad-x)',
+            background: 'rgba(7,7,13,0.82)',
+            backdropFilter: 'blur(20px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(20px) saturate(180%)',
             borderBottom: '1px solid var(--border)',
             zIndex: 30,
           }}
         >
-          <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--t3)' }}>
-            <span>Admin</span>
-            <ChevronRight size={12} />
-            <span style={{ color: 'var(--t1)' }}>
+          <div className="flex items-center" style={{ color: 'var(--t3)', fontSize: 14, gap: 10 }}>
+            <span style={{ fontWeight: 500 }}>Admin</span>
+            <ChevronRight size={13} style={{ opacity: 0.5 }} />
+            <span style={{ color: 'var(--t1)', fontWeight: 700, fontSize: 16, letterSpacing: '-0.01em' }}>
               {(() => {
                 const seg = pathname.split('/').filter(Boolean)
                 const last = seg[seg.length - 1]
                 if (!last || last === 'admin') return 'Dashboard'
-                return last.charAt(0).toUpperCase() + last.slice(1)
+                return last.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
               })()}
             </span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center" style={{ gap: 14 }}>
+            <span className="header-pill" style={{ fontSize: 12, padding: '7px 13px' }}>
+              <span className="live-dot" /> Live
+            </span>
             <div
-              className="flex items-center justify-center rounded-full text-xs font-bold"
-              style={{ width: 28, height: 28, background: 'var(--acc-bg)', color: 'var(--acc)' }}
+              className="flex items-center justify-center rounded-full"
+              style={{
+                width: 38, height: 38,
+                background: 'linear-gradient(135deg, var(--acc) 0%, var(--purple) 100%)',
+                color: '#fff',
+                fontSize: 13,
+                fontWeight: 800,
+                boxShadow: '0 6px 16px -2px rgba(45,212,164,0.4)',
+              }}
             >
               A
             </div>
@@ -209,7 +380,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </header>
 
         {/* Content */}
-        <main className="flex-1 p-6 overflow-auto">{children}</main>
+        <main
+          className="flex-1 overflow-auto"
+          style={{
+            padding: 'var(--content-pad-y) var(--content-pad-x) calc(var(--content-pad-y) + 24px)',
+          }}
+        >
+          <div style={{ maxWidth: 1400, margin: '0 auto' }}>
+            {children}
+          </div>
+        </main>
       </div>
     </div>
   )

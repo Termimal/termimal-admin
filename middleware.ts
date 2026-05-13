@@ -23,12 +23,12 @@ import { requiredPermission, roleGrants } from '@/lib/admin/permissions'
 // 20260508_finance_and_rbac migration.
 const FALLBACK_PERMS: Record<string, string[]> = {
   super_admin: ['*'],
-  admin:       ['users.read','users.write','billing.read','billing.write','content.read','content.write','seo.read','seo.write','flags.read','flags.write','support.read','support.write','experiments.read','experiments.write','cohorts.read','cohorts.write','translations.read','translations.write','email_templates.read','email_templates.write','audit.read','analytics.read','webhooks.read','items.read','items.write','anomalies.read','system.read','system.write','maintenance.read','maintenance.write','invites.read','invites.write','export.read','banners.read','banners.write','announcements.read','announcements.write','faqs.read','faqs.write','notes.read','notes.write','coupons.read','coupons.write','finance.read'],
-  finance:     ['billing.read','billing.write','billing.refund','finance.read','finance.write','coupons.read','coupons.write','analytics.read','audit.read','export.read','users.read'],
+  admin:       ['users.read','users.write','billing.read','billing.write','content.read','content.write','seo.read','seo.write','flags.read','flags.write','support.read','support.write','experiments.read','experiments.write','cohorts.read','cohorts.write','translations.read','translations.write','email_templates.read','email_templates.write','audit.read','analytics.read','webhooks.read','items.read','items.write','anomalies.read','system.read','system.write','maintenance.read','maintenance.write','invites.read','invites.write','export.read','banners.read','banners.write','announcements.read','announcements.write','faqs.read','faqs.write','notes.read','notes.write','coupons.read','coupons.write','finance.read','referrals.read','referrals.write'],
+  finance:     ['billing.read','billing.write','billing.refund','finance.read','finance.write','coupons.read','coupons.write','analytics.read','audit.read','export.read','users.read','referrals.read','referrals.write'],
   support:     ['users.read','support.read','support.write','notes.read','notes.write','billing.read','billing.refund','audit.read'],
   content_editor: ['content.read','content.write','seo.read','seo.write','translations.read','translations.write','email_templates.read','email_templates.write','banners.read','banners.write','announcements.read','announcements.write','faqs.read','faqs.write'],
   developer:   ['users.read','billing.read','flags.read','flags.write','experiments.read','experiments.write','system.read','system.write','maintenance.read','maintenance.write','audit.read','webhooks.read','anomalies.read','analytics.read','items.read','items.write'],
-  readonly:    ['users.read','billing.read','content.read','seo.read','flags.read','support.read','experiments.read','cohorts.read','translations.read','email_templates.read','audit.read','analytics.read','webhooks.read','items.read','anomalies.read','system.read','maintenance.read','invites.read','export.read','banners.read','announcements.read','faqs.read','notes.read','finance.read','coupons.read'],
+  readonly:    ['users.read','billing.read','content.read','seo.read','flags.read','support.read','experiments.read','cohorts.read','translations.read','email_templates.read','audit.read','analytics.read','webhooks.read','items.read','anomalies.read','system.read','maintenance.read','invites.read','export.read','banners.read','announcements.read','faqs.read','notes.read','finance.read','coupons.read','referrals.read'],
 }
 
 export async function middleware(request: NextRequest) {
@@ -54,6 +54,12 @@ export async function middleware(request: NextRequest) {
   const path  = request.nextUrl.pathname
   const isApi = path.startsWith('/api/admin')
   const isPage = path.startsWith('/admin')
+
+  // /api/admin/login-bypass is the captcha-skipping login endpoint —
+  // it must be reachable WITHOUT a session (it's how the user gets one).
+  if (path === '/api/admin/login-bypass') {
+    return supabaseResponse
+  }
 
   // /admin/accept-invite + /api/admin/invites/accept are the admin paths
   // that DON'T require an existing admin role — that's how new admins

@@ -2,39 +2,56 @@
 
 :root,
 [data-theme="dark"] {
-  --bg: #08080f;
-  --bg2: #0d0d17;
-  --bg3: #12121e;
-  --surface: rgba(255,255,255,0.04);
-  --surface2: rgba(255,255,255,0.07);
-  --border: rgba(255,255,255,0.09);
-  --border2: rgba(255,255,255,0.18);
-  --t1: #f0f0f4;
-  --t2: rgba(240,240,244,0.76);
-  --t3: rgba(240,240,244,0.52);
-  --t4: rgba(240,240,244,0.32);
+  /* Backgrounds — deeper and richer for sophisticated feel */
+  --bg: #07070d;
+  --bg2: #0c0c14;
+  --bg3: #11111c;
+  --surface: rgba(255,255,255,0.035);
+  --surface2: rgba(255,255,255,0.06);
+  --surface3: rgba(255,255,255,0.09);
+  --border: rgba(255,255,255,0.08);
+  --border2: rgba(255,255,255,0.16);
+  --border3: rgba(255,255,255,0.24);
+  /* Text — slightly cooler and higher contrast */
+  --t1: #f5f5f8;
+  --t2: rgba(245,245,248,0.78);
+  --t3: rgba(245,245,248,0.54);
+  --t4: rgba(245,245,248,0.34);
+  /* Brand accents */
   --acc: #2dd4a4;
   --acc2: #1aaa80;
   --acc3: #0f7a5c;
-  --acc-bg: rgba(45,212,164,0.08);
-  --acc-border: rgba(45,212,164,0.22);
+  --acc-bg: rgba(45,212,164,0.09);
+  --acc-border: rgba(45,212,164,0.24);
   --blue: #60a5fa;
-  --blue-bg: rgba(96,165,250,0.08);
+  --blue-bg: rgba(96,165,250,0.09);
   --red: #f87171;
-  --red-bg: rgba(248,113,113,0.08);
+  --red-bg: rgba(248,113,113,0.09);
   --amber: #fbbf24;
-  --amber-bg: rgba(251,191,36,0.08);
+  --amber-bg: rgba(251,191,36,0.09);
   --purple: #a78bfa;
-  --purple-bg: rgba(167,139,250,0.08);
+  --purple-bg: rgba(167,139,250,0.09);
   --green: #34d399;
-  --green-bg: rgba(52,211,153,0.08);
-  --sidebar-w: 240px;
-  --header-h: 56px;
-  --r-sm: 6px;
-  --r-md: 10px;
-  --r-lg: 14px;
-  --r-xl: 18px;
-  --ease: 160ms cubic-bezier(0.16,1,0.3,1);
+  --green-bg: rgba(52,211,153,0.09);
+  /* Layout — Revolut-scale generous */
+  --sidebar-w: 280px;
+  --header-h: 72px;
+  --content-pad-x: 56px;
+  --content-pad-y: 48px;
+  /* Radii — bolder, rounder */
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r-lg: 18px;
+  --r-xl: 24px;
+  --r-2xl: 32px;
+  /* Shadows for depth — deeper on dark theme */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.45), 0 1px 3px rgba(0,0,0,0.6);
+  --shadow-lg: 0 12px 32px -8px rgba(0,0,0,0.6), 0 4px 8px rgba(0,0,0,0.5);
+  --shadow-glow: 0 0 32px -4px;
+  /* Motion */
+  --ease: 220ms cubic-bezier(0.16,1,0.3,1);
+  --ease-spring: 380ms cubic-bezier(0.34,1.56,0.64,1);
 }
 
 [data-theme="light"] {
@@ -69,14 +86,53 @@
 html { scroll-behavior: smooth; }
 
 body {
-  font-family: 'DM Sans', system-ui, sans-serif;
+  font-family: var(--font-sans), 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   background: var(--bg);
   color: var(--t1);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
   overflow-x: hidden;
-  font-size: 14px;
-  line-height: 1.5;
+  font-size: 15px;
+  line-height: 1.6;
+  letter-spacing: -0.012em;
+  font-feature-settings: 'cv11', 'ss01', 'ss03';
 }
+
+/* Higher-contrast text by default — Revolut never goes below 0.6 alpha. */
+[data-theme="dark"] {
+  --t2: rgba(245,245,248,0.86);
+  --t3: rgba(245,245,248,0.62);
+  --t4: rgba(245,245,248,0.42);
+}
+[data-theme="light"] {
+  --t2: rgba(17,17,22,0.86);
+  --t3: rgba(17,17,22,0.62);
+  --t4: rgba(17,17,22,0.42);
+}
+code, kbd, samp, pre, .mono {
+  font-family: var(--font-mono), 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+}
+
+/* Subtle ambient gradient behind every admin screen so the dashboard
+   doesn't read as a flat grey rectangle. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(circle at 0% 0%,    rgba(45,212,164,0.05) 0%, transparent 35%),
+    radial-gradient(circle at 100% 0%,  rgba(167,139,250,0.04) 0%, transparent 40%),
+    radial-gradient(circle at 50% 100%, rgba(96,165,250,0.025) 0%, transparent 50%);
+}
+[data-theme="light"] body::before {
+  background:
+    radial-gradient(circle at 0% 0%,    rgba(15,159,118,0.06) 0%, transparent 35%),
+    radial-gradient(circle at 100% 0%,  rgba(124,58,237,0.05) 0%, transparent 40%);
+}
+body > * { position: relative; z-index: 1; }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 img, picture, video, canvas, svg { display: block; max-width: 100%; }
@@ -101,11 +157,12 @@ img, picture, video, canvas, svg { display: block; max-width: 100%; }
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    border-radius: 0.5rem;
-    font-size: 0.875rem;
-    line-height: 1rem;
-    font-weight: 500;
+    padding: 0.7rem 1.25rem;
+    border-radius: 999px;
+    font-size: 0.9rem;
+    line-height: 1.1rem;
+    font-weight: 600;
+    letter-spacing: -0.005em;
     cursor: pointer;
     user-select: none;
     transition: all var(--ease);
@@ -128,25 +185,37 @@ img, picture, video, canvas, svg { display: block; max-width: 100%; }
   .btn-danger { background: var(--red-bg); color: var(--red); border: 1px solid rgba(248,113,113,0.15); }
   .btn-danger:hover { background: rgba(248,113,113,0.16); }
 
-  .btn-sm { padding: 0.375rem 0.75rem; font-size: 0.75rem; line-height: 1rem; border-radius: 0.375rem; }
-  .btn-xs { padding: 0.25rem 0.5rem; font-size: 0.75rem; line-height: 1rem; border-radius: 0.25rem; }
+  .btn-sm { padding: 0.5rem 0.95rem; font-size: 0.8rem; line-height: 1rem; border-radius: 999px; font-weight: 600; }
+  .btn-xs { padding: 0.35rem 0.7rem; font-size: 0.75rem; line-height: 1rem; border-radius: 999px; font-weight: 600; }
 
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); }
-  .card-p { padding: 1.25rem; }
+  .card {
+    background: linear-gradient(180deg, var(--surface2) 0%, var(--surface) 100%);
+    border: 1px solid var(--border);
+    border-radius: var(--r-xl);
+    box-shadow: var(--shadow-sm);
+    transition: border-color var(--ease), box-shadow var(--ease), transform var(--ease);
+  }
+  .card:hover {
+    border-color: var(--border2);
+    box-shadow: var(--shadow-md);
+  }
+  .card-p { padding: 2.25rem; }
 
   .input,
   .select {
     width: 100%;
-    padding: 0.5rem 0.75rem;
-    border-radius: 0.5rem;
-    font-size: 0.875rem;
-    line-height: 1.25rem;
+    padding: 0.85rem 1.05rem;
+    border-radius: 14px;
+    font-size: 0.95rem;
+    line-height: 1.4rem;
     outline: none;
     background: var(--bg2);
-    border: 1px solid var(--border);
+    border: 1.5px solid var(--border);
     color: var(--t1);
-    transition: border-color var(--ease), box-shadow var(--ease);
+    transition: border-color var(--ease), box-shadow var(--ease), background var(--ease);
   }
+  .input:hover,
+  .select:hover { border-color: var(--border2); }
   .input:focus,
   .select:focus { border-color: var(--acc-border); box-shadow: 0 0 0 3px var(--acc-bg); }
   .input::placeholder { color: var(--t4); }
@@ -188,63 +257,136 @@ img, picture, video, canvas, svg { display: block; max-width: 100%; }
   .badge-acc { background: var(--acc-bg); color: var(--acc); border: 1px solid var(--acc-border); }
   .badge-muted { background: var(--surface2); color: var(--t3); }
 
-  .table-wrap { overflow-x: auto; border-radius: 0.75rem; border: 1px solid var(--border); }
-  .table-root { width: 100%; font-size: 0.875rem; border-collapse: collapse; }
-  .table-root thead { background: var(--surface2); }
+  .table-wrap {
+    overflow-x: auto;
+    border-radius: var(--r-xl);
+    border: 1px solid var(--border);
+    background: linear-gradient(180deg, var(--surface2) 0%, var(--surface) 100%);
+    box-shadow: var(--shadow-sm);
+  }
+  .table-root {
+    width: 100%;
+    font-size: 0.95rem;
+    border-collapse: collapse;
+    border-spacing: 0;
+  }
+  .table-root thead {
+    background: linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.02) 100%);
+    backdrop-filter: blur(8px);
+  }
   .table-root th {
-    padding: 0.75rem 1rem;
+    padding: 1.5rem 1.75rem;
     text-align: left;
-    font-size: 0.75rem;
-    font-weight: 600;
+    font-size: 0.7rem;
+    font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.14em;
     color: var(--t4);
     border-bottom: 1px solid var(--border);
+    background: transparent;
+    white-space: nowrap;
   }
-  .table-root td { padding: 0.875rem 1rem; border-top: 1px solid var(--border); }
-  .table-root tbody tr { transition: background var(--ease); }
-  .table-root tbody tr:hover { background: var(--surface); }
+  .table-root th:first-child { padding-left: 2rem; }
+  .table-root th:last-child  { padding-right: 2rem; }
+  .table-root td {
+    padding: 1.4rem 1.75rem;
+    border-top: 1px solid var(--border);
+    color: var(--t2);
+    font-size: 0.95rem;
+    line-height: 1.5;
+  }
+  .table-root td:first-child { padding-left: 2rem; }
+  .table-root td:last-child  { padding-right: 2rem; }
+  .table-root tbody tr {
+    transition: background var(--ease), transform var(--ease);
+  }
+  .table-root tbody tr:hover {
+    background: linear-gradient(90deg, var(--surface2) 0%, transparent 100%);
+  }
+  .table-root tbody tr:hover td:first-child {
+    box-shadow: inset 3px 0 0 var(--acc);
+  }
+  .table-root tbody tr:last-child td { border-bottom: none; }
+
+  /* Numeric / monospaced columns inside tables */
+  .table-root td.num,
+  .table-root .num { font-variant-numeric: tabular-nums; font-family: var(--font-mono), ui-monospace, Menlo, monospace; }
+  .table-root td .small { font-size: 12px; color: var(--t4); }
 
   .nav-item {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 12px;
     width: 100%;
-    padding: 0.5rem 0.75rem;
-    border-radius: 0.5rem;
-    font-size: 0.875rem;
+    padding: 9px 12px;
+    border-radius: 10px;
+    font-size: 13px;
     font-weight: 500;
     cursor: pointer;
     transition: all var(--ease);
     color: var(--t3);
+    text-decoration: none;
   }
   .nav-item:hover { color: var(--t1); background: var(--surface); }
-  .nav-item.active { color: var(--t1); background: var(--acc-bg); }
+  .nav-item.active {
+    color: var(--t1);
+    background: linear-gradient(90deg, var(--acc-bg) 0%, transparent 100%);
+    box-shadow: inset 2px 0 0 var(--acc);
+    font-weight: 600;
+  }
   .nav-item.active .nav-icon { color: var(--acc); }
   .nav-icon { flex-shrink: 0; width: 16px; height: 16px; }
 
   .section-title {
-    font-size: 0.75rem;
-    font-weight: 600;
+    font-size: 10px;
+    font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
-    margin-bottom: 0.75rem;
+    letter-spacing: 0.12em;
+    margin-bottom: 10px;
+    margin-top: 4px;
     color: var(--t4);
   }
 
+  /* (.section-title moved up next to .nav-item — kept here for backwards compat) */
+
   .divider { border: none; border-top: 1px solid var(--border); }
 
+  /* Legacy .kpi-card auto-upgraded to the premium look — old pages
+     get Revolut-style depth without per-page rewrites. */
   .kpi-card {
+    position: relative;
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
-    padding: 1.25rem;
-    background: var(--surface);
+    gap: 0.6rem;
+    padding: 1.75rem 1.85rem;
+    background: linear-gradient(180deg, var(--surface2) 0%, var(--surface) 100%);
     border: 1px solid var(--border);
-    border-radius: var(--r-lg);
+    border-radius: var(--r-xl);
+    box-shadow: var(--shadow-sm);
+    transition: border-color var(--ease), transform var(--ease), box-shadow var(--ease);
+    min-width: 0;
+    word-break: break-word;
   }
-  .kpi-value { font-size: 1.5rem; line-height: 2rem; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--t1); }
-  .kpi-label { font-size: 0.75rem; font-weight: 500; color: var(--t3); }
+  .kpi-card:hover {
+    border-color: var(--border2);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+  .kpi-value {
+    font-size: 2.1rem;
+    line-height: 1.05;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+    color: var(--t1);
+  }
+  .kpi-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--t3);
+  }
 
   .toggle {
     position: relative;
@@ -370,4 +512,591 @@ img, picture, video, canvas, svg { display: block; max-width: 100%; }
   .chip-red    { background: var(--red-bg);    color: var(--red);    border-color: rgba(248,113,113,0.22) }
   .chip-green  { background: var(--green-bg);  color: var(--green);  border-color: rgba(52,211,153,0.22) }
   .chip-purple { background: var(--purple-bg); color: var(--purple); border-color: rgba(167,139,250,0.22) }
+
+  /* ── 2026-05-08 polish layer ─────────────────────────────────────
+     New utilities used by the redesigned dashboard / sidebar / hero.
+     Everything is theme-aware via CSS variables — no hard-coded colours
+     except gradient stops that need raw RGBA. */
+
+  /* Glass effect — used on KPI cards + sidebar active state. */
+  .glass {
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%),
+      var(--bg2);
+    border: 1px solid var(--border);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  /* Hero panel — gradient background for dashboard top-of-page. */
+  .hero-panel {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--r-xl);
+    border: 1px solid var(--border);
+    padding: 28px 32px;
+    background:
+      radial-gradient(circle at 20% 0%, var(--acc-bg) 0%, transparent 40%),
+      radial-gradient(circle at 80% 100%, var(--purple-bg) 0%, transparent 50%),
+      linear-gradient(180deg, var(--bg2) 0%, var(--bg) 100%);
+  }
+  .hero-panel::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.025) 0%, transparent 30%);
+    pointer-events: none;
+  }
+
+  /* KPI v2 — bigger, gradient-backed value, accent glow. */
+  .kpi-v2 {
+    position: relative;
+    overflow: hidden;
+    padding: 18px 20px;
+    border-radius: var(--r-lg);
+    background:
+      linear-gradient(180deg, var(--surface2) 0%, var(--surface) 100%);
+    border: 1px solid var(--border);
+    transition: border-color var(--ease), transform var(--ease), background var(--ease);
+  }
+  .kpi-v2:hover {
+    border-color: var(--border2);
+    transform: translateY(-1px);
+  }
+  .kpi-v2 .kpi-icon {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    opacity: 0.55;
+  }
+  .kpi-v2 .kpi-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--t4);
+    margin-bottom: 6px;
+  }
+  .kpi-v2 .kpi-value {
+    font-size: 28px;
+    line-height: 1.05;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+    color: var(--t1);
+  }
+  .kpi-v2 .kpi-delta {
+    margin-top: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .kpi-v2 .kpi-delta.up   { color: var(--green); }
+  .kpi-v2 .kpi-delta.down { color: var(--red); }
+  .kpi-v2 .kpi-delta.flat { color: var(--t4); }
+
+  /* Accent-stripe variant: thin coloured bar on the left edge. */
+  .kpi-v2.stripe-acc::after,
+  .kpi-v2.stripe-blue::after,
+  .kpi-v2.stripe-amber::after,
+  .kpi-v2.stripe-purple::after,
+  .kpi-v2.stripe-green::after,
+  .kpi-v2.stripe-red::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+  }
+  .kpi-v2.stripe-acc::after    { background: linear-gradient(180deg, var(--acc), var(--acc3)); }
+  .kpi-v2.stripe-blue::after   { background: linear-gradient(180deg, var(--blue), #2563eb); }
+  .kpi-v2.stripe-amber::after  { background: linear-gradient(180deg, var(--amber), #b45309); }
+  .kpi-v2.stripe-purple::after { background: linear-gradient(180deg, var(--purple), #6d28d9); }
+  .kpi-v2.stripe-green::after  { background: linear-gradient(180deg, var(--green), #047857); }
+  .kpi-v2.stripe-red::after    { background: linear-gradient(180deg, var(--red), #b91c1c); }
+
+  /* Quick-action card — sits in dashboard hero row. */
+  .quick-action {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    color: var(--t2);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all var(--ease);
+    cursor: pointer;
+  }
+  .quick-action:hover {
+    background: var(--surface2);
+    border-color: var(--border2);
+    color: var(--t1);
+    transform: translateY(-1px);
+  }
+  .quick-action svg { flex-shrink: 0; }
+
+  /* Sidebar polish: active-item gets a glow + gradient. */
+  .nav-item.active {
+    background: linear-gradient(90deg, var(--acc-bg) 0%, transparent 100%);
+    box-shadow: inset 2px 0 0 var(--acc);
+  }
+  .nav-item:focus-visible {
+    outline: none;
+    box-shadow: inset 2px 0 0 var(--acc), 0 0 0 2px var(--acc-bg);
+  }
+
+  /* Header pill — used by the avatar bubble + future search/notif chips. */
+  .header-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--t2);
+    cursor: pointer;
+    transition: all var(--ease);
+  }
+  .header-pill:hover { border-color: var(--border2); color: var(--t1); }
+
+  /* Mini sparkline svg helper. */
+  .sparkline path { fill: none; stroke-width: 2; }
+
+  /* Subtle pulse for live-dot indicators. */
+  @keyframes admin-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%      { opacity: 0.55; transform: scale(0.9); }
+  }
+  .live-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 6px var(--green);
+    animation: admin-pulse 1.6s ease-in-out infinite;
+  }
+
+  /* ── 2026-05-08 sophistication layer ──────────────────────────────
+     Linear/Vercel-style polish: animated gradients, bento grid,
+     deeper typography hierarchy, refined shadows. */
+
+  /* Bento grid utility — asymmetric responsive layout. */
+  .bento-grid {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 16px;
+  }
+  .bento-grid > .span-3  { grid-column: span 3 }
+  .bento-grid > .span-4  { grid-column: span 4 }
+  .bento-grid > .span-5  { grid-column: span 5 }
+  .bento-grid > .span-6  { grid-column: span 6 }
+  .bento-grid > .span-7  { grid-column: span 7 }
+  .bento-grid > .span-8  { grid-column: span 8 }
+  .bento-grid > .span-12 { grid-column: span 12 }
+  @media (max-width: 1080px) {
+    .bento-grid > * { grid-column: span 12 }
+  }
+
+  /* Refined card with deeper shadow + gradient + border highlight. */
+  .card-premium {
+    position: relative;
+    background:
+      linear-gradient(180deg, var(--surface2) 0%, var(--surface) 60%, var(--bg2) 100%);
+    border: 1px solid var(--border);
+    border-radius: var(--r-xl);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+    transition: border-color var(--ease), transform var(--ease), box-shadow var(--ease);
+  }
+  .card-premium::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 50%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+    pointer-events: none;
+  }
+  .card-premium:hover {
+    border-color: var(--border2);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+  }
+
+  /* Animated mesh-gradient hero. Uses CSS custom property animation
+     so the background drifts subtly without heavy JavaScript. */
+  @keyframes mesh-drift {
+    0%, 100% { background-position: 0% 0%, 100% 100%, 50% 50%; }
+    50%      { background-position: 100% 100%, 0% 0%, 50% 50%; }
+  }
+  .mesh-hero {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--r-2xl);
+    border: 1px solid var(--border);
+    padding: 40px 44px;
+    background:
+      radial-gradient(circle at 0% 0%,    rgba(45,212,164,0.18) 0%, transparent 35%),
+      radial-gradient(circle at 100% 100%, rgba(167,139,250,0.16) 0%, transparent 40%),
+      radial-gradient(circle at 50% 0%,   rgba(96,165,250,0.10) 0%, transparent 45%),
+      linear-gradient(180deg, var(--bg2) 0%, var(--bg) 100%);
+    background-size: 200% 200%, 200% 200%, 200% 200%, 100% 100%;
+    background-position: 0% 0%, 100% 100%, 50% 50%, 0 0;
+    animation: mesh-drift 28s ease-in-out infinite;
+    box-shadow: var(--shadow-lg);
+  }
+  .mesh-hero::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.04) 0%, transparent 30%),
+      radial-gradient(ellipse at top, rgba(255,255,255,0.08) 0%, transparent 50%);
+    pointer-events: none;
+  }
+
+  /* Display heading — bigger, tighter, more confident. */
+  .display-h {
+    font-size: clamp(28px, 3.5vw, 40px);
+    line-height: 1.05;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: var(--t1);
+  }
+  .display-sub {
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--t3);
+    max-width: 720px;
+  }
+
+  /* Eyebrow with brand gradient text. */
+  .eyebrow-grad {
+    background: linear-gradient(90deg, var(--acc), var(--purple));
+    -webkit-background-clip: text;
+            background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  /* Stat — large, premium-feel KPI. */
+  .stat-card {
+    position: relative;
+    overflow: hidden;
+    padding: 22px 24px;
+    background:
+      linear-gradient(180deg, var(--surface2) 0%, var(--surface) 100%);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    transition: border-color var(--ease), transform var(--ease);
+  }
+  .stat-card:hover { border-color: var(--border2); transform: translateY(-1px); }
+  .stat-card .stat-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--t4);
+    margin-bottom: 12px;
+  }
+  .stat-card .stat-value {
+    font-size: clamp(26px, 2.4vw, 34px);
+    line-height: 1.05;
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    color: var(--t1);
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-card .stat-delta {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    margin-top: 8px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-card .stat-delta.up   { color: var(--green); background: var(--green-bg); }
+  .stat-card .stat-delta.down { color: var(--red);   background: var(--red-bg); }
+  .stat-card .stat-delta.flat { color: var(--t3);    background: var(--surface2); }
+  .stat-card .stat-icon {
+    position: absolute;
+    top: 22px;
+    right: 24px;
+    opacity: 0.4;
+    transition: opacity var(--ease);
+  }
+  .stat-card:hover .stat-icon { opacity: 0.75; }
+
+  /* Sparkline behind a stat. */
+  .stat-spark {
+    margin-top: 14px;
+    height: 36px;
+  }
+  .stat-spark svg { width: 100%; height: 100%; overflow: visible; }
+
+  /* Refined nav-item with stronger active treatment. */
+  .nav-item.active {
+    background:
+      linear-gradient(90deg,
+        var(--acc-bg) 0%,
+        rgba(45,212,164,0.04) 40%,
+        transparent 100%);
+    box-shadow:
+      inset 2px 0 0 var(--acc),
+      inset 0 1px 0 rgba(255,255,255,0.04);
+    color: var(--t1);
+    font-weight: 600;
+  }
+  .nav-item.active .nav-icon {
+    color: var(--acc);
+    filter: drop-shadow(0 0 6px rgba(45,212,164,0.55));
+  }
+
+  /* Sidebar group divider — refined. */
+  .sidebar-divider {
+    margin: 14px 4px 6px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border), transparent);
+  }
+
+  /* Floating action / hint pill. */
+  .pill-soft {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--t2);
+    transition: all var(--ease);
+    cursor: default;
+  }
+  .pill-soft.interactive { cursor: pointer }
+  .pill-soft.interactive:hover {
+    border-color: var(--border2);
+    background: var(--surface3);
+    color: var(--t1);
+  }
+
+  /* Better empty state. */
+  .empty-elegant {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 56px 32px;
+    border-radius: var(--r-xl);
+    background:
+      radial-gradient(circle at 50% 0%, var(--surface2), var(--surface) 60%);
+    border: 1px dashed var(--border2);
+  }
+  .empty-elegant .empty-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px; height: 56px;
+    border-radius: 18px;
+    background: var(--acc-bg);
+    color: var(--acc);
+    margin-bottom: 20px;
+    box-shadow: 0 0 0 8px rgba(45,212,164,0.04);
+  }
+  .empty-elegant h3 {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--t1);
+    letter-spacing: -0.01em;
+    margin-bottom: 8px;
+  }
+  .empty-elegant p {
+    font-size: 13px;
+    color: var(--t3);
+    line-height: 1.6;
+    max-width: 380px;
+    text-align: center;
+  }
+
+  /* Subtle ring on focus for primary buttons. */
+  .btn-primary:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--acc-bg), 0 0 0 1px var(--acc);
+  }
+
+  /* Activity row — used by audit feeds, timeline, recent actions. */
+  .activity-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 14px 18px;
+    border-radius: var(--r-md);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    transition: all var(--ease);
+  }
+  .activity-row + .activity-row { margin-top: 8px; }
+  .activity-row:hover {
+    border-color: var(--border2);
+    background: var(--surface2);
+    transform: translateX(2px);
+  }
+  .activity-dot {
+    flex-shrink: 0;
+    width: 36px; height: 36px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--acc-bg);
+    color: var(--acc);
+  }
+  .activity-meta { font-size: 11px; color: var(--t4); margin-top: 4px }
+
+  /* Refined select / input focus glow */
+  .input:focus, .select:focus {
+    border-color: var(--acc);
+    box-shadow:
+      0 0 0 3px var(--acc-bg),
+      0 0 16px -4px rgba(45,212,164,0.4);
+  }
+
+  /* Number tickers — for animated KPI values. */
+  .num-tabular { font-variant-numeric: tabular-nums; letter-spacing: -0.01em }
+
+  /* ─── Native widget readability ────────────────────────────
+     Browser <select> dropdowns and other native widgets use OS
+     theming by default — on Windows that means white background
+     + black text, which renders our greyed-out option text as
+     invisible-on-white. `color-scheme` tells Chromium / Firefox
+     / Safari to use the dark variant of every native widget. */
+  html, body { color-scheme: dark; }
+
+  /* Style the option list explicitly. Most browsers ignore most
+     CSS on <option> but background-color + color reliably stick
+     in Chrome and Firefox — together with color-scheme above this
+     gives us readable dropdowns everywhere. */
+  select.input,
+  select.select,
+  .input select,
+  .input,
+  select {
+    color-scheme: dark;
+  }
+  select option,
+  .input option {
+    background: #11111c;       /* matches --bg3 */
+    color: #f5f5f8;            /* matches --t1 */
+    padding: 8px 12px;
+  }
+  select option:hover,
+  select option:checked,
+  .input option:hover,
+  .input option:checked {
+    background: #2dd4a4;       /* --acc */
+    color: #000;
+  }
+  select option:disabled,
+  .input option:disabled {
+    color: rgba(245,245,248,0.32);
+  }
+
+  /* Selection / caret / placeholder polish — applies everywhere. */
+  ::selection {
+    background: rgba(45,212,164,0.28);
+    color: var(--t1);
+  }
+  ::placeholder { color: var(--t4); opacity: 1; }
+  input, textarea { caret-color: var(--acc); }
+
+  /* Stronger focus-visible ring on every focusable widget so
+     keyboard users see where they are. Falls back gracefully to
+     the existing `.input:focus` glow when applicable. */
+  :focus-visible {
+    outline: 2px solid var(--acc);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+  button:focus-visible,
+  .btn:focus-visible {
+    outline-offset: 3px;
+  }
+
+  /* Scrollbar — match the dark surface palette. */
+  *::-webkit-scrollbar         { width: 10px; height: 10px; }
+  *::-webkit-scrollbar-track   { background: transparent; }
+  *::-webkit-scrollbar-thumb   {
+    background: var(--surface2);
+    border-radius: 999px;
+    border: 2px solid var(--bg);
+  }
+  *::-webkit-scrollbar-thumb:hover { background: var(--surface3); }
+
+  /* Disabled state — readable across <button>, <input>, .btn. */
+  button:disabled,
+  .btn:disabled,
+  input:disabled,
+  textarea:disabled,
+  select:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* User-detail Overview tab layout —
+     Two-column grid with a 360-px right rail for Admin Notes.
+     Collapses to a single column at < 1100px so the notes panel
+     drops under the data cards on narrow screens / tablets. */
+  .overview-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 380px;
+    gap: 20px;
+    align-items: start;
+  }
+  @media (max-width: 1100px) {
+    .overview-grid { grid-template-columns: 1fr; }
+  }
+
+  /* contentEditable placeholder — only shows when the field is empty.
+     Mirrors the real <textarea>'s placeholder UX for the highlightable
+     notes panel. */
+  [contenteditable][data-placeholder]:empty::before {
+    content: attr(data-placeholder);
+    color: var(--t4);
+    pointer-events: none;
+  }
+  /* Some browsers leave a stray <br> behind on backspace, breaking
+     `:empty`. Treat that case as empty too. */
+  [contenteditable][data-placeholder]:has(> br:only-child)::before {
+    content: attr(data-placeholder);
+    color: var(--t4);
+    pointer-events: none;
+  }
+  /* Highlighter mark in the notes panel matches our amber palette and
+     stays readable on dark/light themes. */
+  [contenteditable] mark {
+    background: var(--amber-bg);
+    color: var(--amber);
+    padding: 0 3px;
+    border-radius: 3px;
+  }
 }

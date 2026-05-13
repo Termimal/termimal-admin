@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { Shield, Plus, Trash2, CheckCircle, XCircle } from 'lucide-react'
-import { PageHeader, Section, EmptyState, Field } from '@/components/admin/PageChrome'
+import { HeroCard, Section, EmptyState, Field } from '@/components/admin/PageChrome'
 import { PERMISSIONS } from '@/lib/admin/permissions'
 
 interface Role {
@@ -25,6 +25,26 @@ const SECTIONS: Array<{ label: string; perms: string[] }> = [
   { label: 'Operations',  perms: ['system.read','system.write','maintenance.read','maintenance.write','audit.read','analytics.read','export.read'] },
   { label: 'RBAC',        perms: ['invites.read','invites.write','roles.write'] },
 ]
+
+function PermPill({ on, children, onClick, accent = 'acc' }: { on: boolean; children: React.ReactNode; onClick: () => void; accent?: 'acc'|'purple' }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 6,
+        padding: '6px 12px', borderRadius: 999,
+        border: `1px solid ${on ? `var(--${accent}-border)` : 'var(--border)'}`,
+        background: on ? `var(--${accent}-bg)` : 'transparent',
+        color: on ? `var(--${accent})` : 'var(--t3)',
+        fontSize: 11, fontWeight: 600, cursor: 'pointer',
+        fontFamily: 'ui-monospace, Menlo, Consolas, monospace',
+      }}
+    >
+      {children}
+    </button>
+  )
+}
 
 export default function RolesPage() {
   const [roles, setRoles]       = useState<Role[]>([])
@@ -92,75 +112,91 @@ export default function RolesPage() {
   }
   const isWildcard = draftPerms.has('*')
 
+  const totalMembers = roles.reduce((s, r) => s + r.member_count, 0)
+
   return (
-    <div style={{ maxWidth: 1100 }}>
-      <PageHeader
-        icon={<Shield size={14} />}
+    <div>
+      <HeroCard
+        accent="purple"
+        icon={<Shield size={28}/>}
         eyebrow="RBAC"
         title="Roles & permissions"
-        description="Granular access control. Each role has a list of permission slugs (e.g. users.read, billing.refund). The middleware checks the required permission per route. Super admin (* wildcard) bypasses all checks."
-        accent="purple"
+        subtitle="Granular access control. Each role has a list of permission slugs (e.g. users.read, billing.refund). Super admin (* wildcard) bypasses all checks."
+        metric={{ label: 'Roles', value: roles.length.toString(), secondary: `${totalMembers} members` }}
       />
 
-      <Section title="Create a role" accent="purple">
-        <div className="form-grid">
-          <div className="form-grid form-grid-2">
-            <Field label="Slug (lowercase, no spaces)">
+      <Section title="Create a role" accent="purple" description="System roles seed automatically. Add custom roles for specialised access patterns.">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 18 }}>
+            <Field label="Slug (lowercase, no spaces)" required>
               <input className="input" value={newRole.name} onChange={e => setNewRole({ ...newRole, name: e.target.value.toLowerCase().replace(/\s+/g, '_') })} placeholder="data_analyst" />
             </Field>
-            <Field label="Display name">
+            <Field label="Display name" required>
               <input className="input" value={newRole.display_name} onChange={e => setNewRole({ ...newRole, display_name: e.target.value })} placeholder="Data Analyst" />
             </Field>
           </div>
           <Field label="Description">
             <input className="input" value={newRole.description} onChange={e => setNewRole({ ...newRole, description: e.target.value })} placeholder="Read-only access to analytics + audit + export." />
           </Field>
-          <button className="btn-primary btn-sm" disabled={!newRole.name || !newRole.display_name || creating} onClick={create} style={{ alignSelf: 'flex-start' }}>
-            <Plus size={11} /> {creating ? 'Creating…' : 'Create role'}
-          </button>
+          <div>
+            <button className="btn btn-primary btn-sm" disabled={!newRole.name || !newRole.display_name || creating} onClick={create}>
+              <Plus size={13}/> {creating ? 'Creating…' : 'Create role'}
+            </button>
+          </div>
         </div>
       </Section>
 
       {roles.length === 0
-        ? <EmptyState icon={<Shield size={20} />} title="No roles defined" description="System roles seed automatically — if this is empty re-run the rbac migration." />
+        ? <EmptyState icon={<Shield size={20}/>} title="No roles defined" description="System roles seed automatically — if this is empty re-run the rbac migration." />
         : (
           <Section flush title={`${roles.length} role${roles.length === 1 ? '' : 's'}`}>
             <ul style={{ margin: 0, padding: 0, listStyle: 'none' }}>
               {roles.map(role => (
                 <li key={role.name} style={{ borderBottom: '1px solid var(--border)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px' }}>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
-                        <span style={{ fontSize: 13, fontWeight: 700 }}>{role.display_name}</span>
-                        {role.is_system && <span className="chip chip-purple">system</span>}
-                        <span className="chip" style={{ fontFamily: 'ui-monospace, Menlo, monospace' }}>{role.name}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '20px 24px', flexWrap: 'wrap' }}>
+                    <div style={{
+                      width: 44, height: 44, borderRadius: 14,
+                      background: 'var(--purple-bg)', border: '1px solid var(--purple)33',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: 'var(--purple)', flexShrink: 0,
+                    }}>
+                      <Shield size={18}/>
+                    </div>
+                    <div style={{ flex: 1, minWidth: 200 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>{role.display_name}</span>
+                        {role.is_system && <span className="badge badge-purple">system</span>}
+                        <span className="badge badge-muted" style={{ fontFamily: 'ui-monospace, Menlo, Consolas, monospace' }}>{role.name}</span>
                       </div>
-                      {role.description && <div style={{ fontSize: 12, color: 'var(--t3)', marginBottom: 4 }}>{role.description}</div>}
-                      <div style={{ fontSize: 11, color: 'var(--t4)' }}>
-                        {role.member_count} member{role.member_count === 1 ? '' : 's'} ·
-                        {' '}{role.permissions.includes('*') ? 'all permissions' : `${role.permissions.length} permission${role.permissions.length === 1 ? '' : 's'}`}
+                      {role.description && <div style={{ fontSize: 13, color: 'var(--t3)', marginBottom: 4, lineHeight: 1.5 }}>{role.description}</div>}
+                      <div style={{ fontSize: 12, color: 'var(--t4)' }}>
+                        {role.member_count} member{role.member_count === 1 ? '' : 's'} ·{' '}
+                        {role.permissions.includes('*') ? 'all permissions' : `${role.permissions.length} permission${role.permissions.length === 1 ? '' : 's'}`}
                       </div>
                     </div>
-                    <button className="btn-secondary btn-sm" onClick={() => startEdit(role)}>Edit</button>
-                    {!role.is_system && (
-                      <button className="btn-ghost btn-sm" style={{ color: 'var(--red)' }} onClick={() => del(role.name)}><Trash2 size={11}/></button>
-                    )}
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button className="btn btn-secondary btn-sm" onClick={() => startEdit(role)}>Edit</button>
+                      {!role.is_system && (
+                        <button className="btn btn-secondary btn-sm" style={{ color: 'var(--red)' }} onClick={() => del(role.name)}>
+                          <Trash2 size={12}/>
+                        </button>
+                      )}
+                    </div>
                   </div>
                   {editing === role.name && (
-                    <div style={{ padding: '12px 16px', background: 'var(--bg)', borderTop: '1px solid var(--border)' }}>
-                      <div className="form-grid" style={{ marginBottom: 12 }}>
-                        <Field label="Display name"><input className="input" value={draftDisplay} onChange={e => setDraftDisplay(e.target.value)} /></Field>
-                        <Field label="Description"><input className="input" value={draftDesc} onChange={e => setDraftDesc(e.target.value)} /></Field>
+                    <div style={{ padding: '20px 24px', background: 'var(--bg2)', borderTop: '1px solid var(--border)' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 18, marginBottom: 18 }}>
+                        <Field label="Display name">
+                          <input className="input" value={draftDisplay} onChange={e => setDraftDisplay(e.target.value)} />
+                        </Field>
+                        <Field label="Description">
+                          <input className="input" value={draftDesc} onChange={e => setDraftDesc(e.target.value)} />
+                        </Field>
                       </div>
-                      <div style={{ marginBottom: 12 }}>
-                        <button
-                          type="button"
-                          className={isWildcard ? 'chip chip-purple' : 'chip'}
-                          style={{ cursor: 'pointer', marginRight: 6 }}
-                          onClick={() => togglePerm('*')}
-                        >
+                      <div style={{ marginBottom: 18 }}>
+                        <PermPill on={isWildcard} accent="purple" onClick={() => togglePerm('*')}>
                           {isWildcard && <CheckCircle size={11}/>} Wildcard (*) — all permissions
-                        </button>
+                        </PermPill>
                       </div>
                       {!isWildcard && (
                         <>
@@ -168,38 +204,37 @@ export default function RolesPage() {
                             const has = sec.perms.filter(p => draftPerms.has(p)).length
                             const all = sec.perms.length
                             return (
-                              <div key={sec.label} style={{ marginBottom: 14 }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                                  <strong style={{ fontSize: 11, letterSpacing: '0.5px', textTransform: 'uppercase', color: 'var(--t3)' }}>{sec.label}</strong>
-                                  <span style={{ fontSize: 11, color: 'var(--t4)' }}>{has}/{all}</span>
-                                  <button type="button" className="btn-ghost btn-sm" onClick={() => toggleSection(sec.perms, has < all)}>
+                              <div key={sec.label} style={{ marginBottom: 18 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                                  <strong style={{ fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--t3)', fontWeight: 800 }}>{sec.label}</strong>
+                                  <span style={{ fontSize: 11, color: 'var(--t4)', fontVariantNumeric: 'tabular-nums' }}>{has}/{all}</span>
+                                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => toggleSection(sec.perms, has < all)}>
                                     {has < all ? 'Select all' : 'Clear'}
                                   </button>
                                 </div>
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                                   {sec.perms.map(p => {
                                     const on = draftPerms.has(p)
                                     return (
-                                      <button key={p} type="button" className={on ? 'chip chip-acc' : 'chip'} style={{ cursor: 'pointer', fontFamily: 'ui-monospace, Menlo, monospace' }} onClick={() => togglePerm(p)}>
+                                      <PermPill key={p} on={on} onClick={() => togglePerm(p)}>
                                         {on ? <CheckCircle size={10}/> : <XCircle size={10} style={{ opacity: 0.3 }}/>} {p}
-                                      </button>
+                                      </PermPill>
                                     )
                                   })}
                                 </div>
                               </div>
                             )
                           })}
-                          {/* Catch-all for any perm not in sections */}
                           {(() => {
                             const known = new Set(SECTIONS.flatMap(s => s.perms))
                             const extras = PERMISSIONS.filter(p => !known.has(p))
                             return extras.length > 0 ? (
-                              <div style={{ marginBottom: 14 }}>
-                                <strong style={{ fontSize: 11, letterSpacing: '0.5px', textTransform: 'uppercase', color: 'var(--t3)' }}>Other</strong>
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
+                              <div style={{ marginBottom: 18 }}>
+                                <strong style={{ fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--t3)', fontWeight: 800 }}>Other</strong>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
                                   {extras.map(p => {
                                     const on = draftPerms.has(p)
-                                    return <button key={p} type="button" className={on ? 'chip chip-acc' : 'chip'} style={{ cursor: 'pointer', fontFamily: 'ui-monospace, Menlo, monospace' }} onClick={() => togglePerm(p)}>{p}</button>
+                                    return <PermPill key={p} on={on} onClick={() => togglePerm(p)}>{p}</PermPill>
                                   })}
                                 </div>
                               </div>
@@ -208,8 +243,8 @@ export default function RolesPage() {
                         </>
                       )}
                       <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                        <button className="btn-primary btn-sm" onClick={save}>Save</button>
-                        <button className="btn-secondary btn-sm" onClick={() => setEditing(null)}>Cancel</button>
+                        <button className="btn btn-primary btn-sm" onClick={save}>Save</button>
+                        <button className="btn btn-secondary btn-sm" onClick={() => setEditing(null)}>Cancel</button>
                       </div>
                     </div>
                   )}

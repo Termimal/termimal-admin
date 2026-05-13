@@ -14,6 +14,7 @@
  */
 import { NextResponse } from 'next/server'
 import { createClient as createSb } from '@supabase/supabase-js'
+import { requireAdmin } from '@/lib/admin/require-admin'
 
 function adminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -23,6 +24,8 @@ function adminClient() {
 }
 
 export async function GET(request: Request) {
+  const gate = await requireAdmin('audit.read')
+  if (gate.ok === false) return gate.response
   try {
     const sb = adminClient()
     const u  = new URL(request.url)

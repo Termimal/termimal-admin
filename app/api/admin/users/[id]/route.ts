@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { requireAdmin } from '@/lib/admin/require-admin'
 
 function adminClient() {
   return createClient(
@@ -10,6 +11,8 @@ function adminClient() {
 }
 
 export async function GET(_req: Request, context: { params: Promise<{ id: string }> }) {
+  const gate = await requireAdmin('users.write')
+  if (gate.ok === false) return gate.response
   try {
     const { id: userId } = await context.params
     const supabase = adminClient()
@@ -24,7 +27,11 @@ export async function GET(_req: Request, context: { params: Promise<{ id: string
       supabase.auth.admin.getUserById(userId),
       supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
       supabase.from('admin_user_profiles').select('*').eq('user_id', userId).maybeSingle(),
-      supabase.from('user_login_history').select('*').eq('user_id', userId).order('signed_in_at', { ascending: false }).limit(50),
+      // Read from public.login_events (the new telemetry table). The
+      // legacy user_login_history table never had ingestion wired
+      // and is now superseded by login_events. Field shape is
+      // backward-compatible — Activity tab references the same names.
+      supabase.from('login_events').select('*').eq('user_id', userId).order('signed_in_at', { ascending: false }).limit(50),
       supabase.from('credits').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(100),
       supabase.from('subscription_overrides').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(50),
     ])
@@ -38,6 +45,8 @@ export async function GET(_req: Request, context: { params: Promise<{ id: string
 }
 
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
+  const gate = await requireAdmin('users.write')
+  if (gate.ok === false) return gate.response
   try {
     const body = await request.json()
     const { id: userId } = await context.params

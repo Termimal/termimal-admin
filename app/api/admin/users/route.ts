@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { requireAdmin } from '@/lib/admin/require-admin'
 
 function admin() {
   return createClient(
@@ -10,6 +11,8 @@ function admin() {
 }
 
 export async function GET(request: Request) {
+  const gate = await requireAdmin('users.read')
+  if (gate.ok === false) return gate.response
   try {
     const url = new URL(request.url)
     const page    = Number(url.searchParams.get('page') || '1')
@@ -28,7 +31,7 @@ export async function GET(request: Request) {
       { data: adminProfiles },
     ] = await Promise.all([
       ids.length
-        ? sb.from('profiles').select('id, plan, subscription_status, full_name, referral_code, billing_interval, current_period_end, stripe_customer_id').in('id', ids)
+        ? sb.from('profiles').select('id, plan, subscription_status, full_name, referral_code, billing_interval, current_period_end, stripe_customer_id, country, timezone').in('id', ids)
         : { data: [] },
       ids.length
         ? sb.from('admin_user_profiles').select('user_id, account_status, subscription_bonus_months, credits, notes, last_admin_action, last_admin_action_at, is_test_user, user_type, discount_percent').in('user_id', ids)
@@ -51,6 +54,8 @@ export async function GET(request: Request) {
         current_period_end: p.current_period_end || null,
         referral_code: p.referral_code || '',
         stripe_customer_id: p.stripe_customer_id || '',
+        country: p.country || '',
+        timezone: p.timezone || '',
         account_status: a.account_status || 'active',
         subscription_bonus_months: a.subscription_bonus_months || 0,
         credits: a.credits || 0,

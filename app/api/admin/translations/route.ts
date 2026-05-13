@@ -7,8 +7,11 @@
  */
 import { NextResponse } from 'next/server'
 import { serviceClient } from '@/lib/admin/service-client'
+import { requireAdmin } from '@/lib/admin/require-admin'
 
 export async function GET(request: Request) {
+  const gate = await requireAdmin('translations.write')
+  if (gate.ok === false) return gate.response
   try {
     const sb = serviceClient()
     const u  = new URL(request.url)
@@ -28,6 +31,8 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const gate = await requireAdmin('translations.write')
+  if (gate.ok === false) return gate.response
   try {
     const sb = serviceClient()
     const body = await request.json().catch(() => null) as { key?: string; namespace?: string; locale?: string; value?: string } | null
@@ -50,6 +55,8 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  const gate = await requireAdmin('translations.write')
+  if (gate.ok === false) return gate.response
   try {
     const sb = serviceClient()
     const id = new URL(request.url).searchParams.get('id')

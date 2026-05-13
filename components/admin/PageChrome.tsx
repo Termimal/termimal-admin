@@ -74,44 +74,60 @@ export function PageHeader({
 }: PageHeaderProps) {
   const c = accentColors(accent)
   return (
-    <header style={{
-      display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between',
-      gap: 16, marginBottom: 24, flexWrap: 'wrap',
-    }}>
-      <div style={{ minWidth: 0, flex: 1 }}>
-        {(icon || eyebrow) && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-            {icon && (
-              <span style={{
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                width: 28, height: 28, borderRadius: 8,
-                background: c.bg, border: `1px solid ${c.border}`,
-                color: c.fg,
-              }}>{icon}</span>
-            )}
-            {eyebrow && (
-              <span style={{
-                fontSize: 11, fontWeight: 700, letterSpacing: '0.1em',
-                textTransform: 'uppercase', color: c.fg,
-              }}>{eyebrow}</span>
-            )}
+    <header
+      className="hero-panel"
+      style={{
+        marginBottom: 40,
+        padding: '40px 44px',
+      }}
+    >
+      <div
+        style={{
+          position: 'relative',
+          zIndex: 1,
+          display: 'flex',
+          alignItems: 'flex-start',
+          justifyContent: 'space-between',
+          gap: 24,
+          flexWrap: 'wrap',
+        }}
+      >
+        <div style={{ minWidth: 0, flex: 1 }}>
+          {(icon || eyebrow) && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+              {icon && (
+                <span style={{
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  width: 36, height: 36, borderRadius: 10,
+                  background: c.bg, border: `1px solid ${c.border}`,
+                  color: c.fg,
+                  boxShadow: `0 0 24px -8px ${c.fg}`,
+                }}>{icon}</span>
+              )}
+              {eyebrow && (
+                <span style={{
+                  fontSize: 11, fontWeight: 800, letterSpacing: '0.14em',
+                  textTransform: 'uppercase', color: c.fg,
+                }}>{eyebrow}</span>
+              )}
+            </div>
+          )}
+          <h1 style={{
+            fontSize: 36, lineHeight: 1.05, fontWeight: 800,
+            color: 'var(--t1)', letterSpacing: '-0.03em', marginBottom: description ? 14 : 0,
+          }}>{title}</h1>
+          {description && (
+            <p style={{ fontSize: 16, lineHeight: 1.6, color: 'var(--t2)', maxWidth: 760, fontWeight: 400 }}>
+              {description}
+            </p>
+          )}
+        </div>
+        {actions && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+            {actions}
           </div>
         )}
-        <h1 style={{
-          fontSize: 22, lineHeight: 1.2, fontWeight: 700,
-          color: 'var(--t1)', letterSpacing: '-0.01em', marginBottom: description ? 6 : 0,
-        }}>{title}</h1>
-        {description && (
-          <p style={{ fontSize: 13, lineHeight: 1.5, color: 'var(--t3)', maxWidth: 700 }}>
-            {description}
-          </p>
-        )}
       </div>
-      {actions && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-          {actions}
-        </div>
-      )}
     </header>
   )
 }
@@ -136,32 +152,32 @@ export function Section({
   const c = accent ? accentColors(accent) : null
   return (
     <section style={{
-      background: 'var(--surface)',
+      background: 'linear-gradient(180deg, var(--surface2) 0%, var(--surface) 100%)',
       border: '1px solid var(--border)',
-      borderRadius: 14,
+      borderRadius: 'var(--r-xl)',
       overflow: 'hidden',
-      marginBottom: 16,
+      marginBottom: 28,
+      boxShadow: 'var(--shadow-sm)',
     }}>
       {c && (
         <div style={{
-          height: 2,
+          height: 3,
           background: `linear-gradient(90deg, ${c.fg}, transparent 80%)`,
         }} />
       )}
       {(title || description || actions) && (
         <div style={{
           display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
-          gap: 12, padding: '14px 18px',
+          gap: 20, padding: '24px 32px',
           borderBottom: '1px solid var(--border)',
-          background: 'var(--surface)',
         }}>
           <div style={{ minWidth: 0 }}>
             {title && <div style={{
-              fontSize: 13, fontWeight: 600, color: 'var(--t1)',
-              letterSpacing: '-0.005em', marginBottom: description ? 4 : 0,
+              fontSize: 17, fontWeight: 700, color: 'var(--t1)',
+              letterSpacing: '-0.015em', marginBottom: description ? 8 : 0,
             }}>{title}</div>}
             {description && (
-              <div style={{ fontSize: 12, color: 'var(--t3)', lineHeight: 1.5 }}>
+              <div style={{ fontSize: 14, color: 'var(--t3)', lineHeight: 1.6, maxWidth: 680 }}>
                 {description}
               </div>
             )}
@@ -169,7 +185,7 @@ export function Section({
           {actions && <div style={{ flexShrink: 0 }}>{actions}</div>}
         </div>
       )}
-      <div style={{ padding: flush ? 0 : 18 }}>{children}</div>
+      <div style={{ padding: flush ? 0 : 32 }}>{children}</div>
     </section>
   )
 }
@@ -356,6 +372,224 @@ export function Field({ label, hint, required, children }: FieldProps) {
           {hint}
         </span>
       )}
+    </div>
+  )
+}
+
+/* ── HeroCard ─────────────────────────────────────────────────────
+   Big status / summary panel modelled on the Health page hero. Use
+   at the top of any page that has a single dominant metric / status. */
+
+interface HeroCardProps {
+  /** Optional accent — drives icon tile + ring colour. Default acc. */
+  accent?: Accent
+  /** Icon node, ~28-32px. */
+  icon: ReactNode
+  /** Small caps eyebrow above title. */
+  eyebrow?: string
+  /** Main title — large display text. */
+  title: string
+  /** Optional one-line subtitle under the title. */
+  subtitle?: ReactNode
+  /** Optional metric panel on the right (e.g. "12 users · 24h"). */
+  metric?: { label: string; value: ReactNode; secondary?: ReactNode }
+}
+
+export function HeroCard({ accent = 'acc', icon, eyebrow, title, subtitle, metric }: HeroCardProps) {
+  const c = accentColors(accent)
+  return (
+    <div
+      className="card-premium"
+      style={{
+        padding: '36px 40px',
+        marginBottom: 28,
+        borderColor: c.fg + '44',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
+        <div style={{
+          width: 64, height: 64, borderRadius: 20,
+          background: c.bg,
+          border: `1px solid ${c.fg}55`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: c.fg,
+          boxShadow: `0 0 24px -4px ${c.fg}55`,
+          flexShrink: 0,
+        }}>{icon}</div>
+
+        <div style={{ flex: 1, minWidth: 280 }}>
+          {eyebrow && (
+            <div style={{
+              fontSize: 11, fontWeight: 800, letterSpacing: '0.14em',
+              textTransform: 'uppercase', color: c.fg, marginBottom: 6,
+            }}>{eyebrow}</div>
+          )}
+          <div style={{
+            fontSize: 26, fontWeight: 800, color: 'var(--t1)',
+            letterSpacing: '-0.025em', lineHeight: 1.15, marginBottom: subtitle ? 8 : 0,
+          }}>{title}</div>
+          {subtitle && (
+            <div style={{ fontSize: 14, color: 'var(--t3)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              {subtitle}
+            </div>
+          )}
+        </div>
+
+        {metric && (
+          <div style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'flex-end',
+            paddingLeft: 24, borderLeft: '1px solid var(--border)',
+            minWidth: 140,
+          }}>
+            <div style={{
+              fontSize: 11, fontWeight: 700, letterSpacing: '0.12em',
+              textTransform: 'uppercase', color: 'var(--t4)', marginBottom: 8,
+            }}>{metric.label}</div>
+            <div style={{
+              fontSize: 36, fontWeight: 800, color: 'var(--t1)',
+              letterSpacing: '-0.03em', lineHeight: 1, fontVariantNumeric: 'tabular-nums',
+            }}>{metric.value}</div>
+            {metric.secondary && (
+              <div style={{ fontSize: 12, color: 'var(--t4)', marginTop: 4 }}>
+                {metric.secondary}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+/* ── ItemCard ─────────────────────────────────────────────────────
+   Generic entity card modelled on the Health-page probe cards.
+   Use in grids of equally-shaped objects (users, plans, probes,
+   feature flags, etc). */
+
+interface ItemCardProps {
+  /** Accent drives the icon-tile background + status pill colour. */
+  accent?: Accent
+  /** Icon node, ~18px. */
+  icon: ReactNode
+  /** Primary title (e.g. "Polymarket Gamma"). */
+  title: string
+  /** Optional one-line subtitle. */
+  subtitle?: ReactNode
+  /** Optional status pill (e.g. "OK", "DEGRADED"). */
+  status?: { label: string; tone: 'green' | 'amber' | 'red' | 'blue' | 'purple' | 'muted'; pulse?: boolean }
+  /** Free-form metadata row at the bottom (e.g. "⏱ 42 ms · HTTP 200"). */
+  meta?: ReactNode
+  /** Optional footer block (error message, action button, etc). */
+  footer?: ReactNode
+  /** Click handler — turns the card into a button. */
+  onClick?: () => void
+  /** href — turns the card into a link. */
+  href?: string
+}
+
+const TONE_FG: Record<NonNullable<ItemCardProps['status']>['tone'], string> = {
+  green: 'var(--green)', amber: 'var(--amber)', red: 'var(--red)',
+  blue: 'var(--blue)',   purple: 'var(--purple)', muted: 'var(--t3)',
+}
+const TONE_BG: Record<NonNullable<ItemCardProps['status']>['tone'], string> = {
+  green: 'var(--green-bg)', amber: 'var(--amber-bg)', red: 'var(--red-bg)',
+  blue: 'var(--blue-bg)',   purple: 'var(--purple-bg)', muted: 'var(--surface2)',
+}
+
+export function ItemCard({
+  accent = 'acc', icon, title, subtitle, status, meta, footer, onClick, href,
+}: ItemCardProps) {
+  const c = accentColors(accent)
+  const toneFg = status ? TONE_FG[status.tone] : c.fg
+  const toneBg = status ? TONE_BG[status.tone] : c.bg
+
+  const inner = (
+    <>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+        <div style={{
+          width: 44, height: 44, borderRadius: 14,
+          background: status ? toneBg : c.bg,
+          border: `1px solid ${(status ? toneFg : c.fg) + '33'}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: status ? toneFg : c.fg,
+          flexShrink: 0,
+        }}>{icon}</div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: subtitle ? 4 : 0, flexWrap: 'wrap' }}>
+            <span style={{
+              fontSize: 15, fontWeight: 700, color: 'var(--t1)',
+              letterSpacing: '-0.005em',
+            }}>{title}</span>
+            {status && (
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', gap: 5,
+                padding: '3px 10px', borderRadius: 999,
+                background: toneBg, color: toneFg,
+                fontSize: 10, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase',
+              }}>
+                <span style={{
+                  width: 6, height: 6, borderRadius: '50%', background: toneFg,
+                  boxShadow: status.pulse ? `0 0 6px ${toneFg}` : 'none',
+                  animation: status.pulse ? 'admin-pulse 1.6s ease-in-out infinite' : undefined,
+                }} />
+                {status.label}
+              </span>
+            )}
+          </div>
+          {subtitle && (
+            <div style={{ fontSize: 13, color: 'var(--t3)', marginBottom: meta || footer ? 10 : 0, lineHeight: 1.5 }}>
+              {subtitle}
+            </div>
+          )}
+          {meta && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 14,
+              fontSize: 12, color: 'var(--t4)',
+              fontFamily: 'ui-monospace, Menlo, Consolas, monospace',
+              fontVariantNumeric: 'tabular-nums',
+              flexWrap: 'wrap',
+            }}>
+              {meta}
+            </div>
+          )}
+          {footer && (
+            <div style={{ marginTop: 12 }}>{footer}</div>
+          )}
+        </div>
+      </div>
+    </>
+  )
+
+  const baseStyle: React.CSSProperties = {
+    padding: '22px 24px',
+    borderColor: status?.tone === 'red'   ? `${TONE_FG.red}44`
+               : status?.tone === 'amber' ? `${TONE_FG.amber}44`
+               : 'var(--border)',
+    cursor: onClick || href ? 'pointer' : 'default',
+    textDecoration: 'none',
+    display: 'block',
+  }
+
+  if (href) {
+    return <a className="card-premium" href={href} style={baseStyle}>{inner}</a>
+  }
+  if (onClick) {
+    return <button className="card-premium" type="button" onClick={onClick} style={{ ...baseStyle, textAlign: 'left', width: '100%', font: 'inherit', color: 'inherit', background: undefined }}>{inner}</button>
+  }
+  return <div className="card-premium" style={baseStyle}>{inner}</div>
+}
+
+/* ── ItemGrid ─────────────────────────────────────────────────────
+   Auto-fitting card grid. Use as <ItemGrid> wrapping <ItemCard>s. */
+
+export function ItemGrid({ children, min = 280 }: { children: ReactNode; min?: number }) {
+  return (
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: `repeat(auto-fill, minmax(${min}px, 1fr))`,
+      gap: 16,
+    }}>
+      {children}
     </div>
   )
 }
