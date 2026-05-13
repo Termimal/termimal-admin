@@ -1,7 +1,9 @@
 'use client'
 export const dynamic = 'force-dynamic'
 
-import { Activity, DollarSign, RefreshCcw, AlertTriangle } from "lucide-react";
+import { useState } from 'react'
+import { Activity, DollarSign, RefreshCcw, AlertTriangle, CreditCard, Search } from "lucide-react";
+import { HeroCard, Section } from '@/components/admin/PageChrome'
 
 // Mock graph data
 const graphData = [
@@ -14,90 +16,119 @@ const graphData = [
   { day: "Sun", rate: 98, vol: 5900 },
 ];
 
-export default function PaymentsPage() {
+const TXNS = [
+  { email: "sarah@example.com",      amount: "$99.00",  status: "Succeeded", date: "Just now"   },
+  { email: "mike.t@domain.co",       amount: "$299.00", status: "Succeeded", date: "5 mins ago" },
+  { email: "investor99@web.net",     amount: "$99.00",  status: "Failed",    date: "12 mins ago" },
+]
+
+function KPI({ label, value, icon: Icon, accent }: { label: string; value: string; icon: any; accent: 'green'|'acc'|'amber'|'red' }) {
   return (
-    <div className="max-w-6xl mx-auto">
-      {/* Top Metrics */}
-      <div className="grid grid-cols-4 gap-4 mb-8">
-        {[
-          { label: "Gross Volume (7d)", val: "$40,700", icon: DollarSign, color: "var(--green-val)" },
-          { label: "Success Rate", val: "98.2%", icon: Activity, color: "var(--acc)" },
-          { label: "Refunds", val: "$420.00", icon: RefreshCcw, color: "var(--amber)" },
-          { label: "Failed Charges", val: "14", icon: AlertTriangle, color: "var(--red-val)" }
-        ].map((m, i) => (
-          <div key={i} className="p-5 rounded-xl border flex flex-col gap-3" style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}>
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--t4)' }}>{m.label}</span>
-              <m.icon size={14} style={{ color: m.color }} />
-            </div>
-            <span className="text-2xl font-bold">{m.val}</span>
-          </div>
-        ))}
+    <div className="card-premium" style={{
+      padding: '24px 28px',
+      borderColor: `var(--${accent})44`,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+        <span style={{
+          fontSize: 11, fontWeight: 800, letterSpacing: '0.12em',
+          textTransform: 'uppercase', color: 'var(--t4)',
+        }}>{label}</span>
+        <Icon size={16} style={{ color: `var(--${accent})` }}/>
+      </div>
+      <div style={{
+        fontSize: 32, fontWeight: 800, color: 'var(--t1)',
+        fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.025em', lineHeight: 1,
+      }}>{value}</div>
+    </div>
+  )
+}
+
+export default function PaymentsPage() {
+  const [search, setSearch] = useState('')
+
+  return (
+    <div>
+      <HeroCard
+        accent="green"
+        icon={<CreditCard size={28} />}
+        eyebrow="Billing"
+        title="Payments"
+        subtitle="Stripe charges, refunds, and invoice ledger."
+        metric={{ label: 'Volume · 7d', value: '$40,700', secondary: '98.2% success' }}
+      />
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 14, marginBottom: 28 }}>
+        <KPI label="Gross volume · 7d" value="$40,700" icon={DollarSign}    accent="green"/>
+        <KPI label="Success rate"      value="98.2%"   icon={Activity}      accent="acc"  />
+        <KPI label="Refunds"           value="$420.00" icon={RefreshCcw}    accent="amber"/>
+        <KPI label="Failed charges"    value="14"      icon={AlertTriangle} accent="red"  />
       </div>
 
-      {/* Success Rate Graph */}
-      <div className="p-6 rounded-xl border mb-8" style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}>
-        <h3 className="text-sm font-bold mb-6">Payment Success Rate (Last 7 Days)</h3>
-        <div className="flex items-end gap-2 h-48 w-full">
+      <Section title="Payment success rate" description="Last 7 days. Hover bars to see daily volume." accent="green">
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: 220 }}>
           {graphData.map((d, i) => (
-            <div key={i} className="flex-1 flex flex-col items-center gap-2 group relative">
-              {/* Tooltip */}
-              <div className="absolute -top-8 bg-black text-white text-[0.6rem] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none">
-                {d.rate}% • ${d.vol}
-              </div>
-              {/* Bar */}
-              <div 
-                className="w-full rounded-t-sm transition-all duration-500 hover:opacity-80" 
-                style={{ 
-                  height: d.rate + "%", 
+            <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, position: 'relative' }} title={`${d.rate}% · $${d.vol.toLocaleString()}`}>
+              <div
+                style={{
+                  width: '100%', borderRadius: '6px 6px 0 0',
                   background: d.rate < 97 ? 'var(--amber)' : 'var(--acc)',
-                  minHeight: '10%'
-                }} 
+                  height: `${d.rate}%`, minHeight: 10,
+                  transition: 'opacity 200ms',
+                }}
               />
-              <span className="text-[0.65rem] font-medium" style={{ color: 'var(--t4)' }}>{d.day}</span>
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--t4)', fontVariantNumeric: 'tabular-nums' }}>{d.day}</span>
             </div>
           ))}
         </div>
-      </div>
+      </Section>
 
-      {/* Recent Transactions Table */}
-      <div className="rounded-xl border overflow-hidden" style={{ borderColor: 'var(--border)' }}>
-        <div className="p-4 border-b flex justify-between items-center" style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}>
-          <h3 className="text-sm font-bold">Recent Transactions</h3>
-          <input type="text" placeholder="Search by email or ID..." className="px-3 py-1.5 text-xs rounded-md outline-none w-64" style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--t1)' }} />
-        </div>
-        <table className="w-full text-left text-xs">
-          <thead style={{ background: 'var(--surface)', color: 'var(--t4)' }}>
-            <tr>
-              <th className="px-4 py-3 font-semibold uppercase">Email / User</th>
-              <th className="px-4 py-3 font-semibold uppercase">Amount</th>
-              <th className="px-4 py-3 font-semibold uppercase">Status</th>
-              <th className="px-4 py-3 font-semibold uppercase">Date</th>
-            </tr>
-          </thead>
-          <tbody>
-            {[
-              { email: "sarah@example.com", amount: "$99.00", status: "Succeeded", date: "Just now" },
-              { email: "mike.t@domain.co", amount: "$299.00", status: "Succeeded", date: "5 mins ago" },
-              { email: "investor99@web.net", amount: "$99.00", status: "Failed", date: "12 mins ago" },
-            ].map((t, i) => (
-              <tr key={i} className="border-b last:border-0" style={{ borderColor: 'var(--border)' }}>
-                <td className="px-4 py-3 font-mono">{t.email}</td>
-                <td className="px-4 py-3 font-bold">{t.amount}</td>
-                <td className="px-4 py-3">
-                  <span className="px-2 py-0.5 rounded text-[0.6rem] font-bold" style={{ 
-                    background: t.status === "Succeeded" ? 'rgba(52,211,153,0.1)' : 'rgba(248,113,113,0.1)',
-                    color: t.status === "Succeeded" ? 'var(--green-val)' : 'var(--red-val)'
-                  }}>
-                    {t.status}
-                  </span>
-                </td>
-                <td className="px-4 py-3" style={{ color: 'var(--t4)' }}>{t.date}</td>
+      <Section
+        title="Recent transactions"
+        description="Live ledger of charges, refunds, and disputes."
+        actions={
+          <div style={{ position: 'relative', minWidth: 240 }}>
+            <Search size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--t4)' }}/>
+            <input
+              type="text"
+              className="input"
+              placeholder="Search by email or ID…"
+              style={{ paddingLeft: 36 }}
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+          </div>
+        }
+        flush
+      >
+        <div style={{ overflowX: 'auto' }}>
+          <table className="table-root" style={{ width: '100%' }}>
+            <thead>
+              <tr>
+                {['Email / user','Amount','Status','Date'].map(h => (
+                  <th key={h} style={{
+                    textAlign: 'left', padding: '14px 24px',
+                    fontSize: 11, fontWeight: 700, letterSpacing: '0.08em',
+                    textTransform: 'uppercase', color: 'var(--t4)',
+                    borderBottom: '1px solid var(--border)',
+                  }}>{h}</th>
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {TXNS.filter(t => !search || t.email.toLowerCase().includes(search.toLowerCase())).map((t, i) => (
+                <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
+                  <td style={{ padding: '14px 24px', fontFamily: 'ui-monospace, Menlo, Consolas, monospace', fontSize: 13, color: 'var(--t1)' }}>{t.email}</td>
+                  <td style={{ padding: '14px 24px', fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: 'var(--t1)', fontSize: 13 }}>{t.amount}</td>
+                  <td style={{ padding: '14px 24px' }}>
+                    <span className={`badge ${t.status === 'Succeeded' ? 'badge-green' : 'badge-red'}`}>{t.status}</span>
+                  </td>
+                  <td style={{ padding: '14px 24px', color: 'var(--t4)', fontSize: 12 }}>{t.date}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Section>
     </div>
   );
 }

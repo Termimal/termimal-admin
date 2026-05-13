@@ -33,6 +33,14 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# Wrangler / Cloudflare local dev secrets — these contain a real Supabase
+# service-role JWT and must never be committed. The audit found .dev.vars
+# was tracked by accident; this rule + `git rm --cached .dev.vars` plus
+# Supabase key rotation closes the leak.
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+
 # vercel
 .vercel
 

@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { UserPlus, Plus, Copy, CheckCircle, Trash2 } from 'lucide-react'
+import { UserPlus, Plus, Copy, CheckCircle, AlertTriangle, Trash2 } from 'lucide-react'
 import { PageHeader, Section, EmptyState, Field } from '@/components/admin/PageChrome'
 
 interface Invite {
@@ -21,6 +21,12 @@ export default function InvitesPage() {
   const [creating, setCreating] = useState(false)
   const [error, setError]     = useState<string | null>(null)
   const [lastUrl, setLastUrl] = useState<string | null>(null)
+  // Track email delivery state separately from the URL — when Resend
+  // succeeds the admin barely needs the URL, when it fails they very
+  // much do.
+  const [emailSent, setEmailSent]     = useState<boolean>(false)
+  const [emailError, setEmailError]   = useState<string | null>(null)
+  const [userCreated, setUserCreated] = useState<boolean>(false)
   const [copied, setCopied]   = useState(false)
 
   const load = useCallback(async () => {
@@ -32,10 +38,17 @@ export default function InvitesPage() {
 
   async function create() {
     setError(null); setCreating(true); setLastUrl(null)
+    setEmailSent(false); setEmailError(null); setUserCreated(false)
     const r = await fetch('/api/admin/invites', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(draft) })
-    const j = await r.json()
+    const j = await r.json() as {
+      invite_url?: string; error?: string;
+      email_sent?: boolean; email_error?: string | null; user_created?: boolean
+    }
     if (j.invite_url) {
       setLastUrl(j.invite_url)
+      setEmailSent(!!j.email_sent)
+      setEmailError(j.email_error || null)
+      setUserCreated(!!j.user_created)
       setDraft({ email: '', role: 'admin' })
       load()
     } else if (j.error) {
@@ -61,13 +74,21 @@ export default function InvitesPage() {
     return { label: 'pending', chip: 'chip chip-amber' }
   }
 
+  // Headline that adapts to whether we just created the auth user, or
+  // whether the user already existed, or the email failed to send.
+  const successHeadline = !emailSent
+    ? 'Invite row created — but the email failed to send. Copy the link below and share it manually.'
+    : userCreated
+      ? 'Invite sent — account created. The new admin will receive their temporary password and accept link by email.'
+      : 'Invite sent — they already had an account, the email contains only the accept link.'
+
   return (
     <div style={{ maxWidth: 1100 }}>
       <PageHeader
         icon={<UserPlus size={14} />}
         eyebrow="Team"
         title="Admin invites"
-        description="Invite team members to the back office. The recipient creates their account, then visits the invite URL while signed in to gain admin role."
+        description="Invite team members to the back office. We create their account with a temporary password and email both the credentials and the accept link."
         accent="blue"
       />
 
@@ -90,11 +111,16 @@ export default function InvitesPage() {
       </Section>
 
       {lastUrl && (
-        <Section accent="green">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <CheckCircle size={14} style={{ color: 'var(--green)' }} />
+        <Section accent={emailSent ? 'green' : 'amber'}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+            {emailSent
+              ? <CheckCircle size={14} style={{ color: 'var(--green)', flexShrink: 0, marginTop: 2 }} />
+              : <AlertTriangle size={14} style={{ color: '#d29922', flexShrink: 0, marginTop: 2 }} />}
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--t1)', marginBottom: 4 }}>Invite generated — copy the link to the new admin.</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--t1)', marginBottom: 4 }}>{successHeadline}</div>
+              {emailError && (
+                <div style={{ fontSize: 11, color: 'var(--red)', marginBottom: 6 }}>Email error: {emailError}</div>
+              )}
               <div style={{ fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 11, color: 'var(--t3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lastUrl}</div>
             </div>
             <button className="btn-secondary btn-sm" onClick={() => copy(lastUrl)}>{copied ? <><CheckCircle size={11}/> Copied</> : <><Copy size={11}/> Copy</>}</button>

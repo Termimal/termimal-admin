@@ -1,11 +1,14 @@
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
+import { requireAdmin } from '@/lib/admin/require-admin'
 const getStripe = () => {
   const k = process.env.STRIPE_SECRET_KEY
   if (!k) throw new Error('STRIPE_SECRET_KEY not configured in Worker environment variables')
   return new Stripe(k, { apiVersion: '2025-01-27.acacia' as any })
 }
 export async function GET(req: Request) {
+  const gate = await requireAdmin('users.read')
+  if (gate.ok === false) return gate.response
   try {
     const url = new URL(req.url)
     const days = Number(url.searchParams.get('days') || '30')

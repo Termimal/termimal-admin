@@ -13,10 +13,9 @@
 
 import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import {
-  AlertTriangle, ShieldAlert, Activity, RefreshCw, Eye, EyeOff,
-  Users, CreditCard, Globe, MapPin, Clock, ArrowUpRight,
-} from 'lucide-react'
+import { AlertTriangle, ShieldAlert, Activity, RefreshCw, Eye, EyeOff, Users, CreditCard, Globe, MapPin, Clock, ArrowUpRight, CheckCircle2 } from 'lucide-react'
+
+import { HeroCard, Section, EmptyState, ItemGrid } from '@/components/admin/PageChrome'
 
 interface Anomaly {
   id:           string
@@ -35,10 +34,10 @@ interface ApiResponse {
   generated_at:     string
 }
 
-const SEVERITY: Record<Anomaly['severity'], { color: string; bg: string; border: string; label: string; icon: typeof AlertTriangle }> = {
-  critical: { color: '#f87171', bg: 'rgba(248,113,113,0.10)', border: 'rgba(248,113,113,0.35)', label: 'Critical', icon: ShieldAlert },
-  warn:     { color: '#fbbf24', bg: 'rgba(251,191,36,0.10)',  border: 'rgba(251,191,36,0.35)',  label: 'Warning',  icon: AlertTriangle },
-  info:     { color: '#60a5fa', bg: 'rgba(96,165,250,0.10)',  border: 'rgba(96,165,250,0.35)',  label: 'Info',     icon: Activity },
+const SEVERITY: Record<Anomaly['severity'], { fg: string; bg: string; border: string; label: string; icon: typeof AlertTriangle }> = {
+  critical: { fg: 'var(--red)',   bg: 'var(--red-bg)',   border: 'rgba(248,113,113,0.35)', label: 'Critical', icon: ShieldAlert   },
+  warn:     { fg: 'var(--amber)', bg: 'var(--amber-bg)', border: 'rgba(251,191,36,0.35)',  label: 'Warning',  icon: AlertTriangle },
+  info:     { fg: 'var(--blue)',  bg: 'var(--blue-bg)',  border: 'rgba(96,165,250,0.35)',  label: 'Info',     icon: Activity      },
 }
 
 const TYPE_ICON: Record<string, typeof AlertTriangle> = {
@@ -61,7 +60,6 @@ function fmtAge(ts: string): string {
   return `${Math.floor(s / 86400)}d ago`
 }
 
-/** Build a context-aware deep link for an anomaly type. */
 function drillHref(a: Anomaly): string | null {
   const ctx = a.context as Record<string, unknown>
   switch (a.type) {
@@ -116,97 +114,107 @@ export default function AnomaliesPage() {
     return out
   }, [data])
 
+  const total = data?.counts.total ?? 0
+
   return (
-    <div style={{ maxWidth: 1100 }}>
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 24 }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-            <ShieldAlert size={16} style={{ color: 'var(--acc)' }} />
-            <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--acc)', letterSpacing: '1px', textTransform: 'uppercase' }}>Anomaly Detection</span>
-          </div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--t1)', marginBottom: 4 }}>Live alerts</h1>
-          <p style={{ fontSize: 13, color: 'var(--t3)' }}>
-            Seven detectors running over the last 24 h of signups, logins, and Stripe events.{' '}
-            {data?.generated_at && <span style={{ color: 'var(--t4)' }}>Last run {fmtAge(data.generated_at)}.</span>}
-          </p>
-        </div>
+    <div>
+      <HeroCard
+        accent="red"
+        icon={<ShieldAlert size={28} />}
+        eyebrow="Anomaly detection"
+        title="Live alerts"
+        subtitle={
+          <>
+            Seven detectors running over the last 24h of signups, logins, and Stripe events.
+            {data?.generated_at && <> Last run {fmtAge(data.generated_at)}.</>}
+          </>
+        }
+        metric={{
+          label: 'Open alerts',
+          value: total.toString(),
+          secondary: `${data?.counts.critical ?? 0} critical · ${data?.counts.warn ?? 0} warn`,
+        }}
+      />
+
+      <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:20 }}>
         <button
           type="button"
+          className="btn btn-secondary btn-sm"
           onClick={load}
           disabled={loading}
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: 6,
-            padding: '8px 12px', borderRadius: 8,
-            background: 'var(--surface)', border: '1px solid var(--border)',
-            color: 'var(--t2)', fontSize: 12, fontWeight: 600, cursor: 'pointer',
-            opacity: loading ? 0.5 : 1,
-          }}
+          style={{ minHeight:38 }}
         >
-          <RefreshCw size={12} className={loading ? 'spin' : ''} /> Refresh
+          <RefreshCw size={13} className={loading ? 'spin' : ''} /> Refresh
         </button>
       </div>
 
       {/* KPI strip */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(180px,1fr))', gap: 14, marginBottom: 28 }}>
+      <ItemGrid min={200}>
         {(['critical', 'warn', 'info'] as const).map(sev => {
           const meta = SEVERITY[sev]
           const Icon = meta.icon
           const count = data?.counts[sev] ?? 0
           return (
-            <div key={sev} style={{
-              padding: 16, borderRadius: 12,
-              background: meta.bg, border: `1px solid ${meta.border}`,
+            <div key={sev} className="card-premium" style={{
+              padding: '24px 28px',
+              borderColor: meta.border,
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.8px', textTransform: 'uppercase', color: meta.color }}>{meta.label}</span>
-                <Icon size={14} style={{ color: meta.color }} />
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                <span style={{
+                  fontSize: 11, fontWeight: 800, letterSpacing: '0.12em',
+                  textTransform: 'uppercase', color: meta.fg,
+                }}>{meta.label}</span>
+                <Icon size={16} style={{ color: meta.fg }} />
               </div>
-              <div style={{ fontSize: 24, fontWeight: 700, color: meta.color }}>{count}</div>
+              <div style={{
+                fontSize: 36, fontWeight: 800, color: meta.fg,
+                fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.03em', lineHeight: 1,
+              }}>{count}</div>
             </div>
           )
         })}
-        <div style={{
-          padding: 16, borderRadius: 12,
-          background: 'var(--surface)', border: '1px solid var(--border)',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-            <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.8px', textTransform: 'uppercase', color: 'var(--t4)' }}>Total open</span>
-            <Activity size={14} style={{ color: 'var(--t4)' }} />
+        <div className="card-premium" style={{ padding: '24px 28px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+            <span style={{
+              fontSize: 11, fontWeight: 800, letterSpacing: '0.12em',
+              textTransform: 'uppercase', color: 'var(--t4)',
+            }}>Total open</span>
+            <Activity size={16} style={{ color: 'var(--t4)' }} />
           </div>
-          <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--t1)' }}>{data?.counts.total ?? 0}</div>
+          <div style={{
+            fontSize: 36, fontWeight: 800, color: 'var(--t1)',
+            fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.03em', lineHeight: 1,
+          }}>{total}</div>
         </div>
-      </div>
+      </ItemGrid>
 
-      {/* Errors */}
+      <div style={{ height: 24 }} />
+
       {error && (
-        <div style={{
-          padding: 12, marginBottom: 16, borderRadius: 8,
-          background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.3)',
-          color: '#f87171', fontSize: 12,
+        <div className="card-premium" style={{
+          padding: '14px 18px', marginBottom: 20,
+          borderColor: 'var(--red)44',
+          color: 'var(--red)', fontSize: 13, fontWeight: 600,
         }}>
-          ✗ {error}
+          {error}
         </div>
       )}
       {data?.detector_errors && data.detector_errors.length > 0 && (
-        <div style={{
-          padding: 12, marginBottom: 16, borderRadius: 8,
-          background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.3)',
-          color: '#fbbf24', fontSize: 12,
+        <div className="card-premium" style={{
+          padding: '14px 18px', marginBottom: 20,
+          borderColor: 'var(--amber)44',
+          color: 'var(--amber)', fontSize: 13, fontWeight: 600,
         }}>
           {data.detector_errors.length} detector{data.detector_errors.length === 1 ? '' : 's'} failed silently this poll. Re-run if needed.
         </div>
       )}
 
-      {/* Alert list */}
-      {!loading && data && data.counts.total === 0 && !error && (
-        <div style={{
-          padding: '60px 20px', textAlign: 'center',
-          background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12,
-        }}>
-          <div style={{ fontSize: 36, marginBottom: 12 }}>✓</div>
-          <h2 style={{ fontSize: 16, fontWeight: 600, color: 'var(--t1)', marginBottom: 4 }}>All clear</h2>
-          <p style={{ fontSize: 13, color: 'var(--t3)' }}>No anomalies detected over the last 24 hours.</p>
-        </div>
+      {!loading && data && total === 0 && !error && (
+        <EmptyState
+          icon={<CheckCircle2 size={20}/>}
+          title="All clear"
+          description="No anomalies detected over the last 24 hours."
+        />
       )}
 
       {(['critical', 'warn', 'info'] as const).map(sev => {
@@ -214,52 +222,57 @@ export default function AnomaliesPage() {
         if (list.length === 0) return null
         const meta = SEVERITY[sev]
         return (
-          <section key={sev} style={{ marginBottom: 24 }}>
-            <h2 style={{
-              fontSize: 11, fontWeight: 600, letterSpacing: '1px', textTransform: 'uppercase',
-              color: meta.color, marginBottom: 10,
-            }}>
-              {meta.label} ({list.length})
-            </h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <Section
+            key={sev}
+            accent={sev === 'critical' ? 'red' : sev === 'warn' ? 'amber' : 'blue'}
+            title={`${meta.label} (${list.length})`}
+            description={sev === 'critical' ? 'Immediate attention recommended.' : sev === 'warn' ? 'Review when convenient.' : 'Informational signals.'}
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {list.map(a => {
                 const TypeIcon = TYPE_ICON[a.type] ?? AlertTriangle
                 const href = drillHref(a)
                 const isOpen = reveal[a.id] ?? false
                 return (
-                  <article key={a.id} style={{
-                    padding: 14, borderRadius: 10,
-                    background: 'var(--surface)', border: `1px solid ${meta.border}`,
+                  <article key={a.id} className="card-premium" style={{
+                    padding: '18px 22px',
+                    borderColor: meta.border,
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                      <div style={{ padding: 8, borderRadius: 8, background: meta.bg, flexShrink: 0 }}>
-                        <TypeIcon size={14} style={{ color: meta.color }} />
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+                      <div style={{
+                        width: 40, height: 40, borderRadius: 12,
+                        background: meta.bg,
+                        border: `1px solid ${meta.fg}33`,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        color: meta.fg, flexShrink: 0,
+                      }}>
+                        <TypeIcon size={16} />
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{
                           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                          gap: 10, marginBottom: 4,
+                          gap: 10, marginBottom: 4, flexWrap: 'wrap',
                         }}>
-                          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>{a.title}</span>
-                          <span style={{ fontSize: 11, color: 'var(--t4)', whiteSpace: 'nowrap' }}>{fmtAge(a.observed_at)}</span>
+                          <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>{a.title}</span>
+                          <span style={{ fontSize: 11, color: 'var(--t4)', whiteSpace: 'nowrap', fontVariantNumeric:'tabular-nums' }}>{fmtAge(a.observed_at)}</span>
                         </div>
-                        <p style={{ fontSize: 12, color: 'var(--t3)', margin: 0, lineHeight: 1.5 }}>{a.detail}</p>
+                        <p style={{ fontSize: 13, color: 'var(--t3)', margin: 0, lineHeight: 1.55 }}>{a.detail}</p>
                         <div style={{
-                          display: 'flex', alignItems: 'center', gap: 12, marginTop: 8,
-                          fontSize: 11,
+                          display: 'flex', alignItems: 'center', gap: 14, marginTop: 12,
+                          fontSize: 12, flexWrap: 'wrap',
                         }}>
                           <span style={{
-                            padding: '2px 6px', borderRadius: 4,
-                            background: 'var(--surface)', border: '1px solid var(--border)',
-                            color: 'var(--t4)', fontFamily: 'var(--font-mono, monospace)',
+                            padding: '3px 8px', borderRadius: 999,
+                            background: 'var(--surface2)', border: '1px solid var(--border)',
+                            color: 'var(--t3)', fontFamily: 'ui-monospace, Menlo, Consolas, monospace',
                             fontSize: 10, letterSpacing: '0.04em',
                           }}>{a.type}</span>
                           {href && (
                             <Link href={href} style={{
                               display: 'inline-flex', alignItems: 'center', gap: 4,
-                              color: 'var(--acc)', textDecoration: 'none',
+                              color: 'var(--acc)', textDecoration: 'none', fontWeight: 600,
                             }}>
-                              Drill in <ArrowUpRight size={11} />
+                              Drill in <ArrowUpRight size={12} />
                             </Link>
                           )}
                           <button
@@ -268,20 +281,20 @@ export default function AnomaliesPage() {
                             style={{
                               display: 'inline-flex', alignItems: 'center', gap: 4,
                               background: 'transparent', border: 'none', cursor: 'pointer',
-                              color: 'var(--t4)', fontSize: 11, padding: 0,
+                              color: 'var(--t4)', fontSize: 12, padding: 0, fontWeight: 500,
                             }}
                           >
-                            {isOpen ? <EyeOff size={11} /> : <Eye size={11} />}
+                            {isOpen ? <EyeOff size={12} /> : <Eye size={12} />}
                             {isOpen ? 'Hide context' : 'Show context'}
                           </button>
                         </div>
                         {isOpen && (
                           <pre style={{
-                            margin: '10px 0 0', padding: 10, borderRadius: 6,
-                            background: 'var(--bg, #0d1117)', border: '1px solid var(--border)',
-                            fontSize: 10, color: 'var(--t3)', overflow: 'auto',
-                            fontFamily: 'var(--font-mono, monospace)', lineHeight: 1.5,
-                            maxHeight: 220,
+                            margin: '12px 0 0', padding: 12, borderRadius: 10,
+                            background: 'var(--bg2)', border: '1px solid var(--border)',
+                            fontSize: 11, color: 'var(--t3)', overflow: 'auto',
+                            fontFamily: 'ui-monospace, Menlo, Consolas, monospace', lineHeight: 1.55,
+                            maxHeight: 240,
                           }}>
                             {JSON.stringify(a.context, null, 2)}
                           </pre>
@@ -292,7 +305,7 @@ export default function AnomaliesPage() {
                 )
               })}
             </div>
-          </section>
+          </Section>
         )
       })}
 

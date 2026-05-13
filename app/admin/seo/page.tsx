@@ -22,7 +22,7 @@ import {
   Globe, Image as ImageIcon, Tag, ExternalLink,
 } from 'lucide-react'
 import {
-  PageHeader, Section, SaveBar, Tabs, Field,
+  HeroCard, Section, SaveBar, Tabs, Field,
 } from '@/components/admin/PageChrome'
 
 interface SeoSettings {
@@ -130,12 +130,13 @@ export default function AdminSeoPage() {
 
   if (loading) {
     return (
-      <div style={{ maxWidth: 1100 }}>
-        <PageHeader
-          icon={<Search size={14} />}
-          eyebrow="SEO & Meta"
-          title="Site metadata"
+      <div>
+        <HeroCard
           accent="blue"
+          icon={<Search size={28} />}
+          eyebrow="SEO & meta"
+          title="Site metadata"
+          subtitle="Loading…"
         />
         <div style={{ height: 240 }} className="skeleton" />
       </div>
@@ -151,14 +152,20 @@ export default function AdminSeoPage() {
     { key: 'structured', label: 'Structured',   icon: <Sparkles size={12} />, count: countSet([form.org_name, form.org_logo]) + (form.org_same_as.length > 0 ? 1 : 0) },
   ] as const
 
+  const populated = countSet([
+    form.site_title, form.site_description, form.canonical_url,
+    form.og_title, form.og_image, form.twitter_handle, form.org_name,
+  ])
+
   return (
-    <div style={{ maxWidth: 1100, paddingBottom: 80 }}>
-      <PageHeader
-        icon={<Search size={14} />}
-        eyebrow="SEO & Meta"
-        title="Site metadata"
-        description="Control how Termimal appears in Google search, social link previews, and search-engine verification. Saves to public.site_settings; the marketing site reads these on every render."
+    <div style={{ paddingBottom: 80 }}>
+      <HeroCard
         accent="blue"
+        icon={<Search size={28} />}
+        eyebrow="SEO & meta"
+        title="Site metadata"
+        subtitle="Control how the site appears in Google search, social link previews, and search-engine verification. Saves to public.site_settings."
+        metric={{ label: 'Fields set', value: populated.toString(), secondary: 'across all tabs' }}
       />
 
       <Tabs items={[...tabItems]} active={tab} onChange={(k) => setTab(k as TabKey)} accent="blue" />

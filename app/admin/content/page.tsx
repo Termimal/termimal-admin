@@ -2,17 +2,17 @@
 export const dynamic = 'force-dynamic'
 
 import { useEffect, useState } from 'react'
-import { Plus, Search } from 'lucide-react'
+import { Plus, Search, FileText, Pencil } from 'lucide-react'
+import { HeroCard, Section, EmptyState } from '@/components/admin/PageChrome'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 
-const statusStyle: Record<string, { color: string; bg: string }> = {
-  Published: { color: 'var(--green-val)', bg: 'rgba(52,211,153,.1)' },
-  Draft: { color: 'var(--amber)', bg: 'rgba(251,191,36,.1)' },
-  Scheduled: { color: 'var(--blue)', bg: 'rgba(96,165,250,.1)' },
+const STATUS_BADGE: Record<string, string> = {
+  Published: 'badge-green',
+  Draft:     'badge-amber',
+  Scheduled: 'badge-blue',
 }
 
-// Define the type for our database row
 type Article = {
   id: string
   title: string
@@ -25,7 +25,9 @@ type Article = {
 export default function ContentPage() {
   const supabase = createClient()
   const [articles, setArticles] = useState<Article[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading]   = useState(true)
+  const [search, setSearch]     = useState('')
+  const [statusFilter, setStatusFilter] = useState('All')
 
   useEffect(() => {
     async function fetchArticles() {
@@ -33,95 +35,119 @@ export default function ContentPage() {
         .from('articles')
         .select('*')
         .order('created_at', { ascending: false })
-      
+
       if (data) setArticles(data)
       setLoading(false)
     }
-    
+
     fetchArticles()
   }, [supabase])
 
-  return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="flex items-center gap-2 flex-1 px-3 py-2 rounded-lg" style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}>
-          <Search size={14} style={{ color: 'var(--t4)' }} />
-          <input placeholder="Search articles..." className="bg-transparent outline-none text-[0.78rem] w-full" style={{ color: 'var(--t1)' }} />
-        </div>
-        <select className="px-3 py-2 rounded-lg text-[0.72rem]" style={{ border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--t2)' }}>
-          <option>All statuses</option>
-          <option>Published</option>
-          <option>Draft</option>
-          <option>Scheduled</option>
-        </select>
-        
-        {/* NEW ARTICLE BUTTON */}
-        <Link 
-          href="/admin/content/new"
-          className="text-[0.72rem] py-2 px-4 flex items-center justify-center gap-1.5 rounded-lg font-semibold hover:opacity-90 transition-opacity"
-          style={{ background: 'var(--acc)', color: 'white' }}
-        >
-          <Plus size={14} /> New article
-        </Link>
-      </div>
+  const filtered = articles.filter(a => {
+    if (statusFilter !== 'All' && a.status !== statusFilter) return false
+    if (search.trim() && !a.title.toLowerCase().includes(search.toLowerCase())) return false
+    return true
+  })
 
-      <div className="rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
-        <table className="w-full text-[0.75rem]">
-          <thead>
-            <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}>
-              {['Title','Category','Author','Status','Date',''].map(h => (
-                <th key={h} className="text-left px-4 py-2.5 text-[0.6rem] font-bold uppercase tracking-wider" style={{ color: 'var(--t4)' }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y" style={{ borderColor: 'var(--border)' }}>
-            {loading ? (
-              <tr>
-                <td colSpan={6} className="px-4 py-8 text-center" style={{ color: 'var(--t3)' }}>
-                  Loading articles...
-                </td>
-              </tr>
-            ) : articles.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="px-4 py-8 text-center" style={{ color: 'var(--t3)' }}>
-                  No articles found.
-                </td>
-              </tr>
-            ) : (
-              articles.map(a => (
-                <tr key={a.id} className="transition-colors hover:opacity-80" style={{ background: 'var(--bg)' }}>
-                  <td className="px-4 py-2.5 font-semibold">{a.title}</td>
-                  <td className="px-4 py-2.5" style={{ color: 'var(--t3)' }}>{a.category}</td>
-                  <td className="px-4 py-2.5" style={{ color: 'var(--t3)' }}>{a.author}</td>
-                  <td className="px-4 py-2.5">
-                    <span className="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded" style={{ 
-                      color: statusStyle[a.status]?.color || 'var(--t2)', 
-                      background: statusStyle[a.status]?.bg || 'var(--border)' 
-                    }}>
-                      {a.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-2.5 font-mono" style={{ color: 'var(--t4)' }}>
-                    {new Date(a.published_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                  </td>
-                  
-                  {/* EDIT ARTICLE BUTTON */}
-                  <td className="px-4 py-2.5 text-right">
-                    <Link 
-                      href={`/admin/content/edit/${a.id}`} 
-                      className="text-[0.68rem] font-medium hover:underline" 
-                      style={{ color: 'var(--acc)' }}
-                    >
-                      Edit
-                    </Link>
-                  </td>
-                  
+  const publishedCount = articles.filter(a => a.status === 'Published').length
+
+  return (
+    <div>
+      <HeroCard
+        accent="purple"
+        icon={<FileText size={28} />}
+        eyebrow="CMS"
+        title="Content"
+        subtitle="Articles, blog posts, and long-form content powering /blog and embedded help."
+        metric={{ label: 'Published', value: publishedCount.toString(), secondary: `${articles.length} total` }}
+      />
+
+      <Section accent="purple" title="Browse" description="Search and filter the article library.">
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+          <div style={{ position: 'relative', flex: 1, minWidth: 240 }}>
+            <Search size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--t4)' }} />
+            <input
+              className="input"
+              style={{ paddingLeft: 36 }}
+              placeholder="Search articles…"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+          </div>
+          <select
+            className="input"
+            value={statusFilter}
+            onChange={e => setStatusFilter(e.target.value)}
+            style={{ minWidth: 180 }}
+          >
+            <option value="All">All statuses</option>
+            <option value="Published">Published</option>
+            <option value="Draft">Draft</option>
+            <option value="Scheduled">Scheduled</option>
+          </select>
+          <Link href="/admin/content/new" className="btn btn-primary btn-sm" style={{ minHeight: 38 }}>
+            <Plus size={13} /> New article
+          </Link>
+        </div>
+      </Section>
+
+      {loading ? (
+        <Section flush>
+          <div style={{ padding: 40, textAlign: 'center', color: 'var(--t3)', fontSize: 13 }}>Loading articles…</div>
+        </Section>
+      ) : filtered.length === 0 ? (
+        <EmptyState
+          icon={<FileText size={20}/>}
+          title="No articles found"
+          description={search || statusFilter !== 'All' ? 'Try clearing the filters.' : 'Create your first article to get started.'}
+        >
+          <Link href="/admin/content/new" className="btn btn-primary btn-sm">
+            <Plus size={13}/> New article
+          </Link>
+        </EmptyState>
+      ) : (
+        <Section flush title={`${filtered.length} article${filtered.length === 1 ? '' : 's'}`}>
+          <div style={{ overflowX: 'auto' }}>
+            <table className="table-root" style={{ width: '100%' }}>
+              <thead>
+                <tr>
+                  {['Title','Category','Author','Status','Date',''].map(h => (
+                    <th key={h} style={{
+                      textAlign: 'left', padding: '14px 24px',
+                      fontSize: 11, fontWeight: 700, letterSpacing: '0.08em',
+                      textTransform: 'uppercase', color: 'var(--t4)',
+                      borderBottom: '1px solid var(--border)',
+                    }}>{h}</th>
+                  ))}
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              </thead>
+              <tbody>
+                {filtered.map(a => (
+                  <tr key={a.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                    <td style={{ padding: '14px 24px', fontWeight: 600, color: 'var(--t1)', fontSize: 13 }}>{a.title}</td>
+                    <td style={{ padding: '14px 24px', color: 'var(--t3)', fontSize: 13 }}>{a.category}</td>
+                    <td style={{ padding: '14px 24px', color: 'var(--t3)', fontSize: 13 }}>{a.author}</td>
+                    <td style={{ padding: '14px 24px' }}>
+                      <span className={`badge ${STATUS_BADGE[a.status] || 'badge-muted'}`}>{a.status}</span>
+                    </td>
+                    <td style={{ padding: '14px 24px', color: 'var(--t4)', fontSize: 12, fontVariantNumeric: 'tabular-nums', fontFamily: 'ui-monospace, Menlo, Consolas, monospace' }}>
+                      {new Date(a.published_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </td>
+                    <td style={{ padding: '14px 24px', textAlign: 'right' }}>
+                      <Link
+                        href={`/admin/content/edit/${a.id}`}
+                        className="btn btn-secondary btn-sm"
+                      >
+                        <Pencil size={12} /> Edit
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Section>
+      )}
     </div>
   )
 }

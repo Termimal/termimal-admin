@@ -1,0 +1,20 @@
+# Local-only secrets for `wrangler dev` / `npm run preview`.
+# COPY this file to `.dev.vars` (which is gitignored) and fill in real values.
+# NEVER commit `.dev.vars` itself.
+
+# Supabase — values from Supabase Dashboard → Project Settings → API.
+# Use a *separate dev project* for local development if possible; if you
+# must use the prod project, double-check that .dev.vars is gitignored.
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+
+# Stripe — Dashboard → Developers → API keys. Use the *test* key for local,
+# never the live key.
+STRIPE_SECRET_KEY=sk_test_...
+
+# Resend (transactional email). Optional in dev.
+RESEND_API_KEY=
+
+# OpenAI (Social Studio's AI generation). Optional in dev.
+OPENAI_API_KEY=

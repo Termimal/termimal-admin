@@ -9,9 +9,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
-  Inbox, RefreshCw, ChevronDown, Search, Filter,
+  Inbox, RefreshCw, ChevronDown, Search,
 } from 'lucide-react'
-import { PageHeader, Section, Tabs, EmptyState } from '@/components/admin/PageChrome'
+import { HeroCard, Section, Tabs, EmptyState } from '@/components/admin/PageChrome'
 
 interface Ticket {
   id: string
@@ -38,8 +38,8 @@ const STATUS_TABS = [
 const PRIORITY_LABEL: Record<Ticket['priority'], string> = {
   urgent: 'Urgent', high: 'High', medium: 'Medium', low: 'Low',
 }
-const PRIORITY_COLOR: Record<Ticket['priority'], string> = {
-  urgent: 'chip-red', high: 'chip-amber', medium: 'chip-blue', low: 'chip',
+const PRIORITY_BADGE: Record<Ticket['priority'], string> = {
+  urgent: 'badge-red', high: 'badge-amber', medium: 'badge-blue', low: 'badge-muted',
 }
 
 function fmtAge(iso: string): string {
@@ -103,19 +103,21 @@ export default function SupportPage() {
   }, [tickets])
 
   return (
-    <div style={{ maxWidth: 1100 }}>
-      <PageHeader
-        icon={<Inbox size={14} />}
+    <div>
+      <HeroCard
+        accent="green"
+        icon={<Inbox size={28}/>}
         eyebrow="Customer support"
         title="Inbox"
-        description="Tickets users submit via the contact form, sorted newest first. Update status + priority, assign yourself, expand for the full message."
-        accent="green"
-        actions={
-          <button type="button" className="btn-secondary btn-sm" onClick={load} disabled={loading}>
-            <RefreshCw size={11} /> Refresh
-          </button>
-        }
+        subtitle="Tickets users submit via the contact form, sorted newest first. Update status + priority, assign yourself, expand for the full message."
+        metric={{ label: 'Open', value: counts.open.toString(), secondary: `${tickets.length} in view` }}
       />
+
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 20 }}>
+        <button type="button" className="btn btn-secondary btn-sm" style={{ minHeight: 38 }} onClick={load} disabled={loading}>
+          <RefreshCw size={13}/> Refresh
+        </button>
+      </div>
 
       <Tabs
         items={STATUS_TABS.map(t => ({
@@ -128,29 +130,32 @@ export default function SupportPage() {
         accent="green"
       />
 
-      <Section flush accent="green">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px' }}>
-          <Filter size={12} style={{ color: 'var(--t4)' }} />
-          <div style={{ position: 'relative', flex: 1 }}>
-            <Search size={12} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--t4)' }} />
-            <input
-              className="input"
-              style={{ paddingLeft: 30 }}
-              placeholder="Search subject / message"
-              value={q}
-              onChange={e => setQ(e.target.value)}
-            />
-          </div>
+      <Section title="Search">
+        <div style={{ position: 'relative' }}>
+          <Search size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--t4)' }}/>
+          <input
+            className="input"
+            style={{ paddingLeft: 36 }}
+            placeholder="Search subject / message"
+            value={q}
+            onChange={e => setQ(e.target.value)}
+          />
         </div>
       </Section>
 
-      {error && <div className="msg-err" style={{ marginBottom: 12 }}>✗ {error}</div>}
+      {error && (
+        <div className="card-premium" style={{
+          padding: '14px 18px', marginBottom: 20,
+          borderColor: 'var(--red)44', color: 'var(--red)',
+          fontSize: 13, fontWeight: 600,
+        }}>{error}</div>
+      )}
       {!loading && !error && tickets.length === 0 && (
-        <EmptyState icon={<Inbox size={20} />} title="Inbox zero" description="No tickets in this filter." />
+        <EmptyState icon={<Inbox size={20}/>} title="Inbox zero" description="No tickets in this filter." />
       )}
 
       {tickets.length > 0 && (
-        <Section flush>
+        <Section flush title={`${tickets.length} ticket${tickets.length === 1 ? '' : 's'}`}>
           <ul style={{ margin: 0, padding: 0, listStyle: 'none' }}>
             {tickets.map(t => {
               const isOpen = open[t.id]
@@ -158,21 +163,22 @@ export default function SupportPage() {
                 <li key={t.id} style={{ borderBottom: '1px solid var(--border)' }}>
                   <div
                     style={{
-                      display: 'flex', alignItems: 'flex-start', gap: 12,
-                      padding: '12px 16px', cursor: 'pointer',
+                      display: 'flex', alignItems: 'flex-start', gap: 14,
+                      padding: '18px 24px', cursor: 'pointer', flexWrap: 'wrap',
                     }}
                     onClick={() => setOpen(o => ({ ...o, [t.id]: !o[t.id] }))}
                   >
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                        <span className={PRIORITY_COLOR[t.priority]}>{PRIORITY_LABEL[t.priority]}</span>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>{t.subject}</span>
+                    <div style={{ flex: 1, minWidth: 240 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
+                        <span className={`badge ${PRIORITY_BADGE[t.priority]}`}>{PRIORITY_LABEL[t.priority]}</span>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>{t.subject}</span>
                       </div>
                       <div style={{
-                        fontSize: 12, color: 'var(--t3)', marginBottom: 4,
+                        fontSize: 13, color: 'var(--t3)', marginBottom: 6,
                         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                        maxWidth: 600,
                       }}>{t.message}</div>
-                      <div style={{ fontSize: 11, color: 'var(--t4)', display: 'flex', gap: 10 }}>
+                      <div style={{ fontSize: 12, color: 'var(--t4)', display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                         <span>{t.user?.full_name || t.user?.email || 'Unknown user'}</span>
                         <span>·</span>
                         <span>{fmtAge(t.created_at)}</span>
@@ -183,8 +189,8 @@ export default function SupportPage() {
                       value={t.status}
                       onChange={e => { e.stopPropagation(); patchTicket(t.id, { status: e.target.value as Ticket['status'] }) }}
                       onClick={e => e.stopPropagation()}
-                      className="select"
-                      style={{ width: 130, fontSize: 11 }}
+                      className="input"
+                      style={{ width: 150, fontSize: 12 }}
                     >
                       {(['open','in_progress','resolved','closed'] as const).map(s => <option key={s} value={s}>{s.replace('_',' ')}</option>)}
                     </select>
@@ -192,17 +198,17 @@ export default function SupportPage() {
                       value={t.priority}
                       onChange={e => { e.stopPropagation(); patchTicket(t.id, { priority: e.target.value as Ticket['priority'] }) }}
                       onClick={e => e.stopPropagation()}
-                      className="select"
-                      style={{ width: 100, fontSize: 11 }}
+                      className="input"
+                      style={{ width: 120, fontSize: 12 }}
                     >
                       {(['urgent','high','medium','low'] as const).map(p => <option key={p} value={p}>{p}</option>)}
                     </select>
-                    <ChevronDown size={12} style={{ color: 'var(--t4)', marginTop: 6, transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 120ms' }} />
+                    <ChevronDown size={14} style={{ color: 'var(--t4)', marginTop: 8, transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 120ms' }} />
                   </div>
                   {isOpen && (
                     <div style={{
-                      padding: '12px 16px',
-                      background: 'var(--bg)',
+                      padding: '18px 24px',
+                      background: 'var(--bg2)',
                       borderTop: '1px solid var(--border)',
                       fontSize: 13, color: 'var(--t2)',
                       lineHeight: 1.6, whiteSpace: 'pre-wrap',

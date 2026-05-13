@@ -1,270 +1,362 @@
 'use client'
 export const dynamic = 'force-dynamic'
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 
-type LoginView = "standard" | "sso";
+/**
+ * Site-wide banner manager. Surfaces every row of `public.banners`
+ * with create / edit / publish-toggle / delete affordances. The
+ * underlying API is /api/admin/banners (GET / POST upsert / DELETE).
+ *
+ * NOTE: This file used to render an unrelated <LoginPage> stub from
+ * the auth UI — that was a copy-paste regression we just fixed.
+ */
+import { useEffect, useState } from 'react'
+import { Megaphone, Plus, Pencil, Trash2, ExternalLink, Power, RefreshCw, AlertTriangle, Info, CheckCircle2, AlertCircle } from 'lucide-react'
+import { HeroCard, Section, ItemCard, ItemGrid, EmptyState, Field } from '@/components/admin/PageChrome'
 
-export default function LoginPage() {
-  const router = useRouter();
-  const supabase = createClient();
-  
-  // Form states
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [domain, setDomain] = useState("");
-  
-  // UI states
-  const [view, setView] = useState<LoginView>("standard");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
+type BannerType = 'info' | 'warning' | 'success' | 'error' | 'promo'
 
-  const handleEmailLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    setMessage("");
+type Banner = {
+  id: string
+  title: string
+  message: string
+  type: BannerType
+  active: boolean
+  link_url: string | null
+  link_label: string | null
+  created_at: string
+}
 
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+type DraftState = {
+  id?: string
+  title: string
+  message: string
+  type: BannerType
+  active: boolean
+  link_url: string
+  link_label: string
+}
 
-    if (signInError) {
-      setError(signInError.message);
-      setLoading(false);
-    } else {
-      router.push("/admin");
-      router.refresh();
+const BLANK_DRAFT: DraftState = {
+  title: '',
+  message: '',
+  type: 'info',
+  active: true,
+  link_url: '',
+  link_label: '',
+}
+
+const TYPE_META: Record<BannerType, { label: string; tone: 'blue' | 'amber' | 'green' | 'red' | 'purple'; icon: any }> = {
+  info:    { label: 'Info',    tone: 'blue',   icon: Info           },
+  warning: { label: 'Warning', tone: 'amber',  icon: AlertTriangle  },
+  success: { label: 'Success', tone: 'green',  icon: CheckCircle2   },
+  error:   { label: 'Error',   tone: 'red',    icon: AlertCircle    },
+  promo:   { label: 'Promo',   tone: 'purple', icon: Megaphone      },
+}
+
+export default function AdminBannersPage() {
+  const [banners, setBanners] = useState<Banner[]>([])
+  const [loading, setLoading] = useState(true)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const [draft, setDraft] = useState<DraftState | null>(null)
+
+  const load = async () => {
+    setLoading(true)
+    setError('')
+    try {
+      const res  = await fetch('/api/admin/banners')
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`)
+      setBanners(json.banners || [])
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to load banners')
+    } finally {
+      setLoading(false)
     }
-  };
+  }
 
-  const handleMagicLink = async () => {
-    if (!email) {
-      setError("Please enter your email first.");
-      return;
+  useEffect(() => { load() }, [])
+
+  const startNew  = () => setDraft({ ...BLANK_DRAFT })
+  const startEdit = (b: Banner) => setDraft({
+    id: b.id,
+    title: b.title || '',
+    message: b.message || '',
+    type: b.type || 'info',
+    active: !!b.active,
+    link_url: b.link_url || '',
+    link_label: b.link_label || '',
+  })
+
+  const save = async () => {
+    if (!draft) return
+    if (!draft.title.trim() || !draft.message.trim()) {
+      setError('Title and message are required.')
+      return
     }
-    setLoading(true);
-    setError("");
-    setMessage("");
-
-    const { error: otpError } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: window.location.origin + "/admin" }
-    });
-
-    if (otpError) setError(otpError.message);
-    else setMessage("Check your email for the magic link!");
-    setLoading(false);
-  };
-
-  const handleResetPassword = async () => {
-    if (!email) {
-      setError("Please enter your email to reset password.");
-      return;
+    setBusy(true)
+    setError('')
+    try {
+      const res = await fetch('/api/admin/banners', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          ...(draft.id ? { id: draft.id } : {}),
+          title:      draft.title.trim(),
+          message:    draft.message.trim(),
+          type:       draft.type,
+          active:     draft.active,
+          link_url:   draft.link_url.trim()   || null,
+          link_label: draft.link_label.trim() || null,
+        }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`)
+      setDraft(null)
+      await load()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Save failed')
+    } finally {
+      setBusy(false)
     }
-    setLoading(true);
-    setError("");
-    
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: window.location.origin + "/admin/settings",
-    });
+  }
 
-    if (resetError) setError(resetError.message);
-    else setMessage("Password reset instructions sent to your email.");
-    setLoading(false);
-  };
-
-  const handleGoogleLogin = async () => {
-    setError("");
-    const { error: signInError } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: window.location.origin + "/admin" }
-    });
-    if (signInError) setError(signInError.message);
-  };
-
-  const handleSSOLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-
-    const { data, error: ssoError } = await supabase.auth.signInWithSSO({
-      domain,
-      options: { redirectTo: window.location.origin + "/admin" }
-    });
-
-    if (data?.url) {
-      window.location.href = data.url;
-    } else if (ssoError) {
-      setError(ssoError.message);
-      setLoading(false);
+  const togglePublish = async (b: Banner) => {
+    setBusy(true)
+    try {
+      await fetch('/api/admin/banners', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ id: b.id, title: b.title, message: b.message, type: b.type, active: !b.active, link_url: b.link_url, link_label: b.link_label }),
+      })
+      await load()
+    } finally {
+      setBusy(false)
     }
-  };
+  }
+
+  const remove = async (b: Banner) => {
+    if (!confirm(`Delete banner "${b.title}"? This cannot be undone.`)) return
+    setBusy(true)
+    try {
+      await fetch('/api/admin/banners', {
+        method:  'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ id: b.id }),
+      })
+      await load()
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const liveCount = banners.filter(b => b.active).length
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 sm:p-8" style={{ background: 'var(--bg)', color: 'var(--t1)' }}>
-      
-      <div className="w-full max-w-[400px] p-6 sm:p-8 rounded-2xl shadow-sm" style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}>
-        
-        {/* Logo Header */}
-        <div className="flex items-center gap-2 mb-8 justify-center">
-          <div className="relative w-6 h-6">
-            <div className="absolute inset-0 rounded-[3px] rotate-45 border-2" style={{ borderColor: 'var(--acc)', opacity: 0.5 }} />
-            <div className="absolute inset-[3px] rounded-[2px] rotate-45" style={{ background: 'var(--acc)' }} />
-          </div>
-          <span className="text-xl font-bold tracking-tight">Termimal Admin</span>
-        </div>
+    <div>
+      <HeroCard
+        accent="purple"
+        icon={<Megaphone size={28} />}
+        eyebrow="Site Comms"
+        title="Banners"
+        subtitle="Top-of-page strips that broadcast announcements, promos, or urgent notices across the marketing site."
+        metric={{
+          label: 'Live now',
+          value: liveCount.toString(),
+          secondary: `${banners.length} total`,
+        }}
+      />
 
-        {/* Alerts */}
-        {error && (
-          <div className="p-3 mb-4 text-xs rounded-lg font-medium text-center" style={{ background: 'rgba(248,113,113,0.1)', color: 'var(--red-val)' }}>
-            {error}
-          </div>
-        )}
-        {message && (
-          <div className="p-3 mb-4 text-xs rounded-lg font-medium text-center" style={{ background: 'rgba(52,211,153,0.1)', color: 'var(--green-val)' }}>
-            {message}
-          </div>
-        )}
-
-        {view === "standard" ? (
-          <>
-            {/* Standard Email Form */}
-            <form onSubmit={handleEmailLogin} className="space-y-4 mb-4">
-              <div>
-                <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--t3)' }}>Email Address</label>
-                <input 
-                  type="email" 
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="w-full px-3 py-2.5 rounded-lg text-sm outline-none transition-all focus:ring-2"
-                  style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--t1)', '--tw-ring-color': 'var(--acc)' } as any}
-                />
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-xs font-medium" style={{ color: 'var(--t3)' }}>Password</label>
-                  <button type="button" onClick={handleResetPassword} className="text-[0.65rem] font-medium hover:underline" style={{ color: 'var(--acc)' }}>
-                    Forgot?
-                  </button>
-                </div>
-                <input 
-                  type="password" 
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="w-full px-3 py-2.5 rounded-lg text-sm outline-none transition-all focus:ring-2"
-                  style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--t1)', '--tw-ring-color': 'var(--acc)' } as any}
-                />
-              </div>
-
-              <button 
-                type="submit" 
-                disabled={loading}
-                className="w-full py-2.5 rounded-lg text-sm font-semibold transition-opacity disabled:opacity-50 mt-2"
-                style={{ background: 'var(--acc)', color: 'white' }}
-              >
-                {loading ? "Processing..." : "Sign in"}
-              </button>
-            </form>
-
-            <button 
-              type="button" 
-              onClick={handleMagicLink}
-              disabled={loading}
-              className="w-full text-xs font-medium py-2 mb-6 hover:underline"
-              style={{ color: 'var(--t3)' }}
-            >
-              Send me a magic link instead
-            </button>
-
-            {/* Divider */}
-            <div className="relative flex items-center py-2 mb-6">
-              <div className="flex-grow border-t" style={{ borderColor: 'var(--border)' }}></div>
-              <span className="flex-shrink-0 mx-4 text-xs font-medium" style={{ color: 'var(--t4)' }}>
-                OR CONTINUE WITH
-              </span>
-              <div className="flex-grow border-t" style={{ borderColor: 'var(--border)' }}></div>
-            </div>
-
-            <div className="space-y-3">
-              {/* Google Button */}
-              <button 
-                onClick={handleGoogleLogin}
-                type="button"
-                className="w-full flex items-center justify-center gap-3 py-2.5 rounded-lg text-sm font-semibold transition-all hover:opacity-80"
-                style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--t1)' }}
-              >
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-                </svg>
-                Google
-              </button>
-
-              {/* SSO Switch Button */}
-              <button 
-                onClick={() => setView("sso")}
-                type="button"
-                className="w-full flex items-center justify-center gap-3 py-2.5 rounded-lg text-sm font-semibold transition-all hover:opacity-80"
-                style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--t1)' }}
-              >
-                <svg className="w-4 h-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                </svg>
-                Single Sign-On (SAML)
-              </button>
-            </div>
-          </>
-        ) : (
-          <>
-            {/* SSO Form */}
-            <form onSubmit={handleSSOLogin} className="space-y-4 mb-6">
-              <p className="text-xs mb-4 text-center" style={{ color: 'var(--t3)' }}>
-                Enter your company domain to be redirected to your identity provider.
-              </p>
-              <div>
-                <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--t3)' }}>Company Domain</label>
-                <input 
-                  type="text" 
-                  placeholder="e.g. acme.com"
-                  value={domain}
-                  onChange={(e) => setDomain(e.target.value)}
-                  required
-                  className="w-full px-3 py-2.5 rounded-lg text-sm outline-none transition-all focus:ring-2"
-                  style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--t1)', '--tw-ring-color': 'var(--acc)' } as any}
-                />
-              </div>
-
-              <button 
-                type="submit" 
-                disabled={loading}
-                className="w-full py-2.5 rounded-lg text-sm font-semibold transition-opacity disabled:opacity-50 mt-2"
-                style={{ background: 'var(--acc)', color: 'white' }}
-              >
-                {loading ? "Redirecting..." : "Continue with SSO"}
-              </button>
-            </form>
-
-            <button 
-              onClick={() => setView("standard")}
-              type="button"
-              className="w-full text-xs font-medium py-2 flex items-center justify-center gap-1 hover:underline"
-              style={{ color: 'var(--t3)' }}
-            >
-              &larr; Back to standard login
-            </button>
-          </>
-        )}
-
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginBottom: 20 }}>
+        <button className="btn btn-secondary btn-sm" style={{ minHeight: 38 }} onClick={load} disabled={loading || busy}>
+          <RefreshCw size={13} /> Refresh
+        </button>
+        <button className="btn btn-primary btn-sm" style={{ minHeight: 38 }} onClick={startNew} disabled={busy}>
+          <Plus size={13} /> New banner
+        </button>
       </div>
+
+      {error && (
+        <div className="card-premium" style={{
+          padding: '14px 18px', marginBottom: 20,
+          borderColor: 'var(--red)' + '44',
+          color: 'var(--red)',
+          fontSize: 13, fontWeight: 600,
+        }}>
+          {error}
+        </div>
+      )}
+
+      {/* Edit drawer (inline) ----------------------------------------- */}
+      {draft && (
+        <Section
+          accent="purple"
+          title={draft.id ? 'Edit banner' : 'New banner'}
+          description="Banners render across the public site. Keep messages short — one sentence is plenty."
+          actions={
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="btn btn-secondary btn-sm" onClick={() => setDraft(null)} disabled={busy}>Cancel</button>
+              <button className="btn btn-primary btn-sm" onClick={save} disabled={busy}>
+                {busy ? 'Saving…' : (draft.id ? 'Save changes' : 'Create banner')}
+              </button>
+            </div>
+          }
+        >
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 18 }}>
+            <Field label="Title" required>
+              <input
+                className="input"
+                value={draft.title}
+                onChange={e => setDraft({ ...draft, title: e.target.value })}
+                placeholder="e.g. Black Friday — 30% off Premium"
+                disabled={busy}
+              />
+            </Field>
+
+            <Field label="Type">
+              <select
+                className="input"
+                value={draft.type}
+                onChange={e => setDraft({ ...draft, type: e.target.value as BannerType })}
+                disabled={busy}
+              >
+                {Object.entries(TYPE_META).map(([k, m]) => (
+                  <option key={k} value={k}>{m.label}</option>
+                ))}
+              </select>
+            </Field>
+
+            <Field label="Status">
+              <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
+                <input
+                  type="checkbox"
+                  checked={draft.active}
+                  onChange={e => setDraft({ ...draft, active: e.target.checked })}
+                  disabled={busy}
+                  style={{ width: 16, height: 16, accentColor: 'var(--acc)' }}
+                />
+                Live on site
+              </label>
+            </Field>
+          </div>
+
+          <div style={{ marginTop: 18 }}>
+            <Field label="Message" required hint="Short, scannable. Renders inside the strip.">
+              <textarea
+                className="input"
+                rows={3}
+                value={draft.message}
+                onChange={e => setDraft({ ...draft, message: e.target.value })}
+                placeholder="Limited time — €9.99/mo locked for 12 months when you upgrade today."
+                disabled={busy}
+                style={{ resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.5 }}
+              />
+            </Field>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 18, marginTop: 18 }}>
+            <Field label="Link URL" hint="Optional. Where the CTA inside the banner points.">
+              <input
+                className="input"
+                value={draft.link_url}
+                onChange={e => setDraft({ ...draft, link_url: e.target.value })}
+                placeholder="/pricing"
+                disabled={busy}
+              />
+            </Field>
+            <Field label="Link label" hint="Optional. The CTA text. Falls back to “Learn more”.">
+              <input
+                className="input"
+                value={draft.link_label}
+                onChange={e => setDraft({ ...draft, link_label: e.target.value })}
+                placeholder="Upgrade now"
+                disabled={busy}
+              />
+            </Field>
+          </div>
+        </Section>
+      )}
+
+      {/* Banner list -------------------------------------------------- */}
+      {loading ? (
+        <ItemGrid min={320}>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="card-premium" style={{ padding: '22px 24px' }}>
+              <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+                <div className="skeleton" style={{ width: 44, height: 44, borderRadius: 14 }} />
+                <div style={{ flex: 1 }}>
+                  <div className="skeleton" style={{ width: '70%', height: 14, borderRadius: 6 }} />
+                  <div className="skeleton" style={{ width: '90%', height: 12, borderRadius: 6, marginTop: 8 }} />
+                </div>
+              </div>
+            </div>
+          ))}
+        </ItemGrid>
+      ) : banners.length === 0 ? (
+        <EmptyState
+          icon={<Megaphone size={20} />}
+          title="No banners yet"
+          description="Create one to broadcast announcements, promos, or maintenance notices across the marketing site."
+        >
+          <button className="btn btn-primary btn-sm" onClick={startNew}>
+            <Plus size={13} /> New banner
+          </button>
+        </EmptyState>
+      ) : (
+        <ItemGrid min={340}>
+          {banners.map(b => {
+            const meta = TYPE_META[(b.type as BannerType)] || TYPE_META.info
+            const Icon = meta.icon
+            return (
+              <ItemCard
+                key={b.id}
+                accent="purple"
+                icon={<Icon size={18} />}
+                title={b.title || '(untitled)'}
+                subtitle={b.message}
+                status={{
+                  label: b.active ? 'LIVE' : 'DRAFT',
+                  tone:  b.active ? 'green' : 'muted',
+                  pulse: b.active,
+                }}
+                meta={
+                  <>
+                    <span>{meta.label.toLowerCase()}</span>
+                    <span>·</span>
+                    <span>{new Date(b.created_at).toLocaleDateString()}</span>
+                    {b.link_url && (
+                      <>
+                        <span>·</span>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          <ExternalLink size={11} /> {b.link_label || 'link'}
+                        </span>
+                      </>
+                    )}
+                  </>
+                }
+                footer={
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    <button className="btn btn-secondary btn-sm" onClick={() => startEdit(b)} disabled={busy}>
+                      <Pencil size={12} /> Edit
+                    </button>
+                    <button className="btn btn-secondary btn-sm" onClick={() => togglePublish(b)} disabled={busy}>
+                      <Power size={12} /> {b.active ? 'Unpublish' : 'Publish'}
+                    </button>
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => remove(b)}
+                      disabled={busy}
+                      style={{ color: 'var(--red)' }}
+                    >
+                      <Trash2 size={12} /> Delete
+                    </button>
+                  </div>
+                }
+              />
+            )
+          })}
+        </ItemGrid>
+      )}
     </div>
-  );
+  )
 }

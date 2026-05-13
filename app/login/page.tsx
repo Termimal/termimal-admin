@@ -1,6 +1,5 @@
 'use client'
-import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { useEffect, useState } from 'react'
 import { Terminal, Lock, Mail, Eye, EyeOff, Loader } from 'lucide-react'
 
 export default function LoginPage() {
@@ -10,21 +9,32 @@ export default function LoginPage() {
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState('')
 
+  // No-JS fallback: surface any ?error= from the form-encoded redirect.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const e = new URLSearchParams(window.location.search).get('error')
+    if (e) setError(e)
+  }, [])
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setLoading(true)
     try {
-      const supabase = createClient()
-      const { error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) {
-        setError(error.message)
+      const res = await fetch('/api/admin/login-bypass', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      })
+      const j = await res.json().catch(() => ({})) as { ok?: boolean; redirect?: string; error?: string }
+      if (!res.ok || !j.ok) {
+        setError(j.error || `Login failed (HTTP ${res.status})`)
         setLoading(false)
         return
       }
-      window.location.href = '/admin'
-    } catch (err: any) {
-      setError(err.message || 'Login failed')
+      window.location.href = j.redirect ?? '/admin'
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Network error')
       setLoading(false)
     }
   }
@@ -40,7 +50,6 @@ export default function LoginPage() {
         borderRadius:18,padding:32,display:'flex',flexDirection:'column',gap:24,
         boxShadow:'0 32px 80px rgba(0,0,0,0.6)',
       }}>
-        {/* Logo */}
         <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:12}}>
           <div style={{
             width:48,height:48,borderRadius:14,
@@ -56,8 +65,17 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleLogin} style={{display:'flex',flexDirection:'column',gap:14}}>
+        {/* Native form action + method as a no-JS fallback. If React
+            fails to hydrate (e.g. a Chrome extension throws a syntax
+            error and breaks the page bundle), the browser will POST
+            the form to /api/admin/login-bypass directly, the server
+            detects form-encoded body and 303-redirects on success. */}
+        <form
+          onSubmit={handleLogin}
+          method="POST"
+          action="/api/admin/login-bypass"
+          style={{display:'flex',flexDirection:'column',gap:14}}
+        >
           <div style={{display:'flex',flexDirection:'column',gap:5}}>
             <label style={{fontSize:10.5,fontWeight:700,textTransform:'uppercase',letterSpacing:'.08em',color:'rgba(240,244,255,0.4)'}}>
               Email
@@ -65,8 +83,8 @@ export default function LoginPage() {
             <div style={{position:'relative'}}>
               <Mail size={13} style={{position:'absolute',left:11,top:'50%',transform:'translateY(-50%)',color:'rgba(240,244,255,0.3)',pointerEvents:'none'}}/>
               <input
-                type="email" required value={email} onChange={e => setEmail(e.target.value)}
-                placeholder="admin@termimal.com"
+                type="email" name="email" required value={email} onChange={e => setEmail(e.target.value)}
+                placeholder="admin@termimal.com" autoComplete="email"
                 style={{
                   width:'100%',padding:'9px 11px 9px 32px',background:'#0a0d16',
                   border:`1px solid ${error?'rgba(255,92,107,0.4)':'rgba(255,255,255,0.08)'}`,
@@ -85,8 +103,8 @@ export default function LoginPage() {
             <div style={{position:'relative'}}>
               <Lock size={13} style={{position:'absolute',left:11,top:'50%',transform:'translateY(-50%)',color:'rgba(240,244,255,0.3)',pointerEvents:'none'}}/>
               <input
-                type={show?'text':'password'} required value={password} onChange={e => setPassword(e.target.value)}
-                placeholder="••••••••"
+                type={show?'text':'password'} name="password" required value={password} onChange={e => setPassword(e.target.value)}
+                placeholder="••••••••" autoComplete="current-password"
                 style={{
                   width:'100%',padding:'9px 36px 9px 32px',background:'#0a0d16',
                   border:`1px solid ${error?'rgba(255,92,107,0.4)':'rgba(255,255,255,0.08)'}`,
@@ -113,15 +131,26 @@ export default function LoginPage() {
             </div>
           )}
 
-          <button type="submit" disabled={loading} style={{
-            width:'100%',padding:'11px',background:loading?'rgba(0,191,160,0.6)':'#00bfa0',
-            border:'none',borderRadius:10,color:'#000',fontSize:13,fontWeight:800,
-            cursor:loading?'not-allowed':'pointer',display:'flex',alignItems:'center',justifyContent:'center',
-            gap:8,transition:'all 150ms ease',fontFamily:'inherit',marginTop:4,
-            boxShadow:loading?'none':'0 0 20px rgba(0,229,192,0.2)',
-          }}>
-            {loading ? <><Loader size={14} style={{animation:'spin 1s linear infinite'}}/>Signing in…</> : 'Sign In'}
+          <button
+            type="submit"
+            disabled={loading}
+            style={{
+              width:'100%',padding:'11px',background:loading?'rgba(0,191,160,0.6)':'#00bfa0',
+              border:'none',borderRadius:10,color:'#000',fontSize:13,fontWeight:800,
+              cursor:loading?'not-allowed':'pointer',display:'flex',alignItems:'center',justifyContent:'center',
+              gap:8,transition:'all 150ms ease',fontFamily:'inherit',marginTop:4,
+              boxShadow:loading?'none':'0 0 20px rgba(0,229,192,0.2)',
+            }}
+          >
+            {loading ? <><Loader size={14} style={{animation:'spin 1s linear infinite'}}/>Signing in…</> : 'Sign in'}
           </button>
+
+          <div style={{
+            fontSize:10,color:'rgba(240,244,255,0.3)',textAlign:'center',
+            fontFamily:'ui-monospace, Menlo, monospace', marginTop:4,
+          }}>
+            build 2026-05-08-d (no-js fallback)
+          </div>
         </form>
       </div>
 
