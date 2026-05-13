@@ -21,6 +21,9 @@ export default function InvitesPage() {
   const [creating, setCreating] = useState(false)
   const [error, setError]     = useState<string | null>(null)
   const [lastUrl, setLastUrl] = useState<string | null>(null)
+  const [emailSent, setEmailSent]   = useState<boolean>(false)
+  const [emailError, setEmailError] = useState<string | null>(null)
+  const [userCreated, setUserCreated] = useState<boolean>(false)
   const [copied, setCopied]   = useState(false)
 
   const load = useCallback(async () => {
@@ -31,11 +34,17 @@ export default function InvitesPage() {
   useEffect(() => { load() }, [load])
 
   async function create() {
-    setError(null); setCreating(true); setLastUrl(null)
+    setError(null); setCreating(true); setLastUrl(null); setEmailSent(false); setEmailError(null); setUserCreated(false)
     const r = await fetch('/api/admin/invites', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(draft) })
-    const j = await r.json()
+    const j = await r.json() as {
+      invite_url?: string; error?: string;
+      email_sent?: boolean; email_error?: string | null; user_created?: boolean
+    }
     if (j.invite_url) {
       setLastUrl(j.invite_url)
+      setEmailSent(!!j.email_sent)
+      setEmailError(j.email_error || null)
+      setUserCreated(!!j.user_created)
       setDraft({ email: '', role: 'admin' })
       load()
     } else if (j.error) {
@@ -70,11 +79,11 @@ export default function InvitesPage() {
         icon={<UserPlus size={28}/>}
         eyebrow="Team"
         title="Admin invites"
-        subtitle="Invite team members to the back office. The recipient creates their account, then visits the invite URL while signed in to gain admin role."
+        subtitle="Invite team members to the back office. We create their account with a temporary password and email both the credentials and the accept link."
         metric={{ label: 'Pending', value: pending.toString(), secondary: `${rows.length} total` }}
       />
 
-      <Section title="New invite" accent="blue" description="Generate a one-time invite URL. Share it via your team channel.">
+      <Section title="New invite" accent="blue" description="Generate an invite. We'll create the auth account, email a temporary password + the accept link, and you can revoke any time.">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 18 }}>
             <Field label="Email" required>
@@ -105,19 +114,29 @@ export default function InvitesPage() {
       {lastUrl && (
         <div className="card-premium" style={{
           padding: '20px 24px', marginBottom: 28,
-          borderColor: 'var(--green)44',
+          borderColor: emailSent ? 'var(--green)44' : 'rgba(210,153,34,0.4)',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
             <div style={{
               width: 40, height: 40, borderRadius: 12,
-              background: 'var(--green-bg)', border: '1px solid var(--green)33',
+              background: emailSent ? 'var(--green-bg)' : 'rgba(210,153,34,0.15)',
+              border: `1px solid ${emailSent ? 'var(--green)33' : 'rgba(210,153,34,0.35)'}`,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: 'var(--green)', flexShrink: 0,
+              color: emailSent ? 'var(--green)' : '#d29922', flexShrink: 0,
             }}>
               <CheckCircle size={18}/>
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)', marginBottom: 4 }}>Invite generated — copy the link to the new admin.</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)', marginBottom: 4 }}>
+                {emailSent
+                  ? (userCreated
+                      ? 'Invite sent — account created. The new admin will receive their temporary password and accept link.'
+                      : 'Invite sent — they already had an account, the email contains only the accept link.')
+                  : 'Invite row created — but the email failed to send. Copy the link below and share it manually.'}
+              </div>
+              {emailError && (
+                <div style={{ fontSize: 12, color: 'var(--red)', marginBottom: 6 }}>Email error: {emailError}</div>
+              )}
               <div style={{ fontFamily: 'ui-monospace, Menlo, Consolas, monospace', fontSize: 12, color: 'var(--t3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lastUrl}</div>
             </div>
             <button className="btn btn-secondary btn-sm" onClick={() => copy(lastUrl)} style={{ flexShrink: 0 }}>
