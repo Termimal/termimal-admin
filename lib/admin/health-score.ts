@@ -100,6 +100,12 @@ export function computeHealth(input: HealthInputs): ComputedHealth {
 /**
  * Compute health for ALL users in batches and persist snapshots.
  * Returns counts so the admin can verify the job ran.
+ *
+ * Worker-CPU-safe limits: profile fetch capped at 5k, login_events at
+ * 10k. Beyond that, the recompute should be run from a Supabase
+ * Edge Function or pg_cron job instead — Workers have a 50s CPU
+ * ceiling and joining 50k profiles to 100k login events from a
+ * single Worker invocation will hit Error 1102.
  */
 export async function recomputeAllHealth(): Promise<{ green: number; yellow: number; red: number; total: number }> {
   const sb = serviceClient()
@@ -107,14 +113,14 @@ export async function recomputeAllHealth(): Promise<{ green: number; yellow: num
   // Get last_login per user from login_events (most recent signed_in_at).
   const { data: profiles } = await sb.from('profiles')
     .select('id, onboarding_state, subscription_status, plan')
-    .limit(50000) as { data: Array<{ id: string; onboarding_state: Record<string, unknown> | null; subscription_status: string | null; plan: string | null }> | null }
+    .limit(5000) as { data: Array<{ id: string; onboarding_state: Record<string, unknown> | null; subscription_status: string | null; plan: string | null }> | null }
   if (!profiles?.length) return { green: 0, yellow: 0, red: 0, total: 0 }
 
-  // Last login by user. One round-trip — limited to 100k rows, recent first.
+  // Last login by user. One round-trip — capped at 10k recent rows.
   const { data: logins } = await sb.from('login_events')
     .select('user_id, signed_in_at')
     .order('signed_in_at', { ascending: false })
-    .limit(100000) as { data: Array<{ user_id: string; signed_in_at: string }> | null }
+    .limit(10000) as { data: Array<{ user_id: string; signed_in_at: string }> | null }
   const lastByUser = new Map<string, string>()
   for (const r of (logins ?? [])) {
     if (!lastByUser.has(r.user_id)) lastByUser.set(r.user_id, r.signed_in_at)

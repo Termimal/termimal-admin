@@ -32,12 +32,17 @@ export async function POST(request: Request) {
   const { data: adminRoles } = await sb.from('user_roles').select('id')
   const adminIds = new Set<string>((adminRoles ?? []).map((r: { id: string }) => r.id))
 
-  // Walk auth.users via the admin API. Large accounts may need
-  // pagination — listUsers takes perPage up to 1000.
+  // Walk auth.users via the admin API. The Worker has a hard 50s CPU
+  // ceiling; signOut is one HTTP call per user so we cap one
+  // invocation at 5 pages (≈ 5k users). For larger accounts call
+  // this endpoint repeatedly with the page query param.
   let revokedUsers = 0
-  let perPage = 1000
-  let page = 1
-  while (true) {
+  const perPage = 1000
+  const startPageRaw = parseInt(new URL(request.url).searchParams.get('page') || '1', 10)
+  const startPage    = Math.max(1, isFinite(startPageRaw) ? startPageRaw : 1)
+  const maxPages     = 5
+  let lastPage       = startPage
+  for (let page = startPage; page < startPage + maxPages; page++) {
     const { data, error } = await sb.auth.admin.listUsers({ page, perPage })
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     const users = data.users
@@ -51,9 +56,8 @@ export async function POST(request: Request) {
         } catch { /* swallow per-user */ }
       }
     }
+    lastPage = page
     if (users.length < perPage) break
-    page++
-    if (page > 50) break // safety
   }
 
   // Kill API tokens. If scope=admins, only revoke tokens belonging to admins.
@@ -91,5 +95,5 @@ export async function POST(request: Request) {
     metadata: { scope, reason, revokedUsers, revokedTokens },
   })
 
-  return NextResponse.json({ ok: true, revokedUsers, revokedTokens, scope })
+  return NextResponse.json({ ok: true, revokedUsers, revokedTokens, scope, last_page: lastPage, next_page: lastPage + 1 })
 }
