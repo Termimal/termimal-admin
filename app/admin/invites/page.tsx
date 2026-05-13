@@ -17,16 +17,17 @@ interface Invite {
 
 export default function InvitesPage() {
   const [rows, setRows]       = useState<Invite[]>([])
-  const [draft, setDraft]     = useState<{ email: string; role: 'admin' | 'super_admin' }>({ email: '', role: 'admin' })
+  const [draft, setDraft]     = useState<{ email: string; role: 'admin' | 'super_admin'; password: string }>({ email: '', role: 'admin', password: '' })
   const [creating, setCreating] = useState(false)
   const [error, setError]     = useState<string | null>(null)
   const [lastUrl, setLastUrl] = useState<string | null>(null)
   // Track email delivery state separately from the URL — when Resend
   // succeeds the admin barely needs the URL, when it fails they very
   // much do.
-  const [emailSent, setEmailSent]     = useState<boolean>(false)
-  const [emailError, setEmailError]   = useState<string | null>(null)
-  const [userCreated, setUserCreated] = useState<boolean>(false)
+  const [emailSent, setEmailSent]       = useState<boolean>(false)
+  const [emailError, setEmailError]     = useState<string | null>(null)
+  const [userCreated, setUserCreated]   = useState<boolean>(false)
+  const [passwordReset, setPasswordReset] = useState<boolean>(false)
   const [copied, setCopied]   = useState(false)
 
   const load = useCallback(async () => {
@@ -38,18 +39,29 @@ export default function InvitesPage() {
 
   async function create() {
     setError(null); setCreating(true); setLastUrl(null)
-    setEmailSent(false); setEmailError(null); setUserCreated(false)
-    const r = await fetch('/api/admin/invites', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(draft) })
+    setEmailSent(false); setEmailError(null); setUserCreated(false); setPasswordReset(false)
+    // Trim password client-side — server also trims + validates length.
+    const payload = {
+      email: draft.email.trim(),
+      role:  draft.role,
+      // Omit the field if empty so the server falls back to auto-gen
+      // rather than treating "" as a custom password (length check
+      // would reject it).
+      ...(draft.password.trim() ? { password: draft.password.trim() } : {}),
+    }
+    const r = await fetch('/api/admin/invites', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
     const j = await r.json() as {
       invite_url?: string; error?: string;
-      email_sent?: boolean; email_error?: string | null; user_created?: boolean
+      email_sent?: boolean; email_error?: string | null;
+      user_created?: boolean; password_reset?: boolean;
     }
     if (j.invite_url) {
       setLastUrl(j.invite_url)
       setEmailSent(!!j.email_sent)
       setEmailError(j.email_error || null)
       setUserCreated(!!j.user_created)
-      setDraft({ email: '', role: 'admin' })
+      setPasswordReset(!!j.password_reset)
+      setDraft({ email: '', role: 'admin', password: '' })
       load()
     } else if (j.error) {
       setError(j.error)
@@ -74,13 +86,16 @@ export default function InvitesPage() {
     return { label: 'pending', chip: 'chip chip-amber' }
   }
 
-  // Headline that adapts to whether we just created the auth user, or
-  // whether the user already existed, or the email failed to send.
+  // Headline that adapts to whether we just created the auth user,
+  // overwrote an existing user's password, or just linked an existing
+  // user, and whether the email actually sent.
   const successHeadline = !emailSent
     ? 'Invite row created — but the email failed to send. Copy the link below and share it manually.'
-    : userCreated
-      ? 'Invite sent — account created. The new admin will receive their temporary password and accept link by email.'
-      : 'Invite sent — they already had an account, the email contains only the accept link.'
+    : passwordReset
+      ? 'Invite sent — existing account had its password reset to the one you chose. They can sign in now.'
+      : userCreated
+        ? 'Invite sent — account created. The new admin will receive their password and accept link by email.'
+        : 'Invite sent — they already had an account, the email contains only the accept link.'
 
   return (
     <div style={{ maxWidth: 1100 }}>
@@ -103,6 +118,21 @@ export default function InvitesPage() {
               </select>
             </Field>
           </div>
+          <Field label="Password (optional)">
+            <input
+              className="input"
+              type="text"
+              value={draft.password}
+              onChange={e => setDraft({ ...draft, password: e.target.value })}
+              placeholder="Leave blank to auto-generate a secure password"
+              autoComplete="off"
+            />
+            <div style={{ fontSize: 11, color: 'var(--t4)', marginTop: 6, lineHeight: 1.5 }}>
+              If you type a password here (≥10 chars), we&rsquo;ll use it as the new admin&rsquo;s login password
+              and include it in the email. If the address already has an account, the password will be
+              <strong> reset</strong> to what you type. Leave blank and we&rsquo;ll generate a strong one and email it.
+            </div>
+          </Field>
           {error && <div className="msg-err">✗ {error}</div>}
           <button className="btn-primary btn-sm" disabled={!draft.email || creating} onClick={create} style={{ alignSelf: 'flex-start' }}>
             <Plus size={11} /> {creating ? 'Generating…' : 'Generate invite'}
