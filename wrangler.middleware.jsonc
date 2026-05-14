@@ -1,0 +1,51 @@
+/**
+ * Termimal admin — MIDDLEWARE worker.
+ *
+ * This is the public-facing worker (bo.termimal.com). It owns the
+ * Durable Objects, serves most requests itself, and forwards only
+ * SSR/API requests to the server worker via the SERVER service
+ * binding.
+ *
+ * Deploy pattern: `wrangler deploy --config wrangler.middleware.jsonc`.
+ * The server worker MUST be deployed first so the service binding
+ * resolves on cold start.
+ *
+ * Same env vars / secrets as the original wrangler.json so existing
+ * /api/admin/* routes keep working without re-pasting credentials.
+ */
+{
+  "$schema":             "node_modules/wrangler/config-schema.json",
+  "name":                "termimal-admin",
+  "compatibility_date":  "2026-05-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "main":                ".open-next/worker.middleware.js",
+
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding":   "ASSETS"
+  },
+
+  "placement": { "mode": "smart" },
+  "observability": { "enabled": true },
+
+  // ── Service binding ────────────────────────────────────────────────
+  // The middleware worker calls `env.SERVER.fetch(modifiedRequest)`
+  // when the middleware returns a Request rather than a Response (i.e.
+  // when SSR or an API route handler needs to run). Service bindings
+  // call the bound worker in-region without a public TCP roundtrip.
+  "services": [
+    { "binding": "SERVER", "service": "termimal-admin-server" }
+  ],
+
+  "vars": {
+    "NEXT_PUBLIC_SUPABASE_URL":      "https://kqmgxnxvmahnvrmizfzr.supabase.co",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtxbWd4bnh2bWFobnZybWl6ZnpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxOTM0NTcsImV4cCI6MjA5MTc2OTQ1N30.B5g1rrpBTR9J1iLzd5Xzatqa3iGSFPxISDIou3DxwHA",
+    "NEXT_PUBLIC_ADMIN_URL":         "https://bo.termimal.com",
+    "X_REDIRECT_URI":                "https://bo.termimal.com/api/admin/marketing/social/callback/x",
+    "LINKEDIN_REDIRECT_URI":         "https://bo.termimal.com/api/admin/marketing/social/callback/linkedin",
+    "FACEBOOK_REDIRECT_URI":         "https://bo.termimal.com/api/admin/marketing/social/callback/facebook",
+    "INSTAGRAM_REDIRECT_URI":        "https://bo.termimal.com/api/admin/marketing/social/callback/instagram",
+    "THREADS_REDIRECT_URI":          "https://bo.termimal.com/api/admin/marketing/social/callback/threads",
+    "EMAIL_FROM":                    "Termimal <noreply@termimal.com>"
+  }
+}
