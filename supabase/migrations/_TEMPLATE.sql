@@ -1,0 +1,123 @@
+-- supabase/migrations/_TEMPLATE.sql — copy this for every new migration.
+--
+-- Filename convention: YYYYMMDD_HHMM_short_description.sql
+-- (yyyy-mm-dd date + 4-digit time-of-day + snake_case description).
+--
+-- Why this template exists
+-- ─────────────────────────
+-- Supabase is changing the default behavior on 2026-10-30: new tables
+-- in the public schema will NOT be exposed to the Data API
+-- (supabase-js, /rest/v1/, /graphql/v1/) unless you GRANT explicitly.
+-- See https://supabase.com/blog/new-projects-default-locked-down-public-schema
+-- (or the email Supabase sent on this).
+--
+-- Existing tables KEEP their current grants — this only affects new
+-- tables created after 2026-10-30 on existing projects. To future-proof,
+-- every new migration in this repo includes explicit GRANT statements
+-- so the migration works identically on both old and new Supabase
+-- defaults.
+--
+-- The boilerplate below is a starting point for the four common cases:
+--
+--   1. Admin-only table          → service_role full, no anon, no authenticated
+--   2. Per-user table (RLS)      → service_role full, authenticated full (RLS scopes), no anon
+--   3. Public-read admin-write   → service_role full, authenticated full, anon SELECT
+--   4. Public read + insert (e.g. feedback form) → anon INSERT with WITH CHECK guards
+--
+-- Pick ONE and delete the rest. Don't ship a migration with all four.
+
+-- ────────────────────────────────────────────────────────────────────
+-- BOILERPLATE: comment the header with what changed and why.
+-- ────────────────────────────────────────────────────────────────────
+
+-- 1) CREATE TABLE ─────────────────────────────────────────────────────
+-- create table public.your_table (
+--   id          uuid primary key default gen_random_uuid(),
+--   created_at  timestamptz not null default now(),
+--   updated_at  timestamptz not null default now(),
+--   -- domain columns…
+-- );
+
+-- 2) ENABLE RLS ───────────────────────────────────────────────────────
+-- alter table public.your_table enable row level security;
+
+-- 3) GRANT ────────────────────────────────────────────────────────────
+--
+-- Case 1: admin-only table (most internal tables — audit_logs,
+-- email_log, customer_notes, system_settings, etc.)
+--
+--   grant select, insert, update, delete on public.your_table to service_role;
+--   -- nothing to anon or authenticated. service_role bypasses RLS.
+--   -- All admin reads happen via the service-role client.
+--
+-- Case 2: per-user table (RLS does the heavy lifting)
+--
+--   grant select, insert, update, delete on public.your_table to service_role;
+--   grant select, insert, update, delete on public.your_table to authenticated;
+--   -- RLS will scope each row to auth.uid().
+--
+-- Case 3: public-read, admin-write
+--
+--   grant select, insert, update, delete on public.your_table to service_role;
+--   grant select, insert, update, delete on public.your_table to authenticated;
+--   grant select on public.your_table to anon;
+--
+-- Case 4: anon may insert (CSP report endpoint, feedback form)
+--
+--   grant select, insert, update, delete on public.your_table to service_role;
+--   grant insert on public.your_table to anon;
+--   -- DEFINE an RLS policy with a strict WITH CHECK clause so anon
+--   -- can only insert sane rows. NEVER grant select to anon on a
+--   -- table where you accept anon writes — that lets anyone read
+--   -- everyone else's writes.
+
+-- 4) RLS POLICIES ─────────────────────────────────────────────────────
+--
+-- Pattern: one policy per (role, command). Don't reuse policies across
+-- roles — keeps the audit log clear.
+--
+-- Per-user select:
+--   create policy "your_table_owner_select"
+--     on public.your_table
+--     for select to authenticated
+--     using (user_id = auth.uid());
+--
+-- Per-user insert:
+--   create policy "your_table_owner_insert"
+--     on public.your_table
+--     for insert to authenticated
+--     with check (user_id = auth.uid());
+--
+-- Public read (case 3):
+--   create policy "your_table_public_read"
+--     on public.your_table
+--     for select to anon, authenticated
+--     using (is_published = true);  -- or whatever gate
+--
+-- Admin write (any case):
+--   create policy "your_table_admin_write"
+--     on public.your_table
+--     for all to authenticated
+--     using (is_admin())
+--     with check (is_admin());
+
+-- 5) INDEXES + TRIGGERS ──────────────────────────────────────────────
+-- create index your_table_user_id_idx on public.your_table (user_id);
+--
+-- updated_at trigger pattern:
+-- create trigger your_table_set_updated_at
+--   before update on public.your_table
+--   for each row
+--   execute function moddatetime ('updated_at');
+
+-- ────────────────────────────────────────────────────────────────────
+-- DON'T DO
+-- ────────────────────────────────────────────────────────────────────
+-- - grant all on public.your_table to anon;
+-- - create policy "open_select" on public.your_table for select using (true);
+--   (USING(true) is fine for genuinely-public tables like seo_pages.
+--    It's NOT fine for tables with any user-scoped data.)
+-- - rely on RLS without an explicit grant. After 2026-10-30, anon and
+--   authenticated have NO access by default — RLS policies on a
+--   table without GRANT do nothing.
+-- - copy an existing migration and forget to update the table name.
