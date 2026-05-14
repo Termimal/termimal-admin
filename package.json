@@ -11,6 +11,9 @@
         "cf:build": "opennextjs-cloudflare build",
         "cf:deploy": "opennextjs-cloudflare build && wrangler deploy --keep-vars",
         "deploy": "opennextjs-cloudflare build && wrangler deploy",
+        "split:build": "opennextjs-cloudflare build && node scripts/build-split.cjs",
+        "split:deploy": "node scripts/deploy-split.cjs",
+        "split:rollback": "node scripts/deploy-split.cjs --rollback",
         "dev": "next dev"
     },
     "dependencies": {
