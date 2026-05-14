@@ -61,7 +61,19 @@ const Facebook  = (props: any) => (
 //   Platforms
 // ────────────────────────────────────────────────────────────────
 
-type Platform = 'x' | 'instagram' | 'linkedin' | 'threads' | 'facebook'
+type Platform = 'x' | 'instagram' | 'linkedin' | 'threads' | 'facebook' | 'bluesky' | 'mastodon'
+
+/* Brand glyphs for the two free-tier platforms. */
+const Bluesky = (props: any) => (
+  <svg viewBox="0 0 24 24" width={props.size||16} height={props.size||16} fill="currentColor" aria-hidden>
+    <path d="M5.32 4.59C7.18 5.99 9.18 8.83 10 10.6c.82-1.77 2.82-4.61 4.68-6.01C16.18 3.48 18.5 2.7 19.85 3.85c1.07.92 1.5 2.7.94 4.35-.86 2.49-3.13 5.07-5.21 6.07.94.46 1.79 1.65 2.05 3.04.18.94.07 1.74-.34 2.27-.79.99-1.78.34-2.66-1.04C13.74 17.31 12.55 15.43 12 14.4c-.55 1.03-1.74 2.91-2.63 4.14-.88 1.38-1.87 2.03-2.66 1.04-.4-.53-.52-1.33-.34-2.27.26-1.39 1.11-2.58 2.05-3.04-2.08-1-4.35-3.58-5.21-6.07-.56-1.65-.13-3.43.94-4.35C5.5 2.7 7.82 3.48 9.32 4.59z"/>
+  </svg>
+)
+const Mastodon = (props: any) => (
+  <svg viewBox="0 0 24 24" width={props.size||16} height={props.size||16} fill="currentColor" aria-hidden>
+    <path d="M21.58 12.93c-.3 1.57-2.71 3.28-5.47 3.62-1.44.18-2.86.34-4.37.27-2.47-.12-4.42-.6-4.42-.6 0 .24.02.47.05.69.32 2.47 2.43 2.62 4.43 2.69 2.02.07 3.82-.5 3.82-.5l.08 1.83s-1.41.76-3.93.9c-1.39.08-3.11-.04-5.13-.57-4.36-1.16-5.11-5.83-5.22-10.57-.04-1.41-.02-2.74-.02-3.85 0-4.85 3.16-6.27 3.16-6.27C6.16.86 8.87.5 11.69.48h.07c2.82.02 5.53.38 7.13 1.09 0 0 3.16 1.42 3.16 6.27 0 0 .04 3.58-.44 5.09zM18.6 8.27v5.8h-2.3V8.44c0-1.19-.5-1.8-1.5-1.8-1.1 0-1.66.71-1.66 2.13v3.08H10.85V8.77c0-1.42-.55-2.13-1.66-2.13-1 0-1.5.61-1.5 1.8v5.63H5.4V8.27c0-1.19.3-2.13.92-2.83.63-.7 1.46-1.06 2.49-1.06 1.19 0 2.09.46 2.7 1.37l.57.96.58-.96c.61-.91 1.51-1.37 2.7-1.37 1.02 0 1.85.36 2.49 1.06.61.7.92 1.64.92 2.83z"/>
+  </svg>
+)
 
 const PLATFORMS: Array<{
   key: Platform
@@ -72,7 +84,13 @@ const PLATFORMS: Array<{
   charLimit: number
   setupUrl: string
   setupNote: string
+  /** True for platforms that use credential-paste instead of OAuth.
+   *  Drives the "Connect with credentials" UI instead of opening a
+   *  developer-portal link in a new tab. */
+  credentialBased?: boolean
 }> = [
+  { key: 'bluesky',   label: 'Bluesky',     icon: Bluesky,        color: '#fff',     bg: '#0085ff',        charLimit: 300,   setupUrl: 'https://bsky.app/settings/app-passwords',           setupNote: 'Go to Bluesky → Settings → App Passwords → Create. Paste handle + app password here. No OAuth, no developer review.', credentialBased: true },
+  { key: 'mastodon',  label: 'Mastodon',    icon: Mastodon,       color: '#fff',     bg: '#6364ff',        charLimit: 500,   setupUrl: 'https://mastodon.social/settings/applications',     setupNote: 'On your Mastodon instance → Preferences → Development → New Application. Scope: write:statuses. Paste instance URL + the access token shown after creating the app.', credentialBased: true },
   { key: 'x',         label: 'X (Twitter)', icon: Twitter,        color: '#fff',     bg: '#000',           charLimit: 280,   setupUrl: 'https://developer.twitter.com/en/portal/dashboard', setupNote: 'Create an X dev project, enable OAuth 2.0, request "tweets.write" scope.' },
   { key: 'linkedin',  label: 'LinkedIn',    icon: Linkedin,       color: '#fff',     bg: '#0a66c2',        charLimit: 3000,  setupUrl: 'https://www.linkedin.com/developers/apps',          setupNote: 'Create a LinkedIn app, request "w_member_social" + "r_organization_social" scopes.' },
   { key: 'instagram', label: 'Instagram',   icon: Instagram,      color: '#fff',     bg: 'linear-gradient(135deg, #f58529 0%, #dd2a7b 50%, #515bd4 100%)', charLimit: 2200, setupUrl: 'https://developers.facebook.com/apps',                setupNote: 'Same as Meta — Instagram posts go through the Graph API on a Facebook Business app.' },
@@ -117,6 +135,46 @@ export default function SocialStudioPage() {
   type StatusMap = Record<string, ConnState> & { _config?: { x?: { configured: boolean } } }
   const [conns, setConns] = useState<StatusMap>({} as StatusMap)
   const [connBanner, setBanner] = useState<{ ok: boolean; msg: string } | null>(null)
+
+  // Credential-modal state — used by Bluesky and Mastodon which don't
+  // run an OAuth dance. `identifier` is the bsky handle or mastodon
+  // instance URL; `secret` is the app password or access token.
+  // `service` is the optional custom PDS for self-hosted Bluesky.
+  interface CredsModal {
+    platform: Platform
+    identifier: string
+    secret: string
+    service: string
+    busy: boolean
+    error: string | null
+  }
+  const [credsModal, setCredsModal] = useState<CredsModal | null>(null)
+
+  const submitCreds = async () => {
+    if (!credsModal) return
+    setCredsModal({ ...credsModal, busy: true, error: null })
+    const payload =
+      credsModal.platform === 'bluesky'
+        ? { platform: 'bluesky',  identifier: credsModal.identifier, password:    credsModal.secret, service: credsModal.service || undefined }
+        : { platform: 'mastodon', instance:   credsModal.identifier, accessToken: credsModal.secret }
+    try {
+      const r = await fetch('/api/admin/marketing/social/connect-creds', {
+        method:  'POST',
+        headers: { 'content-type': 'application/json' },
+        body:    JSON.stringify(payload),
+      })
+      const j = await r.json()
+      if (!r.ok) {
+        setCredsModal({ ...credsModal, busy: false, error: j.error || 'connect failed' })
+        return
+      }
+      setCredsModal(null)
+      setBanner({ ok: true, msg: `${credsModal.platform} connected as ${j.handle}` })
+      await loadStatus()
+    } catch (e) {
+      setCredsModal({ ...credsModal, busy: false, error: e instanceof Error ? e.message : 'network error' })
+    }
+  }
 
   const loadStatus = async () => {
     try {
@@ -336,6 +394,19 @@ export default function SocialStudioPage() {
                           <button onClick={() => disconnect(p.key)} className="btn btn-secondary btn-sm" style={{ minHeight:30, padding:'4px 10px', fontSize:11.5, color:'var(--red)' }}>
                             <Trash2 size={11}/> Disconnect
                           </button>
+                        </>
+                      ) : p.credentialBased ? (
+                        <>
+                          <button
+                            onClick={() => setCredsModal({ platform: p.key, identifier: '', secret: '', service: '', busy: false, error: null })}
+                            className="btn btn-primary btn-sm"
+                            style={{ minHeight:30, padding:'4px 10px', fontSize:11.5 }}
+                          >
+                            <Plus size={11}/> Connect
+                          </button>
+                          <a href={p.setupUrl} target="_blank" rel="noopener noreferrer" className="btn btn-secondary btn-sm" style={{ minHeight:30, padding:'4px 10px', fontSize:11.5 }}>
+                            <ExternalLink size={11}/> Where to find creds
+                          </a>
                         </>
                       ) : (
                         <>
@@ -599,6 +670,107 @@ export default function SocialStudioPage() {
           </div>
         )}
       </Section>
+
+      {/* ───── Credential-paste modal (Bluesky + Mastodon) ─────── */}
+      {credsModal && (
+        <div
+          onClick={() => !credsModal.busy && setCredsModal(null)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 100,
+            background: 'rgba(0,0,0,0.55)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: 20,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: '100%', maxWidth: 480,
+              background: 'var(--bg)',
+              border: '1px solid var(--border)',
+              borderRadius: 8,
+              padding: 24,
+            }}
+          >
+            <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>
+              Connect {credsModal.platform === 'bluesky' ? 'Bluesky' : 'Mastodon'}
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--t3)', lineHeight: 1.5, marginBottom: 16 }}>
+              {credsModal.platform === 'bluesky'
+                ? 'Generate an app password at bsky.app → Settings → App Passwords. Paste handle + app password below. We never store your account password.'
+                : 'On your Mastodon instance, go to Preferences → Development → New Application. Scope: write:statuses. Paste the instance URL + access token from that page.'}
+            </div>
+
+            {/* Inputs — only labels change per platform; the form
+                shape (identifier + secret + optional service) is the
+                same. */}
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--t2)', marginBottom: 4 }}>
+                {credsModal.platform === 'bluesky' ? 'Handle (e.g. yourname.bsky.social)' : 'Instance URL (e.g. https://mastodon.social)'}
+              </label>
+              <input
+                value={credsModal.identifier}
+                onChange={(e) => setCredsModal({ ...credsModal, identifier: e.target.value })}
+                autoComplete="off"
+                style={{ width: '100%', padding: '8px 10px', fontSize: 13, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 4, color: 'var(--t1)', outline: 'none' }}
+              />
+            </div>
+
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--t2)', marginBottom: 4 }}>
+                {credsModal.platform === 'bluesky' ? 'App password (NOT your account password)' : 'Access token'}
+              </label>
+              <input
+                value={credsModal.secret}
+                onChange={(e) => setCredsModal({ ...credsModal, secret: e.target.value })}
+                type="password"
+                autoComplete="off"
+                style={{ width: '100%', padding: '8px 10px', fontSize: 13, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 4, color: 'var(--t1)', outline: 'none' }}
+              />
+            </div>
+
+            {credsModal.platform === 'bluesky' && (
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--t2)', marginBottom: 4 }}>
+                  Custom PDS service (optional — defaults to https://bsky.social)
+                </label>
+                <input
+                  value={credsModal.service}
+                  onChange={(e) => setCredsModal({ ...credsModal, service: e.target.value })}
+                  placeholder="https://bsky.social"
+                  autoComplete="off"
+                  style={{ width: '100%', padding: '8px 10px', fontSize: 13, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 4, color: 'var(--t1)', outline: 'none' }}
+                />
+              </div>
+            )}
+
+            {credsModal.error && (
+              <div style={{ padding: 10, marginBottom: 12, fontSize: 12, color: 'var(--red)', background: 'rgba(248,81,73,0.08)', border: '1px solid rgba(248,81,73,0.3)', borderRadius: 4 }}>
+                {credsModal.error}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+              <button
+                onClick={() => setCredsModal(null)}
+                disabled={credsModal.busy}
+                className="btn btn-secondary btn-sm"
+                style={{ padding: '6px 14px' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={submitCreds}
+                disabled={credsModal.busy || !credsModal.identifier || !credsModal.secret}
+                className="btn btn-primary btn-sm"
+                style={{ padding: '6px 14px' }}
+              >
+                {credsModal.busy ? <><Loader2 size={11} className="spin"/> Verifying…</> : <><CheckCircle2 size={11}/> Connect</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style jsx>{`
         :global(.spin) { animation: spin 1s linear infinite; }
