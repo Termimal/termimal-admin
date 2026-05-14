@@ -9,7 +9,7 @@ import {
   LifeBuoy, LineChart, Map, MessageSquare, PackageOpen, Receipt, RefreshCw,
   Send, ShieldAlert, Sliders, Star, Tag, Target, TestTube, Ticket, ToggleRight,
   UserCog, Webhook, Wrench, Zap, Calendar, Coins, ClipboardList, FileSearch,
-  Layout, Cog,
+  Layout, Cog, Key,
 } from "lucide-react";
 
 /**
@@ -133,6 +133,7 @@ const navGroups: { title: string; items: { label: string; href: string; icon: an
   {
     title: "SECURITY",
     items: [
+      { label: "Connections",      href: "/admin/connections",    icon: Key },
       { label: "Secrets Registry", href: "/admin/secrets",        icon: ShieldCheck },
       { label: "System State",     href: "/admin/system",         icon: Cog },
     ],
