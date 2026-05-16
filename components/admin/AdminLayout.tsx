@@ -168,13 +168,30 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <div className="min-h-screen flex" style={{ background: 'var(--bg)', color: 'var(--t1)' }}>
-      <aside className="w-60 shrink-0 p-4 flex flex-col border-r" style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}>
-        <div className="flex items-center gap-2 mb-4 px-2">
-          <div className="relative w-5 h-5">
+      <aside
+        className="w-64 shrink-0 p-4 flex flex-col border-r"
+        style={{
+          borderColor: 'var(--border)',
+          background:  'var(--surface)',
+          // Lock the sidebar to its declared width — without this, on
+          // some narrow viewports the flex parent let the sidebar
+          // shrink below 256px, which clipped the group header labels
+          // ("OVERVIEW" → "ERVIEW") from the left.
+          minWidth:    256,
+          maxWidth:    256,
+        }}
+      >
+        <div className="flex items-center gap-2 mb-4 px-2" style={{ minWidth: 0 }}>
+          <div className="relative w-5 h-5 shrink-0">
             <div className="absolute inset-0 rounded-[2px] rotate-45 border-2" style={{ borderColor: 'var(--acc)', opacity: .5 }} />
             <div className="absolute inset-[2px] rounded-[1px] rotate-45" style={{ background: 'var(--acc)' }} />
           </div>
-          <span className="text-[0.85rem] font-bold tracking-tight">Termimal Admin</span>
+          <span
+            className="text-[0.85rem] font-bold tracking-tight"
+            style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+          >
+            Termimal Admin
+          </span>
         </div>
 
         {/* Quick search — the nav got long enough to need it. */}
@@ -198,8 +215,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         <nav className="flex flex-col gap-5 flex-1 overflow-y-auto no-scrollbar">
           {filteredGroups.map((group) => (
-            <div key={group.title}>
-              <div className="px-2 mb-1.5 text-[0.55rem] font-bold uppercase tracking-wider" style={{ color: 'var(--t4)' }}>
+            <div key={group.title} style={{ minWidth: 0 }}>
+              <div
+                className="px-2 mb-1.5 text-[0.6rem] font-bold uppercase tracking-wider"
+                style={{
+                  color:        'var(--t4)',
+                  // Group labels were clipping ("USERS & ROLES" →
+                  // "RS & ROLES") on narrow viewports because the
+                  // header had no overflow guard. Lock single-line +
+                  // ellipsis so the label degrades cleanly.
+                  whiteSpace:   'nowrap',
+                  overflow:     'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
                 {group.title}
               </div>
               <div className="flex flex-col gap-0.5">
@@ -212,15 +241,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     <Link
                       key={item.href}
                       href={item.href}
-                      className="flex items-center gap-2 px-2.5 py-1.5 rounded-md text-[0.72rem] font-medium transition-all"
+                      className="flex items-center gap-2 px-2.5 py-1.5 rounded-md text-[0.74rem] font-medium transition-all"
                       style={{
                         background: active ? 'var(--bg)' : 'transparent',
                         color:      active ? 'var(--t1)' : 'var(--t3)',
                         border:     active ? '1px solid var(--border)' : '1px solid transparent',
+                        whiteSpace:   'nowrap',
+                        overflow:     'hidden',
+                        textOverflow: 'ellipsis',
+                        minWidth:     0,
                       }}
                     >
-                      <Icon size={13} style={{ color: active ? 'var(--acc)' : 'currentColor' }} />
-                      {item.label}
+                      <Icon size={13} className="shrink-0" style={{ color: active ? 'var(--acc)' : 'currentColor' }} />
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.label}</span>
                     </Link>
                   );
                 })}
