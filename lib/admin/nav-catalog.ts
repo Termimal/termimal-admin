@@ -29,6 +29,7 @@ export const ADMIN_NAV: NavGroup[] = [
     title: 'OVERVIEW',
     items: [
       { label: 'Dashboard',         href: '/admin' },
+      { label: 'Daily Digest',      href: '/admin/digest' },
       { label: 'Health',            href: '/admin/health' },
       { label: 'BI',                href: '/admin/bi' },
       { label: 'Funnel',            href: '/admin/funnel' },
