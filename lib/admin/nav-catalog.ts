@@ -79,6 +79,7 @@ export const ADMIN_NAV: NavGroup[] = [
   {
     title: 'OPERATIONS',
     items: [
+      { label: 'Power Search',      href: '/admin/search' },
       { label: 'Items',             href: '/admin/items' },
       { label: 'Email Templates',   href: '/admin/email-templates' },
       { label: 'Email Log',         href: '/admin/email-log' },
