@@ -52,6 +52,7 @@ export const ADMIN_NAV: NavGroup[] = [
     items: [
       { label: 'Subscriptions',     href: '/admin/subscriptions' },
       { label: 'Payments',          href: '/admin/payments' },
+      { label: 'Payment Issues',    href: '/admin/payment-issues' },
       { label: 'Coupons',           href: '/admin/coupons' },
       { label: 'Cohorts',           href: '/admin/cohorts' },
     ],
