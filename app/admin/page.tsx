@@ -11,6 +11,7 @@ import {
   Settings, RefreshCw, Star, Crown,
 } from 'lucide-react'
 import { HeroCard } from '@/components/admin/PageChrome'
+import LiveActivityStream from '@/components/admin/LiveActivityStream'
 
 function adminClient() {
   return createClient(
@@ -446,6 +447,11 @@ export default async function AdminDashboard() {
           </Link>
         </div>
       </div>
+
+      {/* Live activity feed — polls audit_logs every 10s. Drops in
+          right above the Recent signups table so an admin opening
+          the dashboard immediately sees "what's happening now". */}
+      <LiveActivityStream/>
 
       {/* Recent signups — full-width table with generous padding */}
       <div className="card-premium" style={{ marginBottom: 32, overflow: 'hidden' }}>
