@@ -1,5 +1,6 @@
 {
   "name": "termimal-admin",
+  "account_id": "f47a7cb3d0e8ed5030b7c73afa93d3cc",
   "compatibility_date": "2026-05-01",
   "compatibility_flags": [
     "nodejs_compat"
