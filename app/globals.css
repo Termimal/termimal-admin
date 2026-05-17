@@ -282,36 +282,84 @@ label:not([class]):not([class=""]) {
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    padding: 0.7rem 1.25rem;
+    padding: 0.65rem 1.15rem;
     border-radius: 999px;
-    font-size: 0.9rem;
-    line-height: 1.1rem;
+    font-size: 0.875rem;
+    line-height: 1;
     font-weight: 600;
     letter-spacing: -0.005em;
     cursor: pointer;
     user-select: none;
+    /* `white-space: nowrap` + icon flex-shrink: 0 below prevents the
+       "label crops awkwardly mid-word" bug we kept seeing on
+       narrow ItemCard footers and dense toolbars. The button grows
+       wider when forced, instead of wrapping. */
+    white-space: nowrap;
+    min-height: 36px;
     transition: all var(--ease);
   }
+  .btn > svg,
+  .btn-primary > svg,
+  .btn-secondary > svg,
+  .btn-ghost > svg,
+  .btn-danger > svg { flex-shrink: 0; }
   .btn:active,
   .btn-primary:active,
   .btn-secondary:active,
   .btn-ghost:active,
   .btn-danger:active { transform: scale(0.97); }
+  .btn[disabled],
+  .btn-primary[disabled],
+  .btn-secondary[disabled],
+  .btn-ghost[disabled],
+  .btn-danger[disabled] { opacity: 0.55; cursor: not-allowed; transform: none; }
 
-  .btn-primary { background: var(--acc2); color: #fff; }
-  .btn-primary:hover { background: var(--acc3); filter: brightness(1.1); }
+  /* Revolut-y elevation: subtle hairline + soft drop shadow that
+     deepens on hover. Primary gets an accent-tinted shadow so it
+     reads as the focal action without needing a giant fill colour. */
+  .btn-primary {
+    background: var(--acc2);
+    color: #fff;
+    box-shadow:
+      0 1px 1.5px rgba(0,0,0,0.15),
+      0 0 0 1px rgba(255,255,255,0.06) inset;
+  }
+  .btn-primary:hover {
+    background: var(--acc3);
+    filter: brightness(1.05);
+    box-shadow:
+      0 4px 14px rgba(56,139,253,0.32),
+      0 0 0 1px rgba(255,255,255,0.08) inset;
+  }
 
-  .btn-secondary { background: var(--surface2); color: var(--t2); border: 1px solid var(--border); }
-  .btn-secondary:hover { border-color: var(--border2); color: var(--t1); background: rgba(255,255,255,0.09); }
+  .btn-secondary {
+    background: var(--surface2);
+    color: var(--t2);
+    border: 1px solid var(--border);
+    box-shadow: 0 1px 1px rgba(0,0,0,0.04);
+  }
+  .btn-secondary:hover {
+    border-color: var(--border2);
+    color: var(--t1);
+    background: rgba(255,255,255,0.09);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.10);
+  }
 
   .btn-ghost { color: var(--t3); background: transparent; border: 1px solid transparent; }
   .btn-ghost:hover { color: var(--t1); background: var(--surface); border-color: var(--border); }
 
-  .btn-danger { background: var(--red-bg); color: var(--red); border: 1px solid rgba(248,113,113,0.15); }
-  .btn-danger:hover { background: rgba(248,113,113,0.16); }
+  .btn-danger {
+    background: var(--red-bg);
+    color: var(--red);
+    border: 1px solid rgba(248,113,113,0.18);
+  }
+  .btn-danger:hover {
+    background: rgba(248,113,113,0.16);
+    box-shadow: 0 2px 8px rgba(248,113,113,0.25);
+  }
 
-  .btn-sm { padding: 0.5rem 0.95rem; font-size: 0.8rem; line-height: 1rem; border-radius: 999px; font-weight: 600; }
-  .btn-xs { padding: 0.35rem 0.7rem; font-size: 0.75rem; line-height: 1rem; border-radius: 999px; font-weight: 600; }
+  .btn-sm { padding: 0.45rem 0.85rem; font-size: 0.78rem; line-height: 1; border-radius: 999px; font-weight: 600; min-height: 30px; }
+  .btn-xs { padding: 0.3rem 0.65rem;  font-size: 0.72rem; line-height: 1; border-radius: 999px; font-weight: 600; min-height: 24px; }
 
   .card {
     background: linear-gradient(180deg, var(--surface2) 0%, var(--surface) 100%);

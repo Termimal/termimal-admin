@@ -120,7 +120,7 @@ export const ADMIN_NAV: NavGroup[] = [
     items: [
       { label: 'Consent',           href: '/admin/consent' },
       { label: 'DSAR',              href: '/admin/dsar' },
-      { label: 'GDPR Sub-processors', href: '/admin/gdpr-sub-processors' },
+      { label: 'GDPR Sub-processors', href: '/admin/sub-processors' },
     ],
   },
   {
@@ -136,7 +136,7 @@ export const ADMIN_NAV: NavGroup[] = [
     items: [
       { label: 'System',            href: '/admin/system' },
       { label: 'Maintenance',       href: '/admin/maintenance' },
-      { label: 'Data Export',       href: '/admin/data-export' },
+      { label: 'Data Export',       href: '/admin/export' },
       { label: 'Admin Invites',     href: '/admin/invites' },
       { label: 'Settings',          href: '/admin/settings' },
     ],
