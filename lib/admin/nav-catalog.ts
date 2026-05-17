@@ -106,6 +106,7 @@ export const ADMIN_NAV: NavGroup[] = [
     title: 'RELIABILITY',
     items: [
       { label: 'API Health',        href: '/admin/api-health' },
+      { label: 'Critical Alerts',   href: '/admin/alerts' },
       { label: 'Errors',            href: '/admin/errors' },
       { label: 'Anomalies',         href: '/admin/anomalies' },
       { label: 'CSP Reports',       href: '/admin/csp-reports' },
