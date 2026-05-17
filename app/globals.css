@@ -367,6 +367,71 @@ img, picture, video, canvas, svg { display: block; max-width: 100%; }
 
   .divider { border: none; border-top: 1px solid var(--border); }
 
+  /* iOS-style toggle pill. Used by the permissions matrix and any
+     other on/off control where a checkbox would feel clunky. Pair
+     with `aria-pressed` so screen readers track state. */
+  .toggle {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 44px;
+    height: 24px;
+    border-radius: 9999px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    position: relative;
+    cursor: pointer;
+    flex-shrink: 0;
+    padding: 0;
+    transition: background var(--ease), border-color var(--ease);
+  }
+  .toggle::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--t3);
+    transition: left var(--ease), background var(--ease), box-shadow var(--ease);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+  }
+  .toggle:hover { border-color: var(--border2); }
+  .toggle[aria-pressed="true"] {
+    background: var(--acc-bg);
+    border-color: var(--acc);
+  }
+  .toggle[aria-pressed="true"]::before {
+    left: 22px;
+    background: var(--acc);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.4), 0 0 12px var(--acc-bg);
+  }
+  .toggle:disabled { cursor: wait; opacity: 0.6; }
+  .toggle:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--acc-bg);
+  }
+
+  /* Larger pill variants for primary toggles */
+  .toggle-lg { width: 52px; height: 28px; }
+  .toggle-lg::before { width: 22px; height: 22px; }
+  .toggle-lg[aria-pressed="true"]::before { left: 26px; }
+
+  /* Compact "permissions row" — one item label + N role toggles.
+     Pure Grid so columns align across many rows in a section. */
+  .perm-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) repeat(var(--perm-cols, 5), minmax(96px, 1fr));
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px;
+    border-top: 1px solid var(--border);
+    transition: background var(--ease);
+  }
+  .perm-row:first-child { border-top: none; }
+  .perm-row:hover { background: var(--surface); }
+  .perm-row .perm-cell { display: flex; justify-content: center; }
+
   /* Legacy .kpi-card auto-upgraded to the premium look — old pages
      get Revolut-style depth without per-page rewrites. */
   .kpi-card {
