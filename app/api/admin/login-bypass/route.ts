@@ -180,7 +180,7 @@ export async function POST(request: Request) {
     if (!userId) {
       return respondError('malformed login response', 500)
     }
-    const roleRes = await fetch(`${supabaseUrl}/rest/v1/user_roles?id=eq.${encodeURIComponent(userId)}&select=role`, {
+    const roleRes = await fetch(`${supabaseUrlValue}/rest/v1/user_roles?id=eq.${encodeURIComponent(userId)}&select=role`, {
       headers: {
         'apikey':        serviceKey,
         'Authorization': `Bearer ${serviceKey}`,
@@ -229,7 +229,7 @@ export async function POST(request: Request) {
                : 'unknown'
       const device = isBot ? 'bot' : isTablet ? 'tablet' : isMobile ? 'mobile' : 'desktop'
       const cfAny = (request as unknown as { cf?: Record<string, unknown> }).cf
-      await fetch(`${supabaseUrl}/rest/v1/login_events`, {
+      await fetch(`${supabaseUrlValue}/rest/v1/login_events`, {
         method:  'POST',
         headers: {
           'apikey':         serviceKey,
