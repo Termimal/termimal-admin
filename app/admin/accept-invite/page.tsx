@@ -2,8 +2,8 @@
 
 import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import Link from 'next/link'
 import { Shield, CheckCircle, XCircle, Loader2, ArrowRight, Terminal } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 
 function AcceptInviteInner() {
   const router = useRouter()
@@ -119,8 +119,27 @@ function AcceptInviteInner() {
             <XCircle size={32} style={{ color: 'var(--red)', marginBottom: 10 }} />
             <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--red)' }}>{error || 'Could not accept invite'}</div>
             <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <Link href="/login" className="btn btn-secondary">Sign in with the invited email</Link>
-              {state === 'err' && token && (
+              {/* Preserve the token through the login round-trip so
+                  the user returns to this exact page after signing in.
+                  When the error is "this invite was issued to X" the
+                  caller is signed in as the wrong user — clear that
+                  session first so /login renders the form instead of
+                  bouncing back via the middleware short-circuit. */}
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={async () => {
+                  const isWrongUser = /sign in as that user/i.test(error)
+                  if (isWrongUser) {
+                    try { await createClient().auth.signOut() } catch { /* fall through */ }
+                  }
+                  const next = token ? `/admin/accept-invite?token=${token}` : null
+                  window.location.assign(next ? `/login?next=${encodeURIComponent(next)}` : '/login')
+                }}
+              >
+                Sign in with the invited email
+              </button>
+              {token && (
                 <button onClick={accept} className="btn btn-ghost" style={{ fontSize: 12 }}>Try again</button>
               )}
             </div>
