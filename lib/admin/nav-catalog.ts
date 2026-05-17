@@ -127,6 +127,7 @@ export const ADMIN_NAV: NavGroup[] = [
     items: [
       { label: 'Connections',       href: '/admin/connections' },
       { label: 'IP Allowlist',      href: '/admin/ip-allowlist' },
+      { label: 'Abuse Flags',       href: '/admin/abuse-flags' },
     ],
   },
   {
