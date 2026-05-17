@@ -1,3 +1,4 @@
+import { supabaseUrl, supabaseAnonKey } from "@/lib/supabase/env"
 /**
  * /api/admin/inactive-customers
  *
@@ -20,7 +21,7 @@ import { requireAdmin } from '@/lib/admin/require-admin'
 
 function admin() {
   return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    supabaseUrl(),
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } },
   )

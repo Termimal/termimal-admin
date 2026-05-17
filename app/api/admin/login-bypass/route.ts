@@ -1,3 +1,4 @@
+import { supabaseUrl, supabaseAnonKey } from "@/lib/supabase/env"
 /**
  * /api/admin/login-bypass — server-side admin login that sidesteps the
  * Supabase client-side captcha enforcement.
@@ -135,14 +136,14 @@ export async function POST(request: Request) {
 
     const body = { email, password }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseUrlValue = supabaseUrl()
     const serviceKey  = process.env.SUPABASE_SERVICE_ROLE_KEY
-    if (!supabaseUrl || !serviceKey) {
+    if (!supabaseUrlValue || !serviceKey) {
       return NextResponse.json({ error: 'server is missing supabase configuration' }, { status: 503 })
     }
 
     // Service-role token request — Supabase skips captcha for service-role.
-    const tokenRes = await fetch(`${supabaseUrl}/auth/v1/token?grant_type=password`, {
+    const tokenRes = await fetch(`${supabaseUrlValue}/auth/v1/token?grant_type=password`, {
       method: 'POST',
       headers: {
         'apikey':        serviceKey,

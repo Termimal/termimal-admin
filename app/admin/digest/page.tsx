@@ -1,3 +1,4 @@
+import { supabaseUrl, supabaseAnonKey } from "@/lib/supabase/env"
 /**
  * /admin/digest — daily snapshot of what changed yesterday.
  *
@@ -28,7 +29,7 @@ import { HeroCard } from '@/components/admin/PageChrome'
 
 function adminClient() {
   return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    supabaseUrl(),
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     { auth: { persistSession: false, autoRefreshToken: false } },
   )

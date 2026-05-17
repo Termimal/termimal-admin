@@ -1,3 +1,4 @@
+import { supabaseUrl, supabaseAnonKey } from "@/lib/supabase/env"
 /**
  * Admin dashboard — Revolut-style: oversize KPIs, generous spacing,
  * touch-friendly buttons, clear hierarchy. No bento clutter.
@@ -15,7 +16,7 @@ import LiveActivityStream from '@/components/admin/LiveActivityStream'
 
 function adminClient() {
   return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    supabaseUrl(),
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     { auth: { persistSession: false, autoRefreshToken: false } },
   )

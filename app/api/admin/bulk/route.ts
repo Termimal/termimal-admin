@@ -1,3 +1,4 @@
+import { supabaseUrl, supabaseAnonKey } from "@/lib/supabase/env"
 /**
  * /api/admin/bulk — fan-out admin actions over a segment.
  *
@@ -76,7 +77,7 @@ export async function POST(request: Request) {
         }
         case 'force_password_reset': {
           if (!u.email) throw new Error('no email')
-          const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
+          const url = supabaseUrl()
           const key = process.env.SUPABASE_SERVICE_ROLE_KEY!
           await fetch(`${url}/auth/v1/admin/generate_link`, {
             method: 'POST',
