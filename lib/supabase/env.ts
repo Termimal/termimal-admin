@@ -25,7 +25,7 @@ const SUPABASE_ANON_KEY_FALLBACK    = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJp
 
 export function supabaseUrl(): string {
   const v = process.env.NEXT_PUBLIC_SUPABASE_URL
-  if (v && /^https?:\/\//i.test(v)) return v
+  if (v && /^https?:\/\//i.test(v) && !v.includes('placeholder') && !v.includes('your-project')) return v
   return SUPABASE_PROJECT_URL_FALLBACK
 }
 
