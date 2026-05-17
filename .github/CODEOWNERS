@@ -1,0 +1,20 @@
+# Default ownership — anything not covered by a more specific rule
+# below requires sign-off from the listed reviewer.
+*                                       @Troyqwet
+
+# Critical infrastructure
+.github/                                @Troyqwet
+wrangler.toml                           @Troyqwet
+open-next.config.*                      @Troyqwet
+next.config.*                           @Troyqwet
+package.json                            @Troyqwet
+package-lock.json                       @Troyqwet
+middleware.ts                           @Troyqwet
+
+# Permission catalog + role gating — anything here is security-sensitive
+lib/admin/permissions.ts                @Troyqwet
+lib/admin/role-permissions.ts           @Troyqwet
+lib/admin/require-admin.ts              @Troyqwet
+lib/admin/nav-catalog.ts                @Troyqwet
+app/api/admin/role-permissions/         @Troyqwet
+app/admin/roles/                        @Troyqwet

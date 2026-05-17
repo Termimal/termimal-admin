@@ -34,6 +34,7 @@ export const ADMIN_NAV: NavGroup[] = [
       { label: 'BI',                href: '/admin/bi' },
       { label: 'Funnel',            href: '/admin/funnel' },
       { label: 'Analytics+',        href: '/admin/analytics-extras' },
+      { label: 'Geo Revenue',       href: '/admin/geo-revenue' },
     ],
   },
   {
@@ -41,6 +42,8 @@ export const ADMIN_NAV: NavGroup[] = [
     items: [
       { label: 'User Directory',    href: '/admin/users' },
       { label: 'Top Customers',     href: '/admin/top-customers' },
+      { label: 'Top Referrers',     href: '/admin/top-referrers' },
+      { label: 'Inactive Customers',href: '/admin/inactive-customers' },
       { label: 'Roles',             href: '/admin/roles' },
       { label: 'Permissions',       href: '/admin/roles/permissions' },
       { label: 'Invites',           href: '/admin/invites' },
@@ -96,12 +99,13 @@ export const ADMIN_NAV: NavGroup[] = [
     title: 'EXPERIMENTS',
     items: [
       { label: 'Experiments',       href: '/admin/experiments' },
-      { label: 'Feature Flags',     href: '/admin/feature-flags' },
+      { label: 'Feature Flags',     href: '/admin/flags' },
     ],
   },
   {
     title: 'RELIABILITY',
     items: [
+      { label: 'API Health',        href: '/admin/api-health' },
       { label: 'Errors',            href: '/admin/errors' },
       { label: 'Anomalies',         href: '/admin/anomalies' },
       { label: 'CSP Reports',       href: '/admin/csp-reports' },

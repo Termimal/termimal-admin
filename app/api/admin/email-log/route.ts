@@ -28,6 +28,7 @@ export async function GET(request: Request) {
   const to = (url.searchParams.get('to') || '').trim().toLowerCase()
   const status = (url.searchParams.get('status') || '').trim().toLowerCase()
   const template = (url.searchParams.get('template') || '').trim()
+  const since    = (url.searchParams.get('since') || '').trim()
   const limitRaw = parseInt(url.searchParams.get('limit') || '200', 10)
   const limit = Math.min(Math.max(isFinite(limitRaw) ? limitRaw : 200, 1), 500)
 
@@ -39,6 +40,7 @@ export async function GET(request: Request) {
   if (to)       q = q.ilike('to_addr', `%${to}%`)
   if (status)   q = q.eq('status', status)
   if (template) q = q.eq('template_key', template)
+  if (since)    q = q.gte('created_at', since)
 
   const { data, error } = await q
   if (error) return NextResponse.json({ error: error.message, rows: [] }, { status: 500 })
