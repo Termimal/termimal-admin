@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { supabaseUrl, supabaseAnonKey } from '@/lib/supabase/env'
 
 /**
  * Top-level admin auth gate.
@@ -28,24 +29,11 @@ import { NextResponse, type NextRequest } from 'next/server'
  * line.
  */
 export async function middleware(request: NextRequest) {
-  // TEMP: surface the actual error in production so we can see what's
-  // crashing the worker. Remove this wrapper once the root cause is
-  // identified. The 500 page from Next is opaque and we have no
-  // wrangler tail access from this environment.
-  try {
-    return await middlewareInner(request)
-  } catch (e) {
-    const msg = e instanceof Error ? `${e.name}: ${e.message}\n${e.stack ?? ''}` : String(e)
-    return new NextResponse(`MW-ERR\n${msg}\nenv.NEXT_PUBLIC_SUPABASE_URL=${process.env.NEXT_PUBLIC_SUPABASE_URL ?? '<undef>'}\nenv.NEXT_PUBLIC_SUPABASE_ANON_KEY_SET=${!!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}\nenv.SUPABASE_SERVICE_ROLE_KEY_SET=${!!process.env.SUPABASE_SERVICE_ROLE_KEY}`, { status: 599, headers: { 'content-type': 'text/plain' } })
-  }
-}
-
-async function middlewareInner(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl(),
+    supabaseAnonKey(),
     {
       cookies: {
         getAll() { return request.cookies.getAll() },

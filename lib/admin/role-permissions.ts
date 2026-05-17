@@ -13,11 +13,12 @@
  * route.
  */
 import { createClient } from '@supabase/supabase-js'
+import { supabaseUrl, supabaseServiceRoleKey } from '@/lib/supabase/env'
 
 function adminClient() {
   return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    supabaseUrl(),
+    supabaseServiceRoleKey(),
     { auth: { persistSession: false, autoRefreshToken: false } },
   )
 }

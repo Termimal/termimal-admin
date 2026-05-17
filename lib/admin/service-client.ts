@@ -11,6 +11,7 @@
  * confirmed the caller's identity.
  */
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import { supabaseUrl, supabaseServiceRoleKey } from '@/lib/supabase/env'
 
 // We don't have generated DB types yet — keep the client loosely-typed
 // so admin routes don't fight the compiler. Once `supabase gen types` is
@@ -22,9 +23,9 @@ let _client: LooseClient | null = null
 
 export function serviceClient(): LooseClient {
   if (_client) return _client
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!url || !key) throw new Error('NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required')
+  const url = supabaseUrl()
+  const key = supabaseServiceRoleKey()
+  if (!key) throw new Error('SUPABASE_SERVICE_ROLE_KEY is required (server-only secret)')
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   _client = createClient<any>(url, key, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
