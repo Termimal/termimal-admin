@@ -79,6 +79,7 @@ export default function EmailLogPage() {
   const [status, setStatus]   = useState('all')
   const [toFilter, setTo]     = useState('')
   const [tplFilter, setTpl]   = useState('')
+  const [hours, setHours]     = useState<number | null>(24 * 7)
   const [openId, setOpenId]   = useState<string | null>(null)
 
   const load = async () => {
@@ -88,6 +89,7 @@ export default function EmailLogPage() {
       if (status !== 'all') qs.set('status', status)
       if (toFilter.trim())  qs.set('to', toFilter.trim())
       if (tplFilter.trim()) qs.set('template', tplFilter.trim())
+      if (hours)            qs.set('since', new Date(Date.now() - hours * 3600_000).toISOString())
       const res = await fetch(`/api/admin/email-log?${qs}`, { cache: 'no-store' })
       const j = await res.json()
       if (!res.ok) throw new Error(j.error || `HTTP ${res.status}`)
@@ -99,7 +101,8 @@ export default function EmailLogPage() {
       setLoading(false)
     }
   }
-  useEffect(() => { load() }, [status]) // eslint-disable-line react-hooks/exhaustive-deps
+  // Reload when status or window changes; text filters apply on Enter/Apply.
+  useEffect(() => { load() }, [status, hours]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Deliverability rate (delivered+opened) / sent  — quick health gauge.
   const deliverability = useMemo(() => {
@@ -125,6 +128,32 @@ export default function EmailLogPage() {
 
       {/* Filters */}
       <div style={{ display:'flex', flexDirection:'column', gap:14, marginBottom:20 }}>
+        <div style={{ display:'flex', gap:6, alignItems:'center', flexWrap:'wrap' }}>
+          <span style={{ fontSize: 11, color: 'var(--t4)', fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase' }}>Window</span>
+          {[
+            { label: '24h',  hours: 24 },
+            { label: '7d',   hours: 24 * 7 },
+            { label: '30d',  hours: 24 * 30 },
+            { label: '180d', hours: 24 * 180 },
+            { label: 'All',  hours: null },
+          ].map(w => {
+            const on = hours === w.hours
+            return (
+              <button
+                key={w.label}
+                type="button"
+                onClick={() => setHours(w.hours)}
+                style={{
+                  padding: '6px 12px', borderRadius: 999, cursor: 'pointer',
+                  border: `1px solid ${on ? 'rgba(56,139,253,0.45)' : 'var(--border)'}`,
+                  background: on ? 'var(--blue-bg)' : 'var(--surface)',
+                  color: on ? 'var(--blue)' : 'var(--t3)',
+                  fontSize: 11, fontWeight: 600,
+                }}
+              >{w.label}</button>
+            )
+          })}
+        </div>
         <div style={{ display:'flex', gap:6, alignItems:'center', flexWrap:'wrap' }}>
           <Filter size={13} color="var(--t4)"/>
           {STATUSES.map(s => {

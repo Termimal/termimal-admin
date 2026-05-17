@@ -99,12 +99,13 @@ export const ADMIN_NAV: NavGroup[] = [
     title: 'EXPERIMENTS',
     items: [
       { label: 'Experiments',       href: '/admin/experiments' },
-      { label: 'Feature Flags',     href: '/admin/feature-flags' },
+      { label: 'Feature Flags',     href: '/admin/flags' },
     ],
   },
   {
     title: 'RELIABILITY',
     items: [
+      { label: 'API Health',        href: '/admin/api-health' },
       { label: 'Errors',            href: '/admin/errors' },
       { label: 'Anomalies',         href: '/admin/anomalies' },
       { label: 'CSP Reports',       href: '/admin/csp-reports' },
