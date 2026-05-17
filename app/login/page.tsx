@@ -8,12 +8,18 @@ export default function LoginPage() {
   const [show, setShow]         = useState(false)
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState('')
+  /** Where the API should redirect us after a successful sign-in.
+      Preserved as a same-origin path (e.g. /admin/accept-invite?token=…)
+      so invitees come back to the right place. */
+  const [next, setNext]         = useState<string | null>(null)
 
-  // No-JS fallback: surface any ?error= from the form-encoded redirect.
   useEffect(() => {
     if (typeof window === 'undefined') return
-    const e = new URLSearchParams(window.location.search).get('error')
+    const sp = new URLSearchParams(window.location.search)
+    const e  = sp.get('error')
     if (e) setError(e)
+    const n = sp.get('next')
+    if (n && n.startsWith('/') && !n.startsWith('//')) setNext(n)
   }, [])
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -24,7 +30,7 @@ export default function LoginPage() {
       const res = await fetch('/api/admin/login-bypass', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, next }),
       })
       const j = await res.json().catch(() => ({})) as { ok?: boolean; redirect?: string; error?: string }
       if (!res.ok || !j.ok) {
@@ -76,6 +82,9 @@ export default function LoginPage() {
           action="/api/admin/login-bypass"
           style={{display:'flex',flexDirection:'column',gap:14}}
         >
+          {/* No-JS path: hidden `next` field so login-bypass knows
+              where to 303 us after a successful form-encoded POST. */}
+          {next && <input type="hidden" name="next" value={next} />}
           <div style={{display:'flex',flexDirection:'column',gap:5}}>
             <label style={{fontSize:10.5,fontWeight:700,textTransform:'uppercase',letterSpacing:'.08em',color:'rgba(240,244,255,0.4)'}}>
               Email

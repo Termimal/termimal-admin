@@ -71,6 +71,15 @@ export async function middleware(request: NextRequest) {
     return supabaseResponse
   }
 
+  // /admin/accept-invite is the one page in /admin/* that an
+  // invitee — who BY DEFINITION has no admin role yet — must be
+  // able to reach. We still require an authenticated Supabase
+  // session here (the API handler checks email match + token
+  // validity + writes user_roles), but we skip the role gate so
+  // the page itself can render. Without this, every invite link
+  // bounces through /login → /admin → /unauthorized.
+  const isAcceptInvitePage = path === '/admin/accept-invite'
+
   if (isPage || isApi) {
     if (!user) {
       if (isApi) {
@@ -78,33 +87,48 @@ export async function middleware(request: NextRequest) {
       }
       const url = request.nextUrl.clone()
       url.pathname = '/login'
-      url.searchParams.set('next', path)
+      // Preserve the full original URL (with query string) so the
+      // invitee comes back to /admin/accept-invite?token=… after
+      // signing in. `path` alone would drop the token.
+      const fullNext = path + (request.nextUrl.search || '')
+      url.searchParams.set('next', fullNext)
       return NextResponse.redirect(url)
     }
 
-    // Verify the caller has an admin role. user_roles uses (id, role).
-    // Verify the caller has an admin role. user_roles uses (id, role)
-    // — the id IS the user_id, not a separate column.
-    const { data: role } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('id', user.id)
-      .maybeSingle()
+    if (!isAcceptInvitePage) {
+      // Verify the caller has an admin role. user_roles uses
+      // (id, role) — the id IS the user_id, not a separate column.
+      const { data: role } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('id', user.id)
+        .maybeSingle()
 
-    const isAdmin = role?.role === 'admin' || role?.role === 'super_admin'
-    if (!isAdmin) {
-      if (isApi) {
-        return NextResponse.json({ error: 'forbidden' }, { status: 403 })
+      const isAdmin = role?.role === 'admin' || role?.role === 'super_admin'
+      if (!isAdmin) {
+        if (isApi) {
+          return NextResponse.json({ error: 'forbidden' }, { status: 403 })
+        }
+        const url = request.nextUrl.clone()
+        url.pathname = '/unauthorized'
+        return NextResponse.redirect(url)
       }
-      const url = request.nextUrl.clone()
-      url.pathname = '/unauthorized'
-      return NextResponse.redirect(url)
     }
   }
 
-  // Redirect logged-in admins away from /login → /admin.
-  // Redirect signed-in admins away from /login → /admin.
+  // Redirect signed-in admins away from /login → /admin. The
+  // `next` exception lets an invitee — already signed in but
+  // not yet an admin — get back to /admin/accept-invite after
+  // the login round-trip. Without it the redirect dumps them
+  // on /admin and the token is lost.
   if (path === '/login' && user) {
+    const next = request.nextUrl.searchParams.get('next')
+    if (next && next.startsWith('/admin/accept-invite')) {
+      const url = request.nextUrl.clone()
+      url.pathname = next.split('?')[0]
+      url.search   = next.includes('?') ? '?' + next.split('?')[1] : ''
+      return NextResponse.redirect(url)
+    }
     const url = request.nextUrl.clone()
     url.pathname = '/admin'
     return NextResponse.redirect(url)

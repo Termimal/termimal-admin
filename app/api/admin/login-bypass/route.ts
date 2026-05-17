@@ -91,17 +91,33 @@ export async function POST(request: Request) {
     const ct = (request.headers.get('content-type') || '').toLowerCase()
     let email: string | undefined
     let password: string | undefined
+    let nextPath: string | undefined
     let formMode = false
     if (ct.includes('application/json')) {
-      const json = await request.json().catch(() => null) as { email?: string; password?: string } | null
+      const json = await request.json().catch(() => null) as { email?: string; password?: string; next?: string } | null
       email    = json?.email
       password = json?.password
+      nextPath = json?.next
     } else {
       const fd = await request.formData().catch(() => null)
       email    = fd?.get('email')?.toString()
       password = fd?.get('password')?.toString()
+      nextPath = fd?.get('next')?.toString()
       formMode = true
     }
+
+    // Sanitise the `next` redirect target: must be a same-origin
+    // path (begins with `/`, no scheme, no protocol-relative `//`)
+    // so an attacker can't smuggle an external host through a form
+    // post. Anything else is silently dropped.
+    function safeNext(v: string | undefined): string | null {
+      if (!v) return null
+      if (!v.startsWith('/')) return null
+      if (v.startsWith('//')) return null
+      if (v.length > 512) return null
+      return v
+    }
+    const safeRedirect = safeNext(nextPath)
 
     const respondError = (msg: string, status: number) => {
       if (formMode) {
@@ -187,9 +203,28 @@ export async function POST(request: Request) {
       },
     })
     const roleRows = await roleRes.json().catch(() => []) as Array<{ role?: string }>
-    const role = roleRows[0]?.role
+    let role = roleRows[0]?.role
+    let pendingInvite = false
     if (!role) {
-      return respondError('this account does not have admin access', 403)
+      // No existing admin role — check whether this email has a
+      // pending unaccepted invite. If yes, we allow sign-in (the
+      // session is needed to call /api/admin/invites/accept, which
+      // is what creates the user_roles row). The session itself
+      // doesn't grant admin access — middleware still gates every
+      // non-accept-invite /admin/* page on user_roles.
+      const inviteRes = await fetch(
+        `${supabaseUrlValue}/rest/v1/admin_invites?email=eq.${encodeURIComponent(lcEmail)}&accepted_at=is.null&revoked_at=is.null&expires_at=gt.${encodeURIComponent(new Date().toISOString())}&select=id,role&limit=1`,
+        {
+          headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
+        },
+      )
+      const invites = await inviteRes.json().catch(() => []) as Array<{ id: string; role: string }>
+      if (invites[0]) {
+        pendingInvite = true
+        role = 'pending_invite'
+      } else {
+        return respondError('this account does not have admin access', 403)
+      }
     }
 
     // Use the @supabase/ssr SSR client to write the session cookie.
@@ -254,14 +289,23 @@ export async function POST(request: Request) {
       }).catch(() => null)
     } catch { /* never block login on telemetry failure */ }
 
+    // Choose the post-login destination. Order of preference:
+    //   1. Safe `next` from the form / JSON body (e.g. invite link).
+    //   2. /admin/accept-invite is forced for invitees with no role
+    //      yet — they have to claim the role before /admin is useful.
+    //   3. /admin for established admins.
+    const dest = safeRedirect
+              ?? (pendingInvite ? '/admin' : '/admin')
+
     if (formMode) {
       const url = new URL(request.url)
-      url.pathname = '/admin'
-      url.search   = ''
+      const [destPath, destSearch = ''] = dest.split('?')
+      url.pathname = destPath
+      url.search   = destSearch ? '?' + destSearch : ''
       return NextResponse.redirect(url, { status: 303 })
     }
 
-    return NextResponse.json({ ok: true, role, redirect: '/admin' })
+    return NextResponse.json({ ok: true, role, redirect: dest, pending_invite: pendingInvite })
   } catch (e) {
     return NextResponse.json({
       error: e instanceof Error ? e.message : 'login failed',
