@@ -57,12 +57,23 @@ export async function POST(request: Request) {
       .upsert({ id: user.id, role: invite.role }, { onConflict: 'id' })
     if (roleErr) return NextResponse.json({ error: roleErr.message }, { status: 500 })
 
-    // Mark accepted.
-    await sb
+    // Mark accepted. `accepted_by` was a planned audit column that
+    // was never added to the table — writing it silently rejected
+    // the whole UPDATE (the previous `.then(() => null, () => null)`
+    // ate the error), so every accepted invite kept showing as
+    // "Pending" on /admin/invites. Drop the nonexistent column and
+    // surface real errors instead of swallowing them.
+    const { error: markErr } = await sb
       .from('admin_invites')
-      .update({ accepted_at: new Date().toISOString(), accepted_by: user.id })
+      .update({ accepted_at: new Date().toISOString() })
       .eq('id', invite.id)
-      .then(() => null, () => null)
+    if (markErr) {
+      // The role was already granted above — best to log the
+      // half-applied state and return ok so the invitee isn't
+      // left stuck. Surfacing the error here also stops similar
+      // schema-drift bugs from hiding for weeks at a time.
+      console.error('admin_invites.accept: failed to set accepted_at', markErr.message, 'invite=', invite.id)
+    }
 
     // Audit.
     await sb.from('audit_logs').insert({

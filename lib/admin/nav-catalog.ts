@@ -44,6 +44,7 @@ export const ADMIN_NAV: NavGroup[] = [
       { label: 'Top Customers',     href: '/admin/top-customers' },
       { label: 'Top Referrers',     href: '/admin/top-referrers' },
       { label: 'Inactive Customers',href: '/admin/inactive-customers' },
+      { label: 'Admin Panel Users', href: '/admin/staff' },
       { label: 'Roles',             href: '/admin/roles' },
       { label: 'Permissions',       href: '/admin/roles/permissions' },
       { label: 'Invites',           href: '/admin/invites' },
