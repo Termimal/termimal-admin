@@ -147,6 +147,131 @@ img, picture, video, canvas, svg { display: block; max-width: 100%; }
   border-radius: var(--r-sm);
 }
 
+/* ── Base element styles: every bare <input>, <select>, <textarea> in
+   the admin tree looks Revolut-clean by default, even when the page
+   author forgot to apply className="input" / "select". Pages that
+   explicitly use the named classes still win because those have
+   stronger specificity via the `&` in component scope. Pages can
+   opt out by adding their own className that overrides background
+   / border. */
+input[type="text"]:not(.input):not([class*="next-"]):not([class*="rt-"]),
+input[type="email"]:not(.input):not([class*="next-"]):not([class*="rt-"]),
+input[type="password"]:not(.input):not([class*="next-"]):not([class*="rt-"]),
+input[type="number"]:not(.input):not([class*="next-"]):not([class*="rt-"]),
+input[type="search"]:not(.input):not([class*="next-"]):not([class*="rt-"]),
+input[type="url"]:not(.input):not([class*="next-"]):not([class*="rt-"]),
+input[type="tel"]:not(.input):not([class*="next-"]):not([class*="rt-"]),
+input[type="date"]:not(.input):not([class*="next-"]):not([class*="rt-"]),
+input[type="datetime-local"]:not(.input):not([class*="next-"]):not([class*="rt-"]),
+input[type="time"]:not(.input):not([class*="next-"]):not([class*="rt-"]),
+input:not([type]):not(.input):not([class*="next-"]):not([class*="rt-"]),
+textarea:not(.input):not([class*="next-"]):not([class*="rt-"]),
+select:not(.select):not([class*="next-"]):not([class*="rt-"]) {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 13.5px;
+  line-height: 1.4;
+  font-family: inherit;
+  background: linear-gradient(180deg, var(--bg3) 0%, var(--bg2) 100%);
+  border: 1px solid var(--border2);
+  color: var(--t1);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.03),
+    0 1px 0 rgba(0,0,0,0.18);
+  outline: none;
+  transition: border-color var(--ease), box-shadow var(--ease), background var(--ease);
+}
+textarea:not(.input):not([class*="next-"]):not([class*="rt-"]) {
+  min-height: 88px;
+  resize: vertical;
+  line-height: 1.5;
+  font-family: inherit;
+}
+input:not(.input):not([class*="next-"]):not([class*="rt-"]):hover,
+textarea:not(.input):not([class*="next-"]):not([class*="rt-"]):hover,
+select:not(.select):not([class*="next-"]):not([class*="rt-"]):hover {
+  border-color: var(--border3);
+}
+input:not(.input):not([class*="next-"]):not([class*="rt-"]):focus,
+textarea:not(.input):not([class*="next-"]):not([class*="rt-"]):focus,
+select:not(.select):not([class*="next-"]):not([class*="rt-"]):focus {
+  border-color: var(--acc);
+  box-shadow:
+    0 0 0 3px var(--acc-bg),
+    inset 0 1px 0 rgba(255,255,255,0.04);
+}
+input:not(.input):not([class*="next-"])::placeholder,
+textarea:not(.input):not([class*="next-"])::placeholder {
+  color: var(--t4);
+}
+select:not(.select):not([class*="next-"]):not([class*="rt-"]) {
+  cursor: pointer;
+  appearance: none;
+  background-image:
+    linear-gradient(180deg, var(--bg3) 0%, var(--bg2) 100%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(240,240,244,0.4)' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat, no-repeat;
+  background-position: 0 0, right 10px center;
+  padding-right: 32px;
+}
+
+/* Disabled state across all form controls. */
+input:disabled, textarea:disabled, select:disabled, button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Generic <button> — bare buttons in the admin tree get a sensible
+   default (looks like btn-secondary). Pages using .btn-primary /
+   .btn-danger / .btn-ghost / .btn-sm keep their stronger styles. */
+button:not(.btn):not(.btn-primary):not(.btn-secondary):not(.btn-ghost):not(.btn-danger):not(.btn-sm):not(.btn-xs):not(.toggle):not([class*="next-"]):not([class*="rt-"]):not([data-no-style]) {
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: -0.005em;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--t2);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: border-color var(--ease), background var(--ease), color var(--ease), transform var(--ease);
+}
+button:not(.btn):not(.btn-primary):not(.btn-secondary):not(.btn-ghost):not(.btn-danger):not(.btn-sm):not(.btn-xs):not(.toggle):not([class*="next-"]):not([class*="rt-"]):not([data-no-style]):hover {
+  border-color: var(--border2);
+  background: rgba(255,255,255,0.09);
+  color: var(--t1);
+}
+button:not(.btn):not(.btn-primary):not(.btn-secondary):not(.btn-ghost):not(.btn-danger):not(.btn-sm):not(.btn-xs):not(.toggle):not([class*="next-"]):not([class*="rt-"]):not([data-no-style]):active {
+  transform: scale(0.97);
+}
+
+/* Inline checkboxes / radios — base styling so they don't look like
+   1996 OS chrome. */
+input[type="checkbox"],
+input[type="radio"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--acc);
+  cursor: pointer;
+}
+
+/* Form group spacing — labels above inputs feel breathy. */
+label:not([class]):not([class=""]) {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--t4);
+  margin-bottom: 6px;
+}
+
 @layer components {
   .btn,
   .btn-primary,
