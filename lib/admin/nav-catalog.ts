@@ -34,6 +34,7 @@ export const ADMIN_NAV: NavGroup[] = [
       { label: 'BI',                href: '/admin/bi' },
       { label: 'Funnel',            href: '/admin/funnel' },
       { label: 'Analytics+',        href: '/admin/analytics-extras' },
+      { label: 'Geo Revenue',       href: '/admin/geo-revenue' },
     ],
   },
   {
@@ -41,6 +42,8 @@ export const ADMIN_NAV: NavGroup[] = [
     items: [
       { label: 'User Directory',    href: '/admin/users' },
       { label: 'Top Customers',     href: '/admin/top-customers' },
+      { label: 'Top Referrers',     href: '/admin/top-referrers' },
+      { label: 'Inactive Customers',href: '/admin/inactive-customers' },
       { label: 'Roles',             href: '/admin/roles' },
       { label: 'Permissions',       href: '/admin/roles/permissions' },
       { label: 'Invites',           href: '/admin/invites' },
