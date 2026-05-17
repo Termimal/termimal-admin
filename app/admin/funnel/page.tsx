@@ -21,7 +21,7 @@ export const dynamic = 'force-dynamic'
  */
 
 import { useEffect, useMemo, useState } from 'react'
-import { TrendingUp, Users, RefreshCw, Calendar, ArrowDown } from 'lucide-react'
+import { TrendingUp, Users, RefreshCw, Calendar, ArrowDown, Repeat } from 'lucide-react'
 import { HeroCard, Section, EmptyState } from '@/components/admin/PageChrome'
 
 interface Step {
@@ -29,6 +29,14 @@ interface Step {
   step_order:  number
   users:       number
   conversion:  number
+}
+
+interface RetentionRow {
+  cohort_month:   string
+  month_offset:   number
+  cohort_size:    number
+  retained:       number
+  retention_pct:  number
 }
 
 function fmtPct(n: number): string {
@@ -63,6 +71,10 @@ export default function FunnelPage() {
   const [steps, setSteps] = useState<Step[]>([])
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
+  const [retentionMonths, setRetentionMonths] = useState(6)
+  const [retentionRows, setRetentionRows]     = useState<RetentionRow[]>([])
+  const [retentionLoad,  setRetentionLoad]    = useState(true)
+  const [retentionErr,   setRetentionErr]     = useState('')
 
   const setPreset = (days: number) => {
     const toD = new Date()
@@ -93,6 +105,23 @@ export default function FunnelPage() {
     }
   }
   useEffect(() => { load() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Cohort retention — independent of funnel window; uses signup-month
+  // bucketing so we always see the last N months of cohorts.
+  const loadRetention = async () => {
+    setRetentionLoad(true); setRetentionErr('')
+    try {
+      const r = await fetch(`/api/admin/analytics-extras?view=retention&months=${retentionMonths}`, { cache: 'no-store' })
+      const j = await r.json() as { rows?: RetentionRow[]; error?: string }
+      if (!r.ok || j.error) throw new Error(j.error || `HTTP ${r.status}`)
+      setRetentionRows(j.rows || [])
+    } catch (e) {
+      setRetentionErr(e instanceof Error ? e.message : 'Failed to load')
+    } finally {
+      setRetentionLoad(false)
+    }
+  }
+  useEffect(() => { loadRetention() }, [retentionMonths]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const top = useMemo(() => steps.find(s => s.step_order === 1)?.users || 0, [steps])
 
@@ -216,6 +245,189 @@ export default function FunnelPage() {
           </div>
         )}
       </Section>
+
+      <CohortRetentionSection
+        rows={retentionRows}
+        loading={retentionLoad}
+        err={retentionErr}
+        months={retentionMonths}
+        onMonths={setRetentionMonths}
+        onRefresh={loadRetention}
+      />
     </div>
+  )
+}
+
+/**
+ * CohortRetentionSection
+ *
+ * Heatmap: rows are signup months, columns are M0..MN (months since
+ * signup). Cell shade encodes retention_pct (0 → red-amber-green ramp).
+ * Cohort sizes shown alongside so a single small cohort doesn't get
+ * mistaken for a trend.
+ *
+ * Summary cards on top: average M1 and M3 retention across all
+ * cohorts that have data at those offsets, weighted by cohort_size.
+ */
+function CohortRetentionSection({
+  rows, loading, err, months, onMonths, onRefresh,
+}: {
+  rows: RetentionRow[]; loading: boolean; err: string;
+  months: number; onMonths: (n: number) => void; onRefresh: () => void
+}) {
+  const byMonth = useMemo(() => {
+    const m = new Map<string, RetentionRow[]>()
+    for (const r of rows) {
+      if (!m.has(r.cohort_month)) m.set(r.cohort_month, [])
+      m.get(r.cohort_month)!.push(r)
+    }
+    return m
+  }, [rows])
+
+  const cohorts = useMemo(() => {
+    return [...byMonth.entries()]
+      .map(([month, points]) => ({
+        month,
+        size: points[0]?.cohort_size || 0,
+        byOffset: new Map(points.map(p => [p.month_offset, p])),
+      }))
+      .sort((a, b) => b.month.localeCompare(a.month))
+  }, [byMonth])
+
+  const maxOffset = useMemo(() => {
+    let m = 0
+    for (const r of rows) if (r.month_offset > m) m = r.month_offset
+    return Math.max(m, 6)
+  }, [rows])
+  const offsets = useMemo(() => Array.from({ length: maxOffset + 1 }, (_, i) => i), [maxOffset])
+
+  // Weighted averages at M1 / M3 across all cohorts that *could* have
+  // reached that offset. A cohort that signed up last week can't have
+  // a real M3 reading yet, so we skip them in the denominator.
+  const weighted = useMemo(() => {
+    const sum = (offset: number) => {
+      let retained = 0
+      let total    = 0
+      for (const c of cohorts) {
+        const row = c.byOffset.get(offset)
+        if (!row) continue
+        retained += row.retained
+        total    += c.size
+      }
+      return total === 0 ? null : (retained / total) * 100
+    }
+    return { m1: sum(1), m3: sum(3), m6: sum(6) }
+  }, [cohorts])
+
+  // Color ramp: 0% → muted red; 50% → amber; ≥80% → green.
+  const cellTone = (pct: number) => {
+    if (pct <= 0) return { bg: 'transparent', fg: 'var(--t4)' }
+    if (pct < 25)  return { bg: 'rgba(248,113,113,0.18)', fg: 'var(--red)' }
+    if (pct < 50)  return { bg: 'rgba(245,158,11,0.18)', fg: 'var(--amber)' }
+    if (pct < 75)  return { bg: 'rgba(56,139,253,0.18)', fg: 'var(--blue)' }
+    return            { bg: 'rgba(45,212,164,0.22)', fg: 'var(--acc)' }
+  }
+
+  return (
+    <Section
+      accent="purple"
+      title="Cohort retention"
+      description="Each row is a signup month. Each column is months since signup. Brighter green = stickier cohort. Read down each column to see whether retention is improving for newer cohorts."
+    >
+      {/* Toolbar — month-range picker + refresh */}
+      <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:14, flexWrap:'wrap' }}>
+        <Repeat size={13} color="var(--t4)"/>
+        {[3, 6, 9, 12].map(n => (
+          <button key={n} onClick={() => onMonths(n)} className="btn btn-secondary btn-sm" style={{
+            fontSize:11, minHeight:28,
+            background: months === n ? 'rgba(167,139,250,0.16)' : undefined,
+            color:      months === n ? '#a78bfa' : undefined,
+            borderColor:months === n ? 'rgba(167,139,250,0.4)' : undefined,
+          }}>{n}m</button>
+        ))}
+        <button className="btn btn-secondary btn-sm" onClick={onRefresh} disabled={loading} style={{ marginLeft:'auto', minHeight:30 }}>
+          <RefreshCw size={12}/> Refresh
+        </button>
+      </div>
+
+      {/* Summary trio */}
+      <div style={{
+        display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(180px, 1fr))',
+        gap:10, marginBottom:16,
+      }}>
+        {[
+          { label: 'M1 retention', value: weighted.m1 },
+          { label: 'M3 retention', value: weighted.m3 },
+          { label: 'M6 retention', value: weighted.m6 },
+        ].map(card => {
+          const v = card.value
+          const tone = v === null ? cellTone(0) : cellTone(v)
+          return (
+            <div key={card.label} className="card-premium" style={{ padding:'14px 16px' }}>
+              <div style={{ fontSize:10.5, color:'var(--t4)', textTransform:'uppercase', letterSpacing:'0.07em', fontWeight:700 }}>{card.label}</div>
+              <div style={{ marginTop:6, fontSize:24, fontWeight:800, color: v === null ? 'var(--t4)' : tone.fg, lineHeight:1 }}>
+                {v === null ? '—' : `${v.toFixed(1)}%`}
+              </div>
+              <div style={{ marginTop:4, fontSize:11, color:'var(--t4)' }}>weighted across cohorts</div>
+            </div>
+          )
+        })}
+      </div>
+
+      {loading ? (
+        <div className="skeleton" style={{ height:260, borderRadius:14 }}/>
+      ) : err ? (
+        <EmptyState icon={<Repeat size={20}/>} title="Couldn't load cohorts" description={err}/>
+      ) : cohorts.length === 0 ? (
+        <EmptyState
+          icon={<Repeat size={20}/>}
+          title="No cohort data yet"
+          description="Need at least one signup and a few login_events rows. The RPC keys retention off login_events.created_at, so the dashboard has to be receiving sign-ins for this chart to populate."
+        />
+      ) : (
+        <div style={{ overflowX:'auto', borderRadius:14, border:'1px solid var(--border)' }}>
+          <table style={{ width:'100%', borderCollapse:'separate', borderSpacing:0, fontSize:12 }}>
+            <thead>
+              <tr style={{ background:'var(--bg3)' }}>
+                <th style={{ padding:'10px 14px', textAlign:'left', fontWeight:700, color:'var(--t3)', textTransform:'uppercase', letterSpacing:'0.05em', fontSize:10.5, position:'sticky', left:0, background:'var(--bg3)', zIndex:1 }}>Cohort</th>
+                <th style={{ padding:'10px 14px', textAlign:'right', fontWeight:700, color:'var(--t3)', textTransform:'uppercase', letterSpacing:'0.05em', fontSize:10.5 }}>Size</th>
+                {offsets.map(i => (
+                  <th key={i} style={{ padding:'10px 12px', textAlign:'center', fontWeight:700, color:'var(--t3)', textTransform:'uppercase', letterSpacing:'0.05em', fontSize:10.5, minWidth:54 }}>M{i}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {cohorts.map(c => (
+                <tr key={c.month} style={{ borderTop:'1px solid var(--border)' }}>
+                  <td style={{ padding:'10px 14px', fontWeight:700, color:'var(--t1)', position:'sticky', left:0, background:'var(--bg2)', zIndex:1, borderTop:'1px solid var(--border)' }}>
+                    {new Date(c.month).toLocaleDateString(undefined, { month:'short', year:'numeric' })}
+                  </td>
+                  <td style={{ padding:'10px 14px', textAlign:'right', fontVariantNumeric:'tabular-nums', color:'var(--t2)', fontFamily:'ui-monospace, Menlo, Consolas, monospace' }}>
+                    {c.size.toLocaleString()}
+                  </td>
+                  {offsets.map(i => {
+                    const row = c.byOffset.get(i)
+                    if (!row) {
+                      return <td key={i} style={{ padding:'10px 12px', textAlign:'center', color:'var(--t5,#404040)' }}>·</td>
+                    }
+                    const tone = cellTone(row.retention_pct)
+                    return (
+                      <td key={i} title={`${row.retained} of ${row.cohort_size} retained`} style={{
+                        padding:'10px 12px', textAlign:'center',
+                        background: tone.bg, color: tone.fg,
+                        fontVariantNumeric:'tabular-nums', fontWeight:600,
+                        borderLeft:'1px solid var(--bg)',
+                      }}>
+                        {row.retention_pct}%
+                      </td>
+                    )
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </Section>
   )
 }

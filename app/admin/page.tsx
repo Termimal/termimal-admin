@@ -11,6 +11,7 @@ import {
   Settings, RefreshCw, Star, Crown,
 } from 'lucide-react'
 import { HeroCard } from '@/components/admin/PageChrome'
+import LiveActivityStream from '@/components/admin/LiveActivityStream'
 
 function adminClient() {
   return createClient(
@@ -27,6 +28,7 @@ interface PlanCounts { free: number; starter: number; pro: number; premium: numb
 async function fetchDashboard() {
   const sb = adminClient()
   const sinceToday = new Date(Date.now() - 86400 * 1000).toISOString()
+  const since30d   = new Date(Date.now() - 30 * 86400 * 1000).toISOString()
 
   const [
     { count: totalUsers },
@@ -35,6 +37,9 @@ async function fetchDashboard() {
     { count: signupsToday },
     { count: pendingReferrals },
     { data: paidRows },
+    // 30 days of profile.created_at for the sparkline. Just the
+    // timestamp column — we bucket by day on the server below.
+    { data: signupTs },
   ] = await Promise.all([
     sb.from('profiles').select('*', { count: 'exact', head: true }),
     sb.from('profiles').select('plan').not('plan', 'is', null),
@@ -45,7 +50,24 @@ async function fetchDashboard() {
     sb.from('profiles').select('plan')
       .in('subscription_status', ['active', 'past_due'])
       .not('stripe_subscription_id', 'is', null),
+    sb.from('profiles').select('created_at').gte('created_at', since30d),
   ])
+
+  // Bucket signups into a fixed 30-element array (oldest → newest)
+  // so the renderer can compute a sparkline without per-row work.
+  const signups30d: { date: string; count: number }[] = []
+  const today = new Date(); today.setUTCHours(0, 0, 0, 0)
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(today.getTime() - i * 86400 * 1000)
+    signups30d.push({ date: d.toISOString().slice(0, 10), count: 0 })
+  }
+  const indexByDay = new Map<string, number>()
+  signups30d.forEach((s, i) => indexByDay.set(s.date, i))
+  for (const row of (signupTs ?? []) as Array<{ created_at: string }>) {
+    const k = row.created_at?.slice(0, 10)
+    const idx = k ? indexByDay.get(k) : undefined
+    if (idx != null) signups30d[idx].count++
+  }
 
   const counts: PlanCounts = { free: 0, starter: 0, pro: 0, premium: 0 }
   ;(planRows ?? []).forEach((p: { plan?: string }) => {
@@ -68,7 +90,62 @@ async function fetchDashboard() {
     signupsToday: signupsToday ?? 0,
     pendingReferrals: pendingReferrals ?? 0,
     recentUsers: recentUsers ?? [],
+    signups30d,
   }
+}
+
+/* ── Sparkline ──────────────────────────────────────────────────
+ * Tiny pure-SVG line chart for the daily-signup trend. Renders
+ * inline, no client component, no chart library. Reads:
+ *   data:  { date, count }[]
+ * Sizes to 100% width of its container with a fixed aspect ratio
+ * so it scales cleanly on the dashboard. */
+function Sparkline({ data, height = 64 }: {
+  data:    { date: string; count: number }[]
+  height?: number
+}) {
+  if (data.length < 2) return null
+  const maxRaw = Math.max(...data.map(d => d.count))
+  const max    = Math.max(1, maxRaw)   // never divide by 0
+  // viewBox X = 0..(N-1) scaled, Y = 0..height
+  const w = data.length - 1
+  const points = data.map((d, i) => {
+    const y = height - (d.count / max) * (height - 4) - 2  // 2px margin
+    return `${i},${+y.toFixed(2)}`
+  }).join(' ')
+  // Filled area path closes back to baseline.
+  const area = `${data.map((d, i) => {
+    const y = height - (d.count / max) * (height - 4) - 2
+    return `${i === 0 ? 'M' : 'L'}${i},${+y.toFixed(2)}`
+  }).join(' ')} L${w},${height} L0,${height} Z`
+  const total = data.reduce((s, d) => s + d.count, 0)
+  return (
+    <div style={{ position: 'relative', width: '100%' }}>
+      <svg
+        viewBox={`0 0 ${w} ${height}`}
+        preserveAspectRatio="none"
+        style={{ width: '100%', height, display: 'block' }}
+        aria-label={`${total} signups in the last 30 days`}
+      >
+        <defs>
+          <linearGradient id="spark-fill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"   stopColor="var(--acc)" stopOpacity="0.35"/>
+            <stop offset="100%" stopColor="var(--acc)" stopOpacity="0"/>
+          </linearGradient>
+        </defs>
+        <path d={area} fill="url(#spark-fill)"/>
+        <polyline
+          points={points}
+          fill="none"
+          stroke="var(--acc)"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
+        />
+      </svg>
+    </div>
+  )
 }
 
 const PLAN_BADGE: Record<string, string> = {
@@ -193,6 +270,33 @@ export default async function AdminDashboard() {
           secondary: <>{data.totalUsers ? Math.round(data.paying / data.totalUsers * 100) : 0}% conversion</>,
         }}
       />
+
+      {/* 30-day signup trend — slim, reads like a heartbeat strip.
+          Pure SVG: no client component, no chart lib, ~3KB. */}
+      <div
+        className="card-premium"
+        style={{
+          padding: '20px 24px',
+          marginBottom: 28,
+          display: 'grid',
+          gridTemplateColumns: '1fr 2fr',
+          gap: 28,
+          alignItems: 'center',
+        }}
+      >
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--t4)', marginBottom: 6 }}>
+            Last 30 days
+          </div>
+          <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--t1)', letterSpacing: '-0.02em', lineHeight: 1 }}>
+            {data.signups30d.reduce((s, d) => s + d.count, 0).toLocaleString()}
+          </div>
+          <div style={{ fontSize: 13, color: 'var(--t3)', marginTop: 4 }}>
+            new signups
+          </div>
+        </div>
+        <Sparkline data={data.signups30d}/>
+      </div>
 
       {/* 4 large KPI cards — 2x2 grid on desktop, 1-col on mobile */}
       <div style={{
@@ -343,6 +447,11 @@ export default async function AdminDashboard() {
           </Link>
         </div>
       </div>
+
+      {/* Live activity feed — polls audit_logs every 10s. Drops in
+          right above the Recent signups table so an admin opening
+          the dashboard immediately sees "what's happening now". */}
+      <LiveActivityStream/>
 
       {/* Recent signups — full-width table with generous padding */}
       <div className="card-premium" style={{ marginBottom: 32, overflow: 'hidden' }}>

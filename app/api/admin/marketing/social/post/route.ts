@@ -55,8 +55,22 @@ async function ensureFresh(conn: Conn): Promise<string> {
 }
 
 export async function POST(request: Request) {
-  const gate = await requireAdmin('content.write')
-  if (gate.ok === false) return gate.response
+  // Internal-call bypass: the scheduled `/api/admin/cron/tick`
+  // drains queued social_post items by re-invoking this endpoint.
+  // It can't carry an admin JWT (cron runs unattended), so accept
+  // the same CRON_SECRET we already use to authenticate the tick
+  // endpoint itself. Any other request still goes through the
+  // standard requireAdmin('content.write') gate.
+  const cronSecret = request.headers.get('x-cron-secret')
+  const isInternalCron =
+    !!process.env.CRON_SECRET && cronSecret === process.env.CRON_SECRET
+
+  let actorId: string = 'cron'
+  if (!isInternalCron) {
+    const gate = await requireAdmin('content.write')
+    if (gate.ok === false) return gate.response
+    actorId = gate.user.id
+  }
 
   const body = await request.json().catch(() => null) as { platform?: string; text?: string } | null
   if (!body?.platform || !body?.text?.trim()) return NextResponse.json({ error: 'platform + text required' }, { status: 400 })
@@ -136,7 +150,7 @@ export async function POST(request: Request) {
   }
 
   await sb.from('audit_logs').insert({
-    user_id: gate.user.id, action: 'social.post',
+    user_id: actorId === 'cron' ? null : actorId, action: 'social.post',
     entity_type: 'social_connection', entity_id: conn.id,
     metadata: { platform, handle: conn.handle, len: body.text.length, ok: result.ok },
   }).then(() => null, () => null)

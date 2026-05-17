@@ -34,20 +34,23 @@ async function drainSocialQueue(): Promise<{ posted: number; failed: number }> {
   let posted = 0, failed = 0
   for (const it of due) {
     const text = it.description || it.title
-    // tags hold the platform list e.g. ['x','linkedin']
-    const platforms = (it.tags ?? []).filter(t => ['x','linkedin','threads','facebook','instagram'].includes(t))
-    let allOk = true
+    // Platforms with working post adapters (matches the POST endpoint
+    // allowlist). Bluesky + Mastodon are the genuinely free, no-OAuth
+    // platforms; X needs an OAuth connection. linkedin/threads/
+    // facebook/instagram remain placeholders until OAuth lands.
+    const SUPPORTED = new Set(['x', 'bluesky', 'mastodon'])
+    const platforms = (it.tags ?? []).filter(t => SUPPORTED.has(t))
+    let allOk = platforms.length > 0
     for (const platform of platforms) {
       try {
-        // Re-issue through the post endpoint — auto-refreshes the token if needed.
+        // POST endpoint accepts X-Cron-Secret as an internal-call
+        // bypass for the JWT gate. Same secret as this endpoint —
+        // a single CRON_SECRET value covers all server-side jobs.
         const base = process.env.NEXT_PUBLIC_ADMIN_URL || 'https://bo.termimal.com'
         const res = await fetch(`${base}/api/admin/marketing/social/post`, {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
-            // Service-role-bypass header — our route doesn't accept this, so
-            // posting from here actually requires JWT. For now we log failure;
-            // a follow-up will make /post accept an internal token.
+            'Content-Type':  'application/json',
             'X-Cron-Secret': process.env.CRON_SECRET || '',
           },
           body: JSON.stringify({ platform, text }),
@@ -55,7 +58,8 @@ async function drainSocialQueue(): Promise<{ posted: number; failed: number }> {
         if (!res.ok) { allOk = false; failed++ } else { posted++ }
       } catch { allOk = false; failed++ }
     }
-    // Mark done regardless — we don't infinitely retry.
+    // Mark done regardless — we don't infinitely retry. `blocked`
+    // keeps the row on the Open Items board for the operator.
     await sb.from('admin_items').update({ status: allOk ? 'done' : 'blocked' }).eq('id', it.id)
   }
   return { posted, failed }

@@ -52,6 +52,24 @@ export async function middleware(request: NextRequest) {
   const isPage = path.startsWith('/admin')
   const isApi  = path.startsWith('/api/admin')
 
+  // ── Login-flow exemptions ─────────────────────────────────────
+  // The middleware gates /api/admin/* with `unauthenticated` for
+  // missing sessions. That's correct for every admin endpoint
+  // EXCEPT the login flow itself — those endpoints exist to create
+  // the session a caller is about to have. Without these exemptions
+  // the login form POSTs to /api/admin/login-bypass, the middleware
+  // sees no session, and returns `{error:"unauthenticated"}` before
+  // the route handler ever runs. The login form then renders the
+  // string verbatim as the error message — which is the bug the
+  // user reported on the login screen.
+  const isLoginEndpoint =
+       path === '/api/admin/login-bypass'
+    || path === '/api/admin/logout'
+    || path === '/api/admin/invites/accept'   // invite-accept hits before a session exists
+  if (isLoginEndpoint) {
+    return supabaseResponse
+  }
+
   if (isPage || isApi) {
     if (!user) {
       if (isApi) {

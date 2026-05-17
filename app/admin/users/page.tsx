@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Users, Search, ChevronLeft, ChevronRight, UserCheck, TestTube2, Building2, Crown, RefreshCw } from 'lucide-react'
+import { Users, Search, ChevronLeft, ChevronRight, UserCheck, TestTube2, Building2, Crown, RefreshCw, Download } from 'lucide-react'
 import { HeroCard } from '@/components/admin/PageChrome'
 
 type UserRow = {
@@ -63,7 +63,15 @@ export default function AdminUsersPage() {
         }}
       />
 
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 20 }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginBottom: 20 }}>
+        <a
+          href={`/api/admin/users/export?${new URLSearchParams({ search, plan: planFilter }).toString()}`}
+          className="btn btn-secondary btn-sm"
+          style={{ minHeight: 38 }}
+          title="Download a CSV of every profile matching the current filter (up to 10,000 rows). The export is audit-logged."
+        >
+          <Download size={13}/> Export CSV
+        </a>
         <button
           onClick={() => load()}
           className="btn btn-secondary btn-sm"
