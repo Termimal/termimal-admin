@@ -14,8 +14,34 @@ export const dynamic = 'force-dynamic'
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
-import { Search, Loader2, User, CreditCard, History, X, Filter } from 'lucide-react'
+import { Search, Loader2, User, CreditCard, History, X, Filter, Bookmark, Trash2, Star } from 'lucide-react'
 import { PageHeader, Section, EmptyState } from '@/components/admin/PageChrome'
+
+const SAVED_KEY = 'termimal-admin-saved-searches:v1'
+
+interface SavedSearch {
+  id:    string
+  label: string
+  query: string
+  added: number
+}
+
+function loadSaved(): SavedSearch[] {
+  if (typeof window === 'undefined') return []
+  try {
+    const raw = window.localStorage.getItem(SAVED_KEY)
+    if (!raw) return []
+    const parsed = JSON.parse(raw) as SavedSearch[]
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+function persistSaved(list: SavedSearch[]) {
+  if (typeof window === 'undefined') return
+  try { window.localStorage.setItem(SAVED_KEY, JSON.stringify(list)) } catch { /* quota / disabled — fine */ }
+}
 
 interface UserHit {
   id:                   string
@@ -56,8 +82,43 @@ export default function SearchPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError]     = useState<string | null>(null)
   const [touched, setTouched] = useState(false)
+  const [saved, setSaved]     = useState<SavedSearch[]>([])
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const inputRef    = useRef<HTMLInputElement>(null)
+
+  // Hydrate saved searches from localStorage on mount.
+  useEffect(() => { setSaved(loadSaved()) }, [])
+
+  const saveCurrent = () => {
+    const trimmed = q.trim()
+    if (trimmed.length < 2) return
+    const label = window.prompt('Name this saved search:', trimmed) || trimmed
+    const item: SavedSearch = {
+      id:    `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      label: label.trim() || trimmed,
+      query: trimmed,
+      added: Date.now(),
+    }
+    setSaved(prev => {
+      // De-dupe by query; newest position wins.
+      const next = [item, ...prev.filter(p => p.query !== item.query)].slice(0, 20)
+      persistSaved(next)
+      return next
+    })
+  }
+
+  const removeSaved = (id: string) => {
+    setSaved(prev => {
+      const next = prev.filter(s => s.id !== id)
+      persistSaved(next)
+      return next
+    })
+  }
+
+  const applySaved = (s: SavedSearch) => {
+    setQ(s.query)
+    inputRef.current?.focus()
+  }
 
   const search = useCallback(async (query: string) => {
     if (query.trim().length < 2) {
@@ -121,6 +182,17 @@ export default function SearchPage() {
             />
             <div style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center', gap: 8 }}>
               {loading && <Loader2 size={14} className="animate-spin" style={{ color: 'var(--t3)' }}/>}
+              {q.trim().length >= 2 && !loading && (
+                <button
+                  type="button"
+                  onClick={saveCurrent}
+                  aria-label="Save this search"
+                  title="Save this search for later"
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--t3)', padding: 4 }}
+                >
+                  <Bookmark size={14}/>
+                </button>
+              )}
               {q && !loading && (
                 <button
                   type="button"
@@ -133,6 +205,48 @@ export default function SearchPage() {
               )}
             </div>
           </div>
+
+          {/* Saved searches row — only shows when the user has at least one. */}
+          {saved.length > 0 && (
+            <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--t4)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+                <Star size={11}/> Saved
+              </span>
+              {saved.map(s => (
+                <span key={s.id} style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  padding: '4px 4px 4px 10px', borderRadius: 999,
+                  background: 'var(--surface)', border: '1px solid var(--border)',
+                  fontSize: 11.5, fontWeight: 600,
+                }}>
+                  <button
+                    type="button"
+                    onClick={() => applySaved(s)}
+                    title={s.query}
+                    style={{
+                      background: 'transparent', border: 'none', cursor: 'pointer',
+                      color: 'var(--t1)', padding: 0, fontWeight: 'inherit',
+                      fontSize: 'inherit',
+                    }}
+                  >
+                    {s.label}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => removeSaved(s.id)}
+                    aria-label={`Remove saved search ${s.label}`}
+                    style={{
+                      background: 'transparent', border: 'none', cursor: 'pointer',
+                      color: 'var(--t4)', padding: '2px 4px', borderRadius: 999,
+                      display: 'inline-flex', alignItems: 'center',
+                    }}
+                  >
+                    <Trash2 size={11}/>
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
 
           {/* Quick filter hints */}
           {!touched && (

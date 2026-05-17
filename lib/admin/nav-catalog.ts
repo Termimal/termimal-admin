@@ -40,6 +40,7 @@ export const ADMIN_NAV: NavGroup[] = [
     title: 'USERS & ROLES',
     items: [
       { label: 'User Directory',    href: '/admin/users' },
+      { label: 'Top Customers',     href: '/admin/top-customers' },
       { label: 'Roles',             href: '/admin/roles' },
       { label: 'Permissions',       href: '/admin/roles/permissions' },
       { label: 'Invites',           href: '/admin/invites' },
